@@ -64,6 +64,8 @@
   - [x] DEPENDENCIES.md
 - [x] Инициализировать Git репозиторий
 - [x] Подключить к GitHub репозиторию (https://github.com/rilya888/Postify.git)
+- [x] Настроить SSH ключ для GitHub
+- [x] Выполнить push в GitHub (3 коммита отправлены)
 
 ---
 
