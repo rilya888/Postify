@@ -1,0 +1,93 @@
+// Prisma schema for AI Content Repurposing Tool
+// This schema supports all MVP features and is designed for future expansion
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// User model - stores authentication and user profile data
+// Used in: Auth (Stage 1), Dashboard (Stage 2), Projects (Stage 2-5)
+model User {
+  id            String    @id @default(cuid())
+  email         String    @unique
+  name          String?
+  passwordHash  String?   // Nullable for future OAuth providers
+  emailVerified DateTime? // For future email verification
+  image         String?   // For future profile pictures
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+  
+  // Relations
+  projects      Project[]
+  subscription  Subscription?
+  
+  // Indexes for performance
+  @@index([email])
+  @@map("users")
+}
+
+// Project model - stores user's content repurposing projects
+// Used in: Dashboard (Stage 2), AI Generation (Stage 3), Editor (Stage 4)
+model Project {
+  id            String    @id @default(cuid())
+  userId        String
+  title         String
+  sourceContent String    @db.Text // Original content to repurpose
+  platforms     String[] // Array of target platforms: ["linkedin", "twitter", "email"]
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+  
+  // Relations
+  user          User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  outputs       Output[]
+  
+  // Indexes for performance (queries by userId are frequent)
+  @@index([userId])
+  @@index([userId, createdAt]) // For sorting user's projects
+  @@map("projects")
+}
+
+// Output model - stores generated content for each platform
+// Used in: AI Generation (Stage 3), Editor (Stage 4), Preview (Stage 4)
+model Output {
+  id            String    @id @default(cuid())
+  projectId     String
+  platform      String    // Platform identifier: "linkedin" | "twitter" | "email"
+  content       String    @db.Text // Generated/edited content
+  isEdited      Boolean   @default(false) // Track if user edited the content
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+  
+  // Relations
+  project       Project   @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  
+  // Indexes for performance
+  @@index([projectId])
+  @@index([projectId, platform]) // For querying specific platform output
+  @@map("outputs")
+}
+
+// Subscription model - stores user subscription data
+// Used in: Future monetization features (Post-MVP)
+model Subscription {
+  id                String    @id @default(cuid())
+  userId            String    @unique
+  plan              String    @default("free") // "free" | "pro" | "enterprise"
+  status            String    @default("active") // "active" | "canceled" | "past_due"
+  currentPeriodEnd  DateTime?
+  stripeCustomerId  String?   // For future Stripe integration
+  stripeSubscriptionId String? // For future Stripe integration
+  createdAt         DateTime  @default(now())
+  updatedAt         DateTime  @updatedAt
+  
+  // Relations
+  user              User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  @@index([userId])
+  @@map("subscriptions")
+}
