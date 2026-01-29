@@ -3,7 +3,13 @@ import type { NextRequest } from "next/server";
 import { getToken } from "next-auth/jwt";
 
 export async function middleware(request: NextRequest) {
-  const token = await getToken({ req: request, secret: process.env.NEXTAUTH_SECRET });
+  let token = null;
+  try {
+    token = await getToken({ req: request, secret: process.env.NEXTAUTH_SECRET });
+  } catch {
+    // If getToken fails (e.g. secret missing in Edge), allow request through
+  }
+
   const { pathname } = request.nextUrl;
 
   // Protect dashboard routes

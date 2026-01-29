@@ -14,7 +14,12 @@ export const metadata: Metadata = {
  * Redirects to dashboard if user is already authenticated
  */
 export default async function LoginPage() {
-  const session = await auth();
+  let session = null;
+  try {
+    session = await auth();
+  } catch {
+    // If auth() fails (e.g. env misconfig), still show login form
+  }
 
   if (session) {
     redirect("/dashboard");
