@@ -1,38 +1,22 @@
-import { toast } from "@/hooks/use-toast";
+import { toast } from "sonner";
 
 /**
  * Notification service for consistent messaging
  */
 export class NotificationService {
   static success(title: string, description?: string) {
-    toast({
-      title,
-      description,
-      variant: "default",
-    });
+    toast.success(description || title);
   }
 
   static error(title: string, description?: string) {
-    toast({
-      title,
-      description,
-      variant: "destructive",
-    });
+    toast.error(description || title);
   }
 
   static info(title: string, description?: string) {
-    toast({
-      title,
-      description,
-      variant: "default",
-    });
+    toast.info(description || title);
   }
 
   static warn(title: string, description?: string) {
-    toast({
-      title,
-      description,
-      variant: "destructive",
-    });
+    toast.warning(description || title);
   }
 }

@@ -12,7 +12,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import { useToast } from "@/hooks/use-toast";
+import { toast } from "sonner";
 import { Trash } from "lucide-react";
 import { NotificationService } from "@/lib/services/notifications";
 
@@ -27,7 +27,7 @@ export function BulkActions({
   onSelectionChange,
   onActionComplete,
 }: BulkActionsProps) {
-  const { toast } = useToast();
+  // Using imported toast function directly
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
 
@@ -60,10 +60,7 @@ export function BulkActions({
         onActionComplete();
       }
     } catch (error) {
-      NotificationService.error(
-        "Error",
-        error instanceof Error ? error.message : "Failed to delete projects"
-      );
+      toast.error(error instanceof Error ? error.message : "Failed to delete projects");
     } finally {
       setIsDeleting(false);
       setIsDeleteDialogOpen(false);

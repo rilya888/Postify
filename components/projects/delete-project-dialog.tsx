@@ -11,7 +11,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { useToast } from "@/hooks/use-toast";
+import { toast } from "sonner";
 import { Trash } from "lucide-react";
 import { NotificationService } from "@/lib/services/notifications";
 
@@ -34,7 +34,7 @@ export function DeleteProjectDialog({
   onSuccess,
 }: DeleteProjectDialogProps) {
   const router = useRouter();
-  const { toast } = useToast();
+  // Using imported toast function directly
   const [isDeleting, setIsDeleting] = useState(false);
 
   async function handleDelete() {
@@ -62,10 +62,7 @@ export function DeleteProjectDialog({
         router.refresh();
       }
     } catch (error) {
-      NotificationService.error(
-        "Error",
-        error instanceof Error ? error.message : "An unexpected error occurred"
-      );
+      toast.error(error instanceof Error ? error.message : "An unexpected error occurred");
     } finally {
       setIsDeleting(false);
       onClose();

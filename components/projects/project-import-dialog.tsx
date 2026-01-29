@@ -10,7 +10,7 @@ import {
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { importProjectFromFile } from "@/lib/utils/project-export";
-import { useToast } from "@/hooks/use-toast";
+import { toast } from "sonner";
 import { Upload } from "lucide-react";
 import { createProject } from "@/lib/services/projects";
 import { getServerSession } from "next-auth";
@@ -27,7 +27,7 @@ export function ProjectImportDialog({
   onClose,
   onImportSuccess,
 }: ProjectImportDialogProps) {
-  const { toast } = useToast();
+  // Using imported toast function directly
   const [file, setFile] = useState<File | null>(null);
   const [isImporting, setIsImporting] = useState(false);
 
@@ -39,11 +39,7 @@ export function ProjectImportDialog({
 
   const handleImport = async () => {
     if (!file) {
-      toast({
-        title: "Error",
-        description: "Please select a file to import",
-        variant: "destructive",
-      });
+      toast.error("Please select a file to import");
       return;
     }
 
@@ -69,17 +65,10 @@ export function ProjectImportDialog({
       });
       
       onImportSuccess(createdProject);
-      toast({
-        title: "Project imported",
-        description: "Project has been imported and saved successfully",
-      });
+      toast.success("Project has been imported and saved successfully");
       onClose();
     } catch (error) {
-      toast({
-        title: "Error",
-        description: error instanceof Error ? error.message : "Failed to import project",
-        variant: "destructive",
-      });
+      toast.error(error instanceof Error ? error.message : "Failed to import project");
     } finally {
       setIsImporting(false);
     }

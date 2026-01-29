@@ -17,7 +17,7 @@ import {
 import { Textarea } from "@/components/ui/textarea";
 import { Input } from "@/components/ui/input";
 import { Checkbox } from "@/components/ui/checkbox";
-import { useToast } from "@/hooks/use-toast";
+import { toast } from "sonner";
 import { PLATFORMS } from "@/lib/constants/platforms";
 import { createProjectSchema, updateProjectSchema } from "@/lib/validations/project";
 import { Loader2, Plus, Save, Download } from "lucide-react";
@@ -249,10 +249,7 @@ export function ProjectForm({
               variant="outline" 
               onClick={() => {
                 form.reset(savedDraft);
-                toast({
-                  title: "Draft restored",
-                  description: "Your unsaved changes have been restored",
-                });
+                toast.success("Your unsaved changes have been restored");
               }}
               disabled={isSavingDraft}
             >
