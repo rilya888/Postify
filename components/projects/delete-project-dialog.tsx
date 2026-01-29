@@ -75,7 +75,7 @@ export function DeleteProjectDialog({
         <DialogHeader>
           <DialogTitle>Delete Project</DialogTitle>
           <DialogDescription>
-            Are you sure you want to delete <strong>"{projectName}"</strong>? This action cannot be undone.
+            Are you sure you want to delete <strong>&quot;{projectName}&quot;</strong>? This action cannot be undone.
           </DialogDescription>
         </DialogHeader>
         <DialogFooter>

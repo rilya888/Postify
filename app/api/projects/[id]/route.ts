@@ -190,7 +190,7 @@ export async function DELETE(
       );
     }
 
-    const deletedProject = await prisma.project.delete({
+    await prisma.project.delete({
       where: {
         id: params.id,
         userId: session.user.id,

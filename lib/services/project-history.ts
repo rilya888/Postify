@@ -8,7 +8,7 @@ export async function logProjectChange(
   projectId: string,
   userId: string,
   action: "create" | "update" | "delete",
-  changes: Record<string, any>
+  changes: Record<string, unknown>
 ) {
   Logger.info("Logging project change", { projectId, userId, action });
   

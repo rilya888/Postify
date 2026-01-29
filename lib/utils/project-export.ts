@@ -32,7 +32,7 @@ export async function importProjectFromFile(file: File): Promise<ProjectWithOutp
       }
     };
     
-    reader.onerror = () => {
+    reader.onerror = (error) => {
       reject(new Error("Error reading file"));
     };
     

@@ -46,7 +46,6 @@ export function ProjectForm({
   onSubmitSuccess 
 }: ProjectFormProps) {
   const router = useRouter();
-  const { toast } = useToast();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [saveProgress, setSaveProgress] = useState(0);
 

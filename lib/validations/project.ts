@@ -1,5 +1,4 @@
 import { z } from "zod";
-import { PLATFORMS } from "@/lib/constants/platforms";
 
 /**
  * Validation schema for project creation

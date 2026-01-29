@@ -20,7 +20,7 @@ export function useAutoSaveDraft<T>(
       try {
         localStorage.setItem(key, JSON.stringify(debouncedData));
         setSavedData(debouncedData);
-      } catch (error) {
+      } catch (error: unknown) {
         console.error("Failed to save draft:", error);
       } finally {
         setIsSaving(false);
@@ -35,7 +35,7 @@ export function useAutoSaveDraft<T>(
       if (saved) {
         setSavedData(JSON.parse(saved));
       }
-    } catch (error) {
+    } catch (error: unknown) {
       console.error("Failed to load draft:", error);
     }
   }, [key]);
