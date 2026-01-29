@@ -1,12 +1,11 @@
 import { Metadata } from "next";
-import { getServerSession } from "next-auth";
-import { authOptions } from "@/lib/auth/config";
+import { auth } from "@/lib/auth/config";
 import { redirect } from "next/navigation";
 import { prisma } from "@/lib/db/prisma";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Eye, Edit, Trash, RotateCcw, Download } from "lucide-react";
+import { Eye, Edit, RotateCcw } from "lucide-react";
 import Link from "next/link";
 import { PLATFORMS } from "@/lib/constants/platforms";
 
@@ -23,7 +22,7 @@ export default async function ProjectDetailPage({
 }: {
   params: { id: string };
 }) {
-  const session = await getServerSession(authOptions);
+  const session = await auth();
 
   if (!session) {
     redirect("/login");

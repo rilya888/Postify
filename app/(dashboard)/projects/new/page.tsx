@@ -1,6 +1,5 @@
 import { Metadata } from "next";
-import { getServerSession } from "next-auth";
-import { authOptions } from "@/lib/auth/config";
+import { auth } from "@/lib/auth/config";
 import { redirect } from "next/navigation";
 import { ProjectForm } from "@/components/projects/project-form";
 
@@ -13,7 +12,7 @@ export const metadata: Metadata = {
  * Project creation page
  */
 export default async function NewProjectPage() {
-  const session = await getServerSession(authOptions);
+  const session = await auth();
 
   if (!session) {
     redirect("/login");

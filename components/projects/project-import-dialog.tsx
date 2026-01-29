@@ -13,8 +13,7 @@ import { importProjectFromFile } from "@/lib/utils/project-export";
 import { toast } from "sonner";
 import { Upload } from "lucide-react";
 import { createProject } from "@/lib/services/projects";
-import { getServerSession } from "next-auth";
-import { authOptions } from "@/lib/auth/config";
+import { auth } from "@/lib/auth/config";
 
 type ProjectImportDialogProps = {
   isOpen: boolean;
@@ -53,7 +52,7 @@ export function ProjectImportDialog({
       }
       
       // Create the project in the database
-      const session = await getServerSession(authOptions);
+      const session = await auth();
       if (!session) {
         throw new Error("Not authenticated");
       }

@@ -1,12 +1,11 @@
 import { Metadata } from "next";
-import { getServerSession } from "next-auth";
-import { authOptions } from "@/lib/auth/config";
+import { auth } from "@/lib/auth/config";
 import { redirect } from "next/navigation";
 import { prisma } from "@/lib/db/prisma";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Plus, MoreHorizontal, Download } from "lucide-react";
+import { Plus, MoreHorizontal } from "lucide-react";
 import Link from "next/link";
 import {
   DropdownMenu,
@@ -14,7 +13,6 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { useState } from "react";
 
 export const metadata: Metadata = {
   title: "Projects | Content Repurposing Tool",
@@ -25,7 +23,7 @@ export const metadata: Metadata = {
  * Projects list page showing all user projects
  */
 export default async function ProjectsPage() {
-  const session = await getServerSession(authOptions);
+  const session = await auth();
 
   if (!session) {
     redirect("/login");
