@@ -1,7 +1,5 @@
 import { Metadata } from "next";
 import Link from "next/link";
-import { redirect } from "next/navigation";
-import { auth } from "@/lib/auth/config";
 import { LoginForm } from "@/components/auth/login-form";
 
 export const metadata: Metadata = {
@@ -11,20 +9,9 @@ export const metadata: Metadata = {
 
 /**
  * Login page
- * Redirects to dashboard if user is already authenticated
+ * Redirect after sign-in is handled client-side in LoginForm
  */
-export default async function LoginPage() {
-  let session = null;
-  try {
-    session = await auth();
-  } catch {
-    // If auth() fails (e.g. env misconfig), still show login form
-  }
-
-  if (session) {
-    redirect("/dashboard");
-  }
-
+export default function LoginPage() {
   return (
     <div className="container flex h-screen w-screen flex-col items-center justify-center">
       <div className="mx-auto flex w-full flex-col justify-center space-y-6 sm:w-[350px]">

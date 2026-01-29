@@ -1,7 +1,5 @@
 import { Metadata } from "next";
 import Link from "next/link";
-import { redirect } from "next/navigation";
-import { auth } from "@/lib/auth/config";
 import { SignupForm } from "@/components/auth/signup-form";
 
 export const metadata: Metadata = {
@@ -11,20 +9,9 @@ export const metadata: Metadata = {
 
 /**
  * Sign up page
- * Redirects to dashboard if user is already authenticated
+ * Redirect after sign-up is handled client-side in SignupForm
  */
-export default async function SignupPage() {
-  let session = null;
-  try {
-    session = await auth();
-  } catch {
-    // If auth() fails (e.g. env misconfig), still show signup form
-  }
-
-  if (session) {
-    redirect("/dashboard");
-  }
-
+export default function SignupPage() {
   return (
     <div className="container flex h-screen w-screen flex-col items-center justify-center">
       <div className="mx-auto flex w-full flex-col justify-center space-y-6 sm:w-[350px]">
