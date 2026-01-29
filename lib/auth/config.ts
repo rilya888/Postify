@@ -97,7 +97,10 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
   
   // Security settings
   secret: process.env.NEXTAUTH_SECRET,
-  
+
+  // Required when deployed behind proxy (e.g. Railway, Vercel)
+  trustHost: true,
+
   // Debug mode in development
   debug: process.env.NODE_ENV === "development",
 });
