@@ -1,0 +1,61 @@
+import { Metadata } from "next";
+import { getServerSession } from "next-auth";
+import { authOptions } from "@/lib/auth/config";
+import { redirect } from "next/navigation";
+import { prisma } from "@/lib/db/prisma";
+import { ProjectForm } from "@/components/projects/project-form";
+
+export const metadata: Metadata = {
+  title: "Edit Project | Content Repurposing Tool",
+  description: "Edit your content repurposing project",
+};
+
+/**
+ * Project edit page
+ */
+export default async function EditProjectPage({
+  params,
+}: {
+  params: { id: string };
+}) {
+  const session = await getServerSession(authOptions);
+
+  if (!session) {
+    redirect("/login");
+  }
+
+  const project = await prisma.project.findUnique({
+    where: {
+      id: params.id,
+      userId: session.user.id,
+    },
+  });
+
+  if (!project) {
+    redirect("/projects"); // Or show 404 page
+  }
+
+  const initialData = {
+    title: project.title,
+    sourceContent: project.sourceContent,
+    platforms: project.platforms,
+  };
+
+  return (
+    <div className="space-y-6">
+      <div>
+        <h1 className="text-3xl font-bold">Edit Project</h1>
+        <p className="text-muted-foreground">
+          Update your project details and selected platforms
+        </p>
+      </div>
+
+      <div className="max-w-3xl">
+        <ProjectForm 
+          initialData={initialData} 
+          projectId={params.id} 
+        />
+      </div>
+    </div>
+  );
+}

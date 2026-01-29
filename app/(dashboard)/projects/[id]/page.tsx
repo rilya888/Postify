@@ -1,0 +1,136 @@
+import { Metadata } from "next";
+import { getServerSession } from "next-auth";
+import { authOptions } from "@/lib/auth/config";
+import { redirect } from "next/navigation";
+import { prisma } from "@/lib/db/prisma";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { Eye, Edit, Trash, RotateCcw, Download } from "lucide-react";
+import Link from "next/link";
+import { PLATFORMS } from "@/lib/constants/platforms";
+
+export const metadata: Metadata = {
+  title: "Project Details | Content Repurposing Tool",
+  description: "View project details and outputs",
+};
+
+/**
+ * Project detail page showing project information and outputs
+ */
+export default async function ProjectDetailPage({
+  params,
+}: {
+  params: { id: string };
+}) {
+  const session = await getServerSession(authOptions);
+
+  if (!session) {
+    redirect("/login");
+  }
+
+  const project = await prisma.project.findUnique({
+    where: {
+      id: params.id,
+      userId: session.user.id,
+    },
+    include: {
+      outputs: {
+        orderBy: { platform: "asc" },
+      },
+    },
+  });
+
+  if (!project) {
+    redirect("/projects"); // Or show 404 page
+  }
+
+  return (
+    <div className="space-y-6">
+      <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+        <h1 className="text-3xl font-bold">Project Details</h1>
+        <div className="flex gap-2">
+          <Button variant="outline" asChild>
+            <Link href={`/projects/${params.id}/edit`}>
+              <Edit className="mr-2 h-4 w-4" />
+              Edit
+            </Link>
+          </Button>
+          <Button variant="outline" asChild>
+            <Link href={`/projects/${params.id}/generate`}>
+              <RotateCcw className="mr-2 h-4 w-4" />
+              Regenerate
+            </Link>
+          </Button>
+        </div>
+      </div>
+
+      <Card>
+        <CardHeader>
+          <CardTitle>{project.title}</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="flex flex-wrap gap-2 mb-4">
+            {project.platforms.map((platform) => (
+              <Badge key={platform} variant="secondary">
+                {platform}
+              </Badge>
+            ))}
+          </div>
+          
+          <div className="mb-6">
+            <h3 className="text-lg font-medium mb-2">Source Content</h3>
+            <div className="whitespace-pre-line p-4 bg-muted rounded-md border">
+              {project.sourceContent}
+            </div>
+          </div>
+
+          <div>
+            <h3 className="text-lg font-medium mb-2">Generated Outputs</h3>
+            {project.outputs.length > 0 ? (
+              <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3">
+                {project.outputs.map((output) => (
+                  <Card key={output.id}>
+                    <CardHeader>
+                      <CardTitle className="flex items-center gap-2">
+                        <span className="text-lg">
+                          {PLATFORMS[output.platform as keyof typeof PLATFORMS]?.icon}
+                        </span>
+                        {output.platform}
+                      </CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                      <div className="whitespace-pre-line text-sm mb-2 line-clamp-5">
+                        {output.content}
+                      </div>
+                      {output.isEdited && (
+                        <Badge variant="outline" className="text-xs">
+                          Edited
+                        </Badge>
+                      )}
+                      <Button variant="outline" size="sm" className="mt-2 w-full" asChild>
+                        <Link href={`/projects/${params.id}/outputs/${output.id}/edit`}>
+                          <Eye className="mr-2 h-4 w-4" />
+                          View/Edit
+                        </Link>
+                      </Button>
+                    </CardContent>
+                  </Card>
+                ))}
+              </div>
+            ) : (
+              <div className="text-center py-8 text-muted-foreground">
+                <p>No outputs generated yet.</p>
+                <Button className="mt-4" asChild>
+                  <Link href={`/projects/${params.id}/generate`}>
+                    Generate Content
+                  </Link>
+                </Button>
+              </div>
+            )}
+          </div>
+        </CardContent>
+      </Card>
+    </div>
+  );
+}

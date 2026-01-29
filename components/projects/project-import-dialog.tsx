@@ -1,0 +1,117 @@
+import { useState } from "react";
+import { Button } from "@/components/ui/button";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
+import { importProjectFromFile } from "@/lib/utils/project-export";
+import { useToast } from "@/hooks/use-toast";
+import { Upload } from "lucide-react";
+import { createProject } from "@/lib/services/projects";
+import { getServerSession } from "next-auth";
+import { authOptions } from "@/lib/auth/config";
+
+type ProjectImportDialogProps = {
+  isOpen: boolean;
+  onClose: () => void;
+  onImportSuccess: (project: any) => void;
+};
+
+export function ProjectImportDialog({
+  isOpen,
+  onClose,
+  onImportSuccess,
+}: ProjectImportDialogProps) {
+  const { toast } = useToast();
+  const [file, setFile] = useState<File | null>(null);
+  const [isImporting, setIsImporting] = useState(false);
+
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files && e.target.files[0]) {
+      setFile(e.target.files[0]);
+    }
+  };
+
+  const handleImport = async () => {
+    if (!file) {
+      toast({
+        title: "Error",
+        description: "Please select a file to import",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setIsImporting(true);
+    try {
+      const project = await importProjectFromFile(file);
+      
+      // Validate the imported project structure
+      if (!project.title || !project.sourceContent || !Array.isArray(project.platforms)) {
+        throw new Error("Invalid project structure in file");
+      }
+      
+      // Create the project in the database
+      const session = await getServerSession(authOptions);
+      if (!session) {
+        throw new Error("Not authenticated");
+      }
+      
+      const createdProject = await createProject(session.user.id, {
+        title: project.title,
+        sourceContent: project.sourceContent,
+        platforms: project.platforms,
+      });
+      
+      onImportSuccess(createdProject);
+      toast({
+        title: "Project imported",
+        description: "Project has been imported and saved successfully",
+      });
+      onClose();
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: error instanceof Error ? error.message : "Failed to import project",
+        variant: "destructive",
+      });
+    } finally {
+      setIsImporting(false);
+    }
+  };
+
+  return (
+    <Dialog open={isOpen} onOpenChange={onClose}>
+      <DialogContent>
+        <DialogHeader>
+          <DialogTitle>Import Project</DialogTitle>
+          <DialogDescription>
+            Select a JSON file to import your project data
+          </DialogDescription>
+        </DialogHeader>
+        <div className="space-y-4">
+          <Input 
+            type="file" 
+            accept=".json" 
+            onChange={handleFileChange}
+            className="cursor-pointer"
+          />
+        </div>
+        <DialogFooter>
+          <Button variant="outline" onClick={onClose} disabled={isImporting}>
+            Cancel
+          </Button>
+          <Button onClick={handleImport} disabled={!file || isImporting}>
+            {isImporting && <Upload className="mr-2 h-4 w-4 animate-spin" />}
+            Import
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+}

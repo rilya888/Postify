@@ -41,11 +41,12 @@ model Project {
   platforms     String[] // Array of target platforms: ["linkedin", "twitter", "email"]
   createdAt     DateTime  @default(now())
   updatedAt     DateTime  @updatedAt
-  
+
   // Relations
   user          User      @relation(fields: [userId], references: [id], onDelete: Cascade)
   outputs       Output[]
-  
+  history       ProjectHistory[]
+
   // Indexes for performance (queries by userId are frequent)
   @@index([userId])
   @@index([userId, createdAt]) // For sorting user's projects
@@ -84,10 +85,29 @@ model Subscription {
   stripeSubscriptionId String? // For future Stripe integration
   createdAt         DateTime  @default(now())
   updatedAt         DateTime  @updatedAt
-  
+
   // Relations
   user              User      @relation(fields: [userId], references: [id], onDelete: Cascade)
-  
+
   @@index([userId])
   @@map("subscriptions")
+}
+
+// History model - stores changes to projects for versioning
+// Used in: Project versioning (Stage 2+), Audit trail (Future)
+model ProjectHistory {
+  id          String    @id @default(cuid())
+  projectId   String
+  userId      String    // Who made the change
+  action      String    // "create", "update", "delete"
+  changes     Json      // Stores the changes made
+  timestamp   DateTime  @default(now())
+
+  // Relations
+  project     Project   @relation(fields: [projectId], references: [id], onDelete: Cascade)
+
+  @@index([projectId])
+  @@index([userId])
+  @@index([timestamp])
+  @@map("project_history")
 }

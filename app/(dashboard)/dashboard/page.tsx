@@ -1,42 +1,128 @@
 import { Metadata } from "next";
+import { getServerSession } from "next-auth";
+import { authOptions } from "@/lib/auth/config";
 import { redirect } from "next/navigation";
-import { auth } from "@/lib/auth/config";
-import { Header } from "@/components/layout/header";
+import { prisma } from "@/lib/db/prisma";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { Plus, Upload } from "lucide-react";
+import Link from "next/link";
 
 export const metadata: Metadata = {
   title: "Dashboard | Content Repurposing Tool",
-  description: "Your content repurposing projects",
+  description: "Your content repurposing dashboard",
 };
 
 /**
- * Dashboard page
- * Main page for authenticated users
+ * Dashboard page showing user statistics and recent activity
  */
 export default async function DashboardPage() {
-  const session = await auth();
+  const session = await getServerSession(authOptions);
 
   if (!session) {
     redirect("/login");
   }
 
+  // Fetch user stats
+  const [projectsCount, recentProjects] = await Promise.all([
+    prisma.project.count({
+      where: { userId: session.user.id },
+    }),
+    prisma.project.findMany({
+      where: { userId: session.user.id },
+      orderBy: { createdAt: "desc" },
+      take: 5,
+      include: {
+        outputs: {
+          select: {
+            platform: true,
+          },
+        },
+      },
+    }),
+  ]);
+
   return (
-    <div className="flex min-h-screen flex-col">
-      <Header />
-      <main className="flex-1 container py-8">
-        <div className="space-y-6">
-          <div>
-            <h1 className="text-3xl font-bold tracking-tight">Dashboard</h1>
-            <p className="text-muted-foreground">
-              Welcome back, {session.user.name || session.user.email}!
-            </p>
-          </div>
-          <div className="rounded-lg border p-8 text-center">
-            <p className="text-muted-foreground">
-              Your projects will appear here. Create your first project to get started!
-            </p>
-          </div>
+    <div className="space-y-6">
+      <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+        <h1 className="text-3xl font-bold">Dashboard</h1>
+        <div className="flex gap-2">
+          <Button asChild>
+            <Link href="/projects/new">
+              <Plus className="mr-2 h-4 w-4" />
+              New Project
+            </Link>
+          </Button>
         </div>
-      </main>
+      </div>
+
+      <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
+        <Card>
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm font-medium">Total Projects</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">{projectsCount}</div>
+          </CardContent>
+        </Card>
+        
+        <Card>
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm font-medium">Active Projects</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">
+              {recentProjects.filter(p => p.outputs.length > 0).length}
+            </div>
+          </CardContent>
+        </Card>
+        
+        <Card>
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm font-medium">Generated Outputs</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">
+              {recentProjects.reduce((acc, project) => acc + project.outputs.length, 0)}
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+
+      <Card>
+        <CardHeader>
+          <CardTitle>Recent Projects</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="space-y-4">
+            {recentProjects.length > 0 ? (
+              recentProjects.map((project) => (
+                <div 
+                  key={project.id} 
+                  className="flex items-center justify-between border-b pb-4 last:border-0 last:pb-0"
+                >
+                  <div>
+                    <h3 className="font-medium">{project.title}</h3>
+                    <p className="text-sm text-muted-foreground">
+                      {new Date(project.createdAt).toLocaleDateString()}
+                    </p>
+                  </div>
+                  <div className="flex gap-2">
+                    {project.outputs.map((output) => (
+                      <Badge key={output.platform} variant="secondary">
+                        {output.platform}
+                      </Badge>
+                    ))}
+                  </div>
+                </div>
+              ))
+            ) : (
+              <p className="text-muted-foreground">No projects yet. Create your first project!</p>
+            )}
+          </div>
+        </CardContent>
+      </Card>
     </div>
   );
 }
