@@ -39,23 +39,17 @@ export function LoginForm() {
     setIsLoading(true);
 
     try {
+      // Используем signIn с автоматическим редиректом
       const result = await signIn("credentials", {
         email: data.email,
         password: data.password,
-        redirect: false,
+        redirect: true,
+        callbackUrl: "/dashboard"
       });
 
+      // Если результат содержит ошибку
       if (result?.error) {
         toast.error(result.error === "CredentialsSignin" ? "Invalid email or password" : String(result.error));
-        return;
-      }
-
-      if (result?.ok) {
-        toast.success("Signed in successfully");
-        // Используем прямой редирект через Next.js вместо router.push
-        window.location.href = "/dashboard";
-      } else {
-        toast.error("Sign in failed. Please try again.");
       }
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "An unexpected error occurred");
