@@ -37,17 +37,20 @@ export function LoginForm() {
     setIsLoading(true);
 
     try {
-      // Используем signIn с автоматическим редиректом
+      // Используем signIn без автоматического редиректа для обработки результата
       const result = await signIn("credentials", {
         email: data.email,
         password: data.password,
-        redirect: true,
+        redirect: false,
         callbackUrl: "/dashboard"
       });
 
       // Если результат содержит ошибку
       if (result?.error) {
         toast.error(result.error === "CredentialsSignin" ? "Invalid email or password" : String(result.error));
+      } else if (result?.ok) {
+        // Успешный вход - перенаправляем вручную
+        window.location.href = result.url || "/dashboard";
       }
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "An unexpected error occurred");
