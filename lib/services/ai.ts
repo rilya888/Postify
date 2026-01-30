@@ -1,8 +1,8 @@
 import { prisma } from "@/lib/db/prisma";
 import { Platform } from "@/lib/constants/platforms";
 import { GenerationOptions, GenerationResult, BulkGenerationResult } from "@/types/ai";
-import { generateContentWithRetry } from "./openai-client";
-import { getPlatformPromptTemplate, formatPrompt } from "./prompt-templates";
+import { generateContentWithRetry } from "@/lib/ai/openai-client";
+import { getPlatformPromptTemplate, formatPrompt } from "@/lib/ai/prompt-templates";
 import { checkProjectQuota } from "../services/quota";
 import { Logger } from "@/lib/utils/logger";
 import { getProjectById } from "../services/projects";
