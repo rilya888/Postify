@@ -20,7 +20,8 @@ import { toast } from "sonner";
 import PlatformSelector from "@/components/ai/platform-selector";
 import PlatformBadge from "@/components/ai/platform-badge";
 import { getProjectWithOutputs } from "@/lib/services/projects";
-import { generateForPlatforms, BulkGenerationResult } from "@/lib/services/ai";
+import { generateForPlatforms } from "@/lib/services/ai";
+import { BulkGenerationResult } from "@/types/ai";
 import { PLATFORMS } from "@/lib/constants/platforms";
 
 interface Output {
