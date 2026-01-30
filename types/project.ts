@@ -52,7 +52,7 @@ export type ProjectHistory = {
   id: string;
   projectId: string;
   userId: string;
-  action: "create" | "update" | "delete";
+  action: "create" | "update" | "delete" | "generate";
   changes: Record<string, any>;
   timestamp: Date;
 };

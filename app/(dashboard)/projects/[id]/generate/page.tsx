@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect, useRef, useCallback } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
@@ -18,7 +18,6 @@ import {
 } from "lucide-react";
 import { toast } from "sonner";
 import PlatformSelector from "@/components/ai/platform-selector";
-import PlatformBadge from "@/components/ai/platform-badge";
 import { GeneratedContentPreview } from "@/components/ai/generated-content-preview";
 import type { BulkGenerationResult } from "@/types/ai";
 import { PLATFORMS, type Platform } from "@/lib/constants/platforms";
@@ -57,8 +56,8 @@ export default function GeneratePage() {
   const [generationResults, setGenerationResults] = useState<BulkGenerationResult | null>(null);
   const [error, setError] = useState<string | null>(null);
   const abortControllerRef = useRef<AbortController | null>(null);
-  
-  const loadProject = async () => {
+
+  const loadProject = useCallback(async () => {
     if (!projectId) return null;
     const res = await fetch(`/api/projects/${projectId}`);
     if (!res.ok) {
@@ -76,8 +75,8 @@ export default function GeneratePage() {
     }
     const data = await res.json();
     return data.project as Project | null;
-  };
-  
+  }, [projectId, router]);
+
   // Load project data
   useEffect(() => {
     let cancelled = false;
@@ -105,7 +104,7 @@ export default function GeneratePage() {
       }
     })();
     return () => { cancelled = true; };
-  }, [projectId]);
+  }, [loadProject]);
   
   const handlePlatformToggle = (platform: string) => {
     setSelectedPlatforms(prev =>

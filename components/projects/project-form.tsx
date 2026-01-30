@@ -19,6 +19,7 @@ import { Input } from "@/components/ui/input";
 import { toast } from "sonner";
 import { createProjectSchema, updateProjectSchema } from "@/lib/validations/project";
 import PlatformSelector from "@/components/ai/platform-selector";
+import type { Platform } from "@/lib/constants/platforms";
 import { Loader2, Plus, Save, Download } from "lucide-react";
 import { ProgressBar } from "@/components/ui/progress-bar";
 import { useAutoSaveDraft } from "@/lib/hooks/useAutoSaveDraft";
@@ -186,10 +187,11 @@ export function ProjectForm({
                 <PlatformSelector
                   selectedPlatforms={field.value ?? []}
                   onPlatformToggle={(platform) => {
+                    const p = platform as Platform;
                     const current = field.value ?? [];
-                    const next = current.includes(platform)
-                      ? current.filter((p) => p !== platform)
-                      : [...current, platform];
+                    const next = current.includes(p)
+                      ? current.filter((x) => x !== p)
+                      : [...current, p];
                     field.onChange(next);
                   }}
                   disabled={isSubmitting}
