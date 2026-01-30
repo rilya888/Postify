@@ -38,19 +38,19 @@ export function LoginForm() {
 
     try {
       // Используем signIn без автоматического редиректа для обработки результата
-      const result = await signIn("credentials", {
+      const signInResult = await signIn("credentials", {
         email: data.email,
         password: data.password,
         redirect: false,
         callbackUrl: "/dashboard"
       });
 
-      // Если результат содержит ошибку
-      if (result?.error) {
-        toast.error(result.error === "CredentialsSignin" ? "Invalid email or password" : String(result.error));
-      } else if (result?.ok) {
+      // Проверяем результат входа
+      if (signInResult?.error) {
+        toast.error(signInResult.error === "CredentialsSignin" ? "Invalid email or password" : String(signInResult.error));
+      } else if (signInResult?.ok) {
         // Успешный вход - перенаправляем вручную
-        window.location.href = result.url || "/dashboard";
+        window.location.href = signInResult.url || "/dashboard";
       }
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "An unexpected error occurred");
