@@ -25,6 +25,8 @@ import { Loader2 } from "lucide-react";
  */
 export function LoginForm() {
   const [isLoading, setIsLoading] = useState(false);
+  const [logLines, setLogLines] = useState<string[]>([]);
+  const [pendingRedirectUrl, setPendingRedirectUrl] = useState<string | null>(null);
   const searchParams = useSearchParams();
   const callbackUrl = searchParams.get("callbackUrl") ?? "/dashboard";
 
@@ -38,9 +40,14 @@ export function LoginForm() {
 
   async function onSubmit(data: LoginInput) {
     setIsLoading(true);
+    setLogLines([]);
+    setPendingRedirectUrl(null);
+
     const log = (msg: string, obj?: unknown) => {
       const payload = obj !== undefined ? ` ${JSON.stringify(obj)}` : "";
-      console.log(`[Login] ${msg}${payload}`);
+      const line = `[Login] ${msg}${payload}`;
+      console.log(line);
+      setLogLines((prev) => [...prev, line]);
     };
 
     try {
@@ -70,17 +77,36 @@ export function LoginForm() {
 
       const targetUrl = result?.url ?? callbackUrl;
       const absoluteUrl = targetUrl.startsWith("http") ? targetUrl : `${window.location.origin}${targetUrl.startsWith("/") ? targetUrl : `/${targetUrl}`}`;
-      log("redirect scheduled", { targetUrl, absoluteUrl });
+      log("redirect ready", { targetUrl, absoluteUrl });
 
-      setTimeout(() => {
-        log("redirect now", { absoluteUrl });
-        window.location.replace(absoluteUrl);
-      }, 150);
+      setPendingRedirectUrl(absoluteUrl);
     } catch (err) {
       log("onSubmit catch", { err: err instanceof Error ? err.message : String(err) });
       toast.error(err instanceof Error ? err.message : "An unexpected error occurred");
       setIsLoading(false);
     }
+  }
+
+  function goToDashboard() {
+    if (pendingRedirectUrl) {
+      window.location.replace(pendingRedirectUrl);
+    }
+  }
+
+  if (pendingRedirectUrl) {
+    return (
+      <div className="space-y-4">
+        <div className="rounded-md border bg-muted/50 p-3">
+          <p className="mb-2 text-sm font-medium">Debug log (copy and share)</p>
+          <pre className="max-h-64 overflow-auto text-xs whitespace-pre-wrap break-all">
+            {logLines.join("\n")}
+          </pre>
+        </div>
+        <Button type="button" onClick={goToDashboard} className="w-full">
+          Continue to Dashboard
+        </Button>
+      </div>
+    );
   }
 
   return (
