@@ -29,7 +29,7 @@ type ProjectFormProps = {
   initialData?: {
     title: string;
     sourceContent: string;
-    platforms: string[];
+    platforms: ("linkedin" | "twitter" | "email")[];
   };
   projectId?: string;
   onSubmitSuccess?: () => void;
@@ -56,7 +56,7 @@ export function ProjectForm({
     defaultValues: {
       title: initialData?.title || "",
       sourceContent: initialData?.sourceContent || "",
-      platforms: initialData?.platforms || [],
+      platforms: (initialData?.platforms as ("linkedin" | "twitter" | "email")[]) || [],
     },
   });
 
