@@ -3,9 +3,25 @@ import OpenAI from "openai";
 /**
  * OpenAI client configuration
  */
-export const openai = new OpenAI({
-  apiKey: process.env.OPENAI_API_KEY,
-});
+let openai: OpenAI;
+
+/**
+ * Get or create OpenAI client instance
+ * Initializes the client lazily to avoid build-time errors
+ */
+export function getOpenAIClient(): OpenAI {
+  if (!openai) {
+    if (!process.env.OPENAI_API_KEY) {
+      throw new Error("Missing OpenAI API key. Please set the OPENAI_API_KEY environment variable.");
+    }
+
+    openai = new OpenAI({
+      apiKey: process.env.OPENAI_API_KEY,
+    });
+  }
+
+  return openai;
+}
 
 /**
  * Type for generation options
@@ -25,7 +41,8 @@ export async function generateContent(
   options?: GenerationOptions
 ): Promise<string> {
   try {
-    const response = await openai.chat.completions.create({
+    const client = getOpenAIClient();
+    const response = await client.chat.completions.create({
       model: options?.model || "gpt-4-turbo",
       messages: [
         {
@@ -58,13 +75,13 @@ export async function generateContentWithRetry(
   maxRetries: number = 3
 ): Promise<string> {
   let lastError;
-  
+
   for (let i = 0; i < maxRetries; i++) {
     try {
       return await generateContent(prompt, systemPrompt, options);
     } catch (error) {
       lastError = error;
-      
+
       // Wait before retrying (exponential backoff)
       if (i < maxRetries - 1) {
         const delay = Math.pow(2, i) * 1000; // 1s, 2s, 4s
@@ -72,6 +89,6 @@ export async function generateContentWithRetry(
       }
     }
   }
-  
+
   throw lastError;
 }
