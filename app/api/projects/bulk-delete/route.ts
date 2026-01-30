@@ -74,7 +74,7 @@ export async function POST(request: Request) {
       failedIds,
     });
   } catch (error) {
-    Logger.error("Failed bulk delete", error as Error, { userId: session?.user.id });
+    Logger.error("Failed bulk delete", error as Error, { userId: 'unknown' });
     return createErrorResponse(error, error instanceof z.ZodError ? 400 : 500);
   }
 }

@@ -87,7 +87,7 @@ export async function GET(request: Request) {
       },
     });
   } catch (error) {
-    Logger.error("Failed to fetch projects", error as Error, { userId: session?.user.id });
+    Logger.error("Failed to fetch projects", error as Error, { userId: 'unknown' });
     return createErrorResponse(error);
   }
 }
@@ -173,7 +173,7 @@ export async function POST(request: Request) {
 
     return createSuccessResponse({ project }, 201);
   } catch (error) {
-    Logger.error("Failed to create project", error as Error, { userId: session?.user.id });
+    Logger.error("Failed to create project", error as Error, { userId: 'unknown' });
     return createErrorResponse(error, error instanceof z.ZodError ? 400 : 500);
   }
 }

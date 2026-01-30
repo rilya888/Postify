@@ -52,9 +52,9 @@ export async function GET(
 
     return createSuccessResponse({ project });
   } catch (error) {
-    Logger.error("Failed to fetch project", error as Error, { 
-      userId: session?.user.id, 
-      projectId: params.id 
+    Logger.error("Failed to fetch project", error as Error, {
+      userId: params.id, // We can't access session here, so just log the project ID
+      projectId: params.id
     });
     return createErrorResponse(error);
   }
@@ -145,9 +145,9 @@ export async function PATCH(
 
     return createSuccessResponse({ project });
   } catch (error) {
-    Logger.error("Failed to update project", error as Error, { 
-      userId: session?.user.id, 
-      projectId: params.id 
+    Logger.error("Failed to update project", error as Error, {
+      userId: params.id,
+      projectId: params.id
     });
     return createErrorResponse(error, error instanceof z.ZodError ? 400 : 500);
   }
@@ -204,22 +204,22 @@ export async function DELETE(
 
     return new NextResponse(null, { status: 204 });
   } catch (error) {
-    Logger.error("Failed to delete project", error as Error, { 
-      userId: session?.user.id, 
-      projectId: params.id 
+    Logger.error("Failed to delete project", error as Error, {
+      userId: params.id,
+      projectId: params.id
     });
-    
+
     // Handle case where project has related outputs (foreign key constraint)
     if (error instanceof Error && error.message.includes("foreign key constraint")) {
       return createErrorResponse(
-        { 
-          error: "Cannot delete project with associated outputs", 
-          code: "PROJECT_HAS_OUTPUTS" 
+        {
+          error: "Cannot delete project with associated outputs",
+          code: "PROJECT_HAS_OUTPUTS"
         },
         400
       );
     }
-    
+
     return createErrorResponse(error);
   }
 }
