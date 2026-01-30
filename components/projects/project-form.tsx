@@ -193,7 +193,7 @@ export function ProjectForm({
                         >
                           <FormControl>
                             <Checkbox
-                              checked={field.value?.includes(key as any)}
+                              checked={field.value?.includes(key as string)}
                               onCheckedChange={(checked) => {
                                 return checked
                                   ? field.onChange([...field.value, key])

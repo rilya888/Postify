@@ -15,10 +15,12 @@ import { Upload } from "lucide-react";
 import { createProject } from "@/lib/services/projects";
 import { auth } from "@/lib/auth/config";
 
+import { Project } from "@/types/project";
+
 type ProjectImportDialogProps = {
   isOpen: boolean;
   onClose: () => void;
-  onImportSuccess: (project: any) => void;
+  onImportSuccess: (project: Project) => void;
 };
 
 export function ProjectImportDialog({
