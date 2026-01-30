@@ -60,8 +60,7 @@ export async function POST(request: NextRequest) {
       headers: { "Content-Type": "application/json" },
     });
   } catch (error) {
-    Logger.error("Error in generate API route", {
-      errorMessage: error instanceof Error ? error.message : String(error),
+    Logger.error("Error in generate API route", error as Error, {
       stack: error instanceof Error ? error.stack : undefined,
     });
 
