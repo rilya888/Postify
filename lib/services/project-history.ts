@@ -17,7 +17,7 @@ export async function logProjectChange(
       projectId,
       userId,
       action,
-      changes: changes,
+      changes: changes as any, // Приведение к типу, которое принимает Prisma
     },
   });
   
