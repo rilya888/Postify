@@ -37,7 +37,7 @@ export default async function EditProjectPage({
   const initialData = {
     title: project.title,
     sourceContent: project.sourceContent,
-    platforms: project.platforms,
+    platforms: project.platforms as ("linkedin" | "twitter" | "email")[],
   };
 
   return (
