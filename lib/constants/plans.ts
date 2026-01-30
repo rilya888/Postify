@@ -5,7 +5,7 @@ export const PLAN_LIMITS = {
   free: {
     maxProjects: 3,
     maxOutputsPerProject: 1,
-    maxCharactersPerContent: 1000,
+    maxCharactersPerContent: 10000,
   },
   pro: {
     maxProjects: 50,
