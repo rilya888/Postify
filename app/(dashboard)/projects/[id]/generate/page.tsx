@@ -22,7 +22,7 @@ import PlatformBadge from "@/components/ai/platform-badge";
 import { getProjectWithOutputs } from "@/lib/services/projects";
 import { generateForPlatforms } from "@/lib/services/ai";
 import { BulkGenerationResult } from "@/types/ai";
-import { PLATFORMS } from "@/lib/constants/platforms";
+import { PLATFORMS, type Platform } from "@/lib/constants/platforms";
 
 interface Output {
   id: string;
@@ -49,7 +49,7 @@ export default function GeneratePage() {
   const projectId = params.id;
   
   const [project, setProject] = useState<Project | null>(null);
-  const [selectedPlatforms, setSelectedPlatforms] = useState<string[]>([]);
+  const [selectedPlatforms, setSelectedPlatforms] = useState<Platform[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isGenerating, setIsGenerating] = useState(false);
   const [progress, setProgress] = useState(0);
@@ -64,9 +64,9 @@ export default function GeneratePage() {
         const data = await getProjectWithOutputs(projectId, "");
         
         if (data) {
-          setProject(data as any);
+          setProject(data as unknown as Project);
           // Initialize selected platforms with project's platforms or default
-          setSelectedPlatforms(data.platforms.length > 0 ? data.platforms : ["linkedin"]);
+          setSelectedPlatforms(data.platforms.length > 0 ? data.platforms as Platform[] : ["linkedin"] as Platform[]);
         } else {
           setError("Project not found");
         }
@@ -133,7 +133,7 @@ export default function GeneratePage() {
       // Refresh project data to show new outputs
       const updatedProject = await getProjectWithOutputs(projectId, "");
       if (updatedProject) {
-        setProject(updatedProject as any);
+        setProject(updatedProject as unknown as Project);
       }
     } catch (err) {
       console.error("Generation error:", err);
