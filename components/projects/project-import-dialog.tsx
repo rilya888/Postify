@@ -12,9 +12,6 @@ import { Input } from "@/components/ui/input";
 import { importProjectFromFile } from "@/lib/utils/project-export";
 import { toast } from "sonner";
 import { Upload } from "lucide-react";
-import { createProject } from "@/lib/services/projects";
-import { auth } from "@/lib/auth/config";
-
 import { Project } from "@/types/project";
 
 type ProjectImportDialogProps = {
@@ -52,20 +49,23 @@ export function ProjectImportDialog({
       if (!project.title || !project.sourceContent || !Array.isArray(project.platforms)) {
         throw new Error("Invalid project structure in file");
       }
-      
-      // Create the project in the database
-      const session = await auth();
-      if (!session) {
-        throw new Error("Not authenticated");
-      }
-      
-      const createdProject = await createProject(session.user.id, {
-        title: project.title,
-        sourceContent: project.sourceContent,
-        platforms: project.platforms as ("linkedin" | "twitter" | "email")[],
+
+      const response = await fetch("/api/projects", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          title: project.title,
+          sourceContent: project.sourceContent,
+          platforms: project.platforms as ("linkedin" | "twitter" | "email")[],
+        }),
       });
 
-      onImportSuccess(createdProject as Project);
+      const result = await response.json();
+      if (!response.ok) {
+        throw new Error(result.error || "Failed to import project");
+      }
+
+      onImportSuccess(result.project as Project);
       toast.success("Project has been imported and saved successfully");
       onClose();
     } catch (error) {

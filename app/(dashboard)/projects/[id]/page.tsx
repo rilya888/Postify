@@ -8,6 +8,8 @@ import { Badge } from "@/components/ui/badge";
 import { Eye, Edit, RotateCcw } from "lucide-react";
 import Link from "next/link";
 import { PLATFORMS } from "@/lib/constants/platforms";
+import { ExportProjectButton } from "@/components/projects/export-project-button";
+import type { ProjectWithOutputs } from "@/types/project";
 
 export const metadata: Metadata = {
   title: "Project Details | Content Repurposing Tool",
@@ -29,10 +31,7 @@ export default async function ProjectDetailPage({
   }
 
   const project = await prisma.project.findUnique({
-    where: {
-      id: params.id,
-      userId: session.user.id,
-    },
+    where: { id: params.id },
     include: {
       outputs: {
         orderBy: { platform: "asc" },
@@ -40,8 +39,8 @@ export default async function ProjectDetailPage({
     },
   });
 
-  if (!project) {
-    redirect("/projects"); // Or show 404 page
+  if (!project || project.userId !== session.user.id) {
+    redirect("/projects");
   }
 
   return (
@@ -49,6 +48,7 @@ export default async function ProjectDetailPage({
       <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
         <h1 className="text-3xl font-bold">Project Details</h1>
         <div className="flex gap-2">
+          <ExportProjectButton project={project as ProjectWithOutputs} />
           <Button variant="outline" asChild>
             <Link href={`/projects/${params.id}/edit`}>
               <Edit className="mr-2 h-4 w-4" />

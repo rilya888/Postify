@@ -2,17 +2,12 @@ import { Metadata } from "next";
 import { auth } from "@/lib/auth/config";
 import { redirect } from "next/navigation";
 import { prisma } from "@/lib/db/prisma";
+import type { Prisma } from "@prisma/client";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
-import { Plus, MoreHorizontal } from "lucide-react";
 import Link from "next/link";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
+import { Plus } from "lucide-react";
+import { ProjectsPageClient } from "@/components/projects/projects-page-client";
+import { ProjectsListClient } from "@/components/projects/projects-list-client";
 
 export const metadata: Metadata = {
   title: "Projects | Content Repurposing Tool",
@@ -22,16 +17,47 @@ export const metadata: Metadata = {
 /**
  * Projects list page showing all user projects
  */
-export default async function ProjectsPage() {
+export default async function ProjectsPage({
+  searchParams,
+}: {
+  searchParams: Record<string, string | string[] | undefined>;
+}) {
   const session = await auth();
 
   if (!session) {
     redirect("/login");
   }
 
-  // Fetch user projects
+  const searchTerm = (searchParams.term ?? "") as string;
+  const platformParam = searchParams.platforms;
+  const platformFilters = Array.isArray(platformParam)
+    ? platformParam.filter(Boolean)
+    : typeof platformParam === "string"
+      ? platformParam.split(",").filter(Boolean)
+      : [];
+
+  const andConditions: Prisma.ProjectWhereInput[] = [];
+
+  if (typeof searchTerm === "string" && searchTerm.trim()) {
+    andConditions.push({
+      OR: [
+        { title: { contains: searchTerm.trim(), mode: "insensitive" } },
+        { sourceContent: { contains: searchTerm.trim(), mode: "insensitive" } },
+      ],
+    });
+  }
+
+  if (platformFilters.length > 0) {
+    andConditions.push({ platforms: { hasSome: platformFilters } });
+  }
+
+  const where: Prisma.ProjectWhereInput = {
+    userId: session.user.id,
+    ...(andConditions.length > 0 ? { AND: andConditions } : {}),
+  };
+
   const projects = await prisma.project.findMany({
-    where: { userId: session.user.id },
+    where,
     orderBy: { createdAt: "desc" },
     include: {
       outputs: {
@@ -56,63 +82,9 @@ export default async function ProjectsPage() {
         </div>
       </div>
 
-      <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3">
-        {projects.length > 0 ? (
-          projects.map((project) => (
-            <Card key={project.id} className="group relative">
-              <CardHeader>
-                <CardTitle className="line-clamp-1">{project.title}</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="flex flex-wrap gap-2">
-                  {project.outputs.map((output) => (
-                    <Badge key={output.platform} variant="secondary">
-                      {output.platform}
-                    </Badge>
-                  ))}
-                </div>
-                <p className="mt-4 text-sm text-muted-foreground line-clamp-3">
-                  {project.sourceContent.substring(0, 100)}...
-                </p>
-                <div className="mt-4 text-xs text-muted-foreground">
-                  {new Date(project.createdAt).toLocaleDateString()}
-                </div>
-              </CardContent>
-              
-              <div className="absolute right-3 top-3 opacity-0 transition-opacity group-hover:opacity-100">
-                <DropdownMenu>
-                  <DropdownMenuTrigger asChild>
-                    <Button variant="ghost" size="sm">
-                      <MoreHorizontal className="h-4 w-4" />
-                    </Button>
-                  </DropdownMenuTrigger>
-                  <DropdownMenuContent align="end">
-                    <DropdownMenuItem asChild>
-                      <Link href={`/projects/${project.id}/edit`}>Edit</Link>
-                    </DropdownMenuItem>
-                    <DropdownMenuItem asChild>
-                      <Link href={`/projects/${project.id}`}>View</Link>
-                    </DropdownMenuItem>
-                    <DropdownMenuItem asChild>
-                      <Link href={`/projects/${project.id}/generate`}>Generate</Link>
-                    </DropdownMenuItem>
-                  </DropdownMenuContent>
-                </DropdownMenu>
-              </div>
-            </Card>
-          ))
-        ) : (
-          <div className="col-span-full text-center py-12">
-            <h3 className="text-lg font-medium mb-2">No projects yet</h3>
-            <p className="text-muted-foreground mb-4">
-              Get started by creating your first content repurposing project
-            </p>
-            <Button asChild>
-              <Link href="/projects/new">Create Project</Link>
-            </Button>
-          </div>
-        )}
-      </div>
+      <ProjectsPageClient />
+
+      <ProjectsListClient projects={projects} />
     </div>
   );
 }

@@ -4,9 +4,8 @@ import { redirect } from "next/navigation";
 import { prisma } from "@/lib/db/prisma";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
-import { Plus } from "lucide-react";
 import Link from "next/link";
+import { DashboardActions } from "@/components/dashboard/dashboard-actions";
 
 export const metadata: Metadata = {
   title: "Dashboard | Content Repurposing Tool",
@@ -46,14 +45,7 @@ export default async function DashboardPage() {
     <div className="space-y-6">
       <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
         <h1 className="text-3xl font-bold">Dashboard</h1>
-        <div className="flex gap-2">
-          <Button asChild>
-            <Link href="/projects/new">
-              <Plus className="mr-2 h-4 w-4" />
-              New Project
-            </Link>
-          </Button>
-        </div>
+        <DashboardActions />
       </div>
 
       <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
@@ -97,9 +89,10 @@ export default async function DashboardPage() {
           <div className="space-y-4">
             {recentProjects.length > 0 ? (
               recentProjects.map((project) => (
-                <div 
-                  key={project.id} 
-                  className="flex items-center justify-between border-b pb-4 last:border-0 last:pb-0"
+                <Link
+                  key={project.id}
+                  href={`/projects/${project.id}`}
+                  className="flex items-center justify-between border-b pb-4 last:border-0 last:pb-0 hover:bg-muted/50 -mx-2 px-2 rounded-md transition-colors"
                 >
                   <div>
                     <h3 className="font-medium">{project.title}</h3>
@@ -114,7 +107,7 @@ export default async function DashboardPage() {
                       </Badge>
                     ))}
                   </div>
-                </div>
+                </Link>
               ))
             ) : (
               <p className="text-muted-foreground">No projects yet. Create your first project!</p>

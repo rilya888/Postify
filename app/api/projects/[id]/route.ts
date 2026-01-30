@@ -31,10 +31,7 @@ export async function GET(
     }
 
     const project = await prisma.project.findUnique({
-      where: {
-        id: params.id,
-        userId: session.user.id,
-      },
+      where: { id: params.id },
       include: {
         outputs: {
           orderBy: { platform: "asc" },
@@ -42,7 +39,7 @@ export async function GET(
       },
     });
 
-    if (!project) {
+    if (!project || project.userId !== session.user.id) {
       return createErrorResponse(
         { error: "Project not found", code: "PROJECT_NOT_FOUND" },
         404
@@ -97,13 +94,10 @@ export async function PATCH(
 
     // Check if project exists and belongs to user
     const existingProject = await prisma.project.findUnique({
-      where: {
-        id: params.id,
-        userId: session.user.id,
-      },
+      where: { id: params.id },
     });
 
-    if (!existingProject) {
+    if (!existingProject || existingProject.userId !== session.user.id) {
       return createErrorResponse(
         { error: "Project not found", code: "PROJECT_NOT_FOUND" },
         404
@@ -128,10 +122,7 @@ export async function PATCH(
     }
 
     const project = await prisma.project.update({
-      where: {
-        id: params.id,
-        userId: session.user.id,
-      },
+      where: { id: params.id },
       data: {
         title: validatedData.title,
         sourceContent: validatedData.sourceContent,
@@ -178,13 +169,10 @@ export async function DELETE(
     }
 
     const existingProject = await prisma.project.findUnique({
-      where: {
-        id: params.id,
-        userId: session.user.id,
-      },
+      where: { id: params.id },
     });
 
-    if (!existingProject) {
+    if (!existingProject || existingProject.userId !== session.user.id) {
       return createErrorResponse(
         { error: "Project not found", code: "PROJECT_NOT_FOUND" },
         404
@@ -192,10 +180,7 @@ export async function DELETE(
     }
 
     await prisma.project.delete({
-      where: {
-        id: params.id,
-        userId: session.user.id,
-      },
+      where: { id: params.id },
     });
 
     // Log the change

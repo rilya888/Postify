@@ -93,10 +93,7 @@ export async function getProjectById(id: string, userId: string) {
   Logger.info("Fetching project by ID", { userId, projectId: id });
 
   const project = await prisma.project.findUnique({
-    where: {
-      id,
-      userId,
-    },
+    where: { id },
     include: {
       outputs: {
         orderBy: { platform: "asc" },
@@ -104,7 +101,7 @@ export async function getProjectById(id: string, userId: string) {
     },
   });
 
-  if (!project) {
+  if (!project || project.userId !== userId) {
     Logger.warn("Project not found", { userId, projectId: id });
   } else {
     Logger.info("Project found", { userId, projectId: id });
@@ -134,11 +131,15 @@ export async function updateProject(id: string, userId: string, data: UpdateProj
     }
   }
 
+  const existing = await prisma.project.findUnique({
+    where: { id },
+  });
+  if (!existing || existing.userId !== userId) {
+    throw new Error("Project not found");
+  }
+
   const project = await prisma.project.update({
-    where: {
-      id,
-      userId,
-    },
+    where: { id },
     data,
   });
 
@@ -152,11 +153,15 @@ export async function updateProject(id: string, userId: string, data: UpdateProj
 export async function deleteProject(id: string, userId: string) {
   Logger.info("Deleting project", { userId, projectId: id });
 
+  const existing = await prisma.project.findUnique({
+    where: { id },
+  });
+  if (!existing || existing.userId !== userId) {
+    throw new Error("Project not found");
+  }
+
   const deletedProject = await prisma.project.delete({
-    where: {
-      id,
-      userId,
-    },
+    where: { id },
   });
 
   Logger.info("Project deleted successfully", { projectId: deletedProject.id });
@@ -170,16 +175,13 @@ export async function getProjectWithOutputs(id: string, userId: string) {
   Logger.info("Fetching project with outputs", { userId, projectId: id });
 
   const project = await prisma.project.findUnique({
-    where: {
-      id,
-      userId,
-    },
+    where: { id },
     include: {
       outputs: true,
     },
   });
 
-  if (!project) {
+  if (!project || project.userId !== userId) {
     Logger.warn("Project with outputs not found", { userId, projectId: id });
   } else {
     Logger.info("Project with outputs found", { userId, projectId: id, outputCount: project.outputs.length });
