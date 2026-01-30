@@ -37,13 +37,27 @@ export function LoginForm() {
     setIsLoading(true);
 
     try {
-      // Используем signIn с автоматическим редиректом
-      await signIn("credentials", {
+      // Используем signIn без автоматического редиректа для обработки результата
+      const result = await signIn("credentials", {
         email: data.email,
         password: data.password,
-        redirect: true,
-        callbackUrl: "/dashboard"
+        redirect: false,
       });
+
+      // Явно указываем тип результата для обхода ошибки типизации
+      const signInResult = result as { error?: string; ok?: boolean; url?: string } | undefined;
+
+      if (signInResult?.error) {
+        toast.error(signInResult.error === "CredentialsSignin" ? "Invalid email or password" : String(signInResult.error));
+      } else if (signInResult?.ok) {
+        toast.success("Signed in successfully");
+        // Успешный вход - перенаправляем вручную
+        window.location.href = "/dashboard";
+      } else {
+        // В случае успешного входа без ошибок, но с отсутствием ok - также перенаправляем
+        toast.success("Signed in successfully");
+        window.location.href = "/dashboard";
+      }
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "An unexpected error occurred");
     } finally {
