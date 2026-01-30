@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { useSearchParams } from "next/navigation";
 import { signIn } from "next-auth/react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -24,6 +25,8 @@ import { Loader2 } from "lucide-react";
  */
 export function LoginForm() {
   const [isLoading, setIsLoading] = useState(false);
+  const searchParams = useSearchParams();
+  const callbackUrl = searchParams.get("callbackUrl") ?? "/dashboard";
 
   const form = useForm<LoginInput>({
     resolver: zodResolver(loginSchema),
@@ -37,13 +40,25 @@ export function LoginForm() {
     setIsLoading(true);
 
     try {
-      // Используем signIn с автоматическим редиректом
-      await signIn("credentials", {
+      // redirect: false чтобы получить ответ; с Credentials редирект по callbackUrl часто не срабатывает
+      const result = await signIn("credentials", {
         email: data.email,
         password: data.password,
-        redirect: true,
-        callbackUrl: "/dashboard"
+        redirect: false,
+        callbackUrl,
       });
+
+      if (result?.error) {
+        toast.error(result.error === "CredentialsSignin" ? "Invalid email or password" : String(result.error));
+        return;
+      }
+
+      // Явный редирект после успешного входа (полная перезагрузка, чтобы middleware увидел сессию)
+      if (result?.url) {
+        window.location.href = result.url;
+        return;
+      }
+      window.location.href = callbackUrl;
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "An unexpected error occurred");
     } finally {
