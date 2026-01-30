@@ -62,10 +62,10 @@ export function ProjectImportDialog({
       const createdProject = await createProject(session.user.id, {
         title: project.title,
         sourceContent: project.sourceContent,
-        platforms: project.platforms,
+        platforms: project.platforms as ("linkedin" | "twitter" | "email")[],
       });
-      
-      onImportSuccess(createdProject);
+
+      onImportSuccess(createdProject as Project);
       toast.success("Project has been imported and saved successfully");
       onClose();
     } catch (error) {
