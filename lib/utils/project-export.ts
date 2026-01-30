@@ -27,7 +27,7 @@ export async function importProjectFromFile(file: File): Promise<ProjectWithOutp
         const content = event.target?.result as string;
         const project = JSON.parse(content);
         resolve(project);
-      } catch (_error) {
+      } catch (_) {
         reject(new Error("Invalid project file format"));
       }
     };
