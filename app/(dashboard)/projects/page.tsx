@@ -8,6 +8,7 @@ import Link from "next/link";
 import { Plus } from "lucide-react";
 import { ProjectsPageClient } from "@/components/projects/projects-page-client";
 import { ProjectsListClient } from "@/components/projects/projects-list-client";
+import { ProjectErrorBoundary } from "@/components/projects/project-error-boundary";
 
 export const metadata: Metadata = {
   title: "Projects | Content Repurposing Tool",
@@ -82,9 +83,10 @@ export default async function ProjectsPage({
         </div>
       </div>
 
-      <ProjectsPageClient />
-
-      <ProjectsListClient projects={projects} />
+      <ProjectErrorBoundary>
+        <ProjectsPageClient />
+        <ProjectsListClient projects={projects} />
+      </ProjectErrorBoundary>
     </div>
   );
 }

@@ -9,6 +9,7 @@ import { Eye, Edit, RotateCcw } from "lucide-react";
 import Link from "next/link";
 import { PLATFORMS } from "@/lib/constants/platforms";
 import { ExportProjectButton } from "@/components/projects/export-project-button";
+import { ProjectErrorBoundary } from "@/components/projects/project-error-boundary";
 import type { ProjectWithOutputs } from "@/types/project";
 
 export const metadata: Metadata = {
@@ -44,27 +45,28 @@ export default async function ProjectDetailPage({
   }
 
   return (
-    <div className="space-y-6">
-      <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
-        <h1 className="text-3xl font-bold">Project Details</h1>
-        <div className="flex gap-2">
-          <ExportProjectButton project={project as ProjectWithOutputs} />
-          <Button variant="outline" asChild>
-            <Link href={`/projects/${params.id}/edit`}>
-              <Edit className="mr-2 h-4 w-4" />
-              Edit
-            </Link>
-          </Button>
-          <Button variant="outline" asChild>
-            <Link href={`/projects/${params.id}/generate`}>
-              <RotateCcw className="mr-2 h-4 w-4" />
-              Regenerate
-            </Link>
-          </Button>
+    <ProjectErrorBoundary>
+      <div className="space-y-6">
+        <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+          <h1 className="text-3xl font-bold">Project Details</h1>
+          <div className="flex gap-2">
+            <ExportProjectButton project={project as ProjectWithOutputs} />
+            <Button variant="outline" asChild>
+              <Link href={`/projects/${params.id}/edit`}>
+                <Edit className="mr-2 h-4 w-4" />
+                Edit
+              </Link>
+            </Button>
+            <Button variant="outline" asChild>
+              <Link href={`/projects/${params.id}/generate`}>
+                <RotateCcw className="mr-2 h-4 w-4" />
+                Regenerate
+              </Link>
+            </Button>
+          </div>
         </div>
-      </div>
 
-      <Card>
+        <Card>
         <CardHeader>
           <CardTitle>{project.title}</CardTitle>
         </CardHeader>
@@ -130,6 +132,7 @@ export default async function ProjectDetailPage({
           </div>
         </CardContent>
       </Card>
-    </div>
+      </div>
+    </ProjectErrorBoundary>
   );
 }

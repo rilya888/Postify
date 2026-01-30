@@ -3,6 +3,7 @@ import { auth } from "@/lib/auth/config";
 import { redirect } from "next/navigation";
 import { prisma } from "@/lib/db/prisma";
 import { ProjectForm } from "@/components/projects/project-form";
+import { ProjectErrorBoundary } from "@/components/projects/project-error-boundary";
 
 export const metadata: Metadata = {
   title: "Edit Project | Content Repurposing Tool",
@@ -24,14 +25,11 @@ export default async function EditProjectPage({
   }
 
   const project = await prisma.project.findUnique({
-    where: {
-      id: params.id,
-      userId: session.user.id,
-    },
+    where: { id: params.id },
   });
 
-  if (!project) {
-    redirect("/projects"); // Or show 404 page
+  if (!project || project.userId !== session.user.id) {
+    redirect("/projects");
   }
 
   const initialData = {
@@ -41,20 +39,22 @@ export default async function EditProjectPage({
   };
 
   return (
-    <div className="space-y-6">
-      <div>
-        <h1 className="text-3xl font-bold">Edit Project</h1>
-        <p className="text-muted-foreground">
-          Update your project details and selected platforms
-        </p>
-      </div>
+    <ProjectErrorBoundary>
+      <div className="space-y-6">
+        <div>
+          <h1 className="text-3xl font-bold">Edit Project</h1>
+          <p className="text-muted-foreground">
+            Update your project details and selected platforms
+          </p>
+        </div>
 
-      <div className="max-w-3xl">
-        <ProjectForm 
-          initialData={initialData} 
-          projectId={params.id} 
-        />
+        <div className="max-w-3xl">
+          <ProjectForm 
+            initialData={initialData} 
+            projectId={params.id} 
+          />
+        </div>
       </div>
-    </div>
+    </ProjectErrorBoundary>
   );
 }
