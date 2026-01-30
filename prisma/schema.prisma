@@ -71,6 +71,7 @@ model Output {
   // Indexes for performance
   @@index([projectId])
   @@index([projectId, platform]) // For querying specific platform output
+  @@unique([projectId, platform]) // Unique constraint for upsert operations
   @@map("outputs")
 }
 
