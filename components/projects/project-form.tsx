@@ -16,10 +16,9 @@ import {
 } from "@/components/ui/form";
 import { Textarea } from "@/components/ui/textarea";
 import { Input } from "@/components/ui/input";
-import { Checkbox } from "@/components/ui/checkbox";
 import { toast } from "sonner";
-import { PLATFORMS } from "@/lib/constants/platforms";
 import { createProjectSchema, updateProjectSchema } from "@/lib/validations/project";
+import PlatformSelector from "@/components/ai/platform-selector";
 import { Loader2, Plus, Save, Download } from "lucide-react";
 import { ProgressBar } from "@/components/ui/progress-bar";
 import { useAutoSaveDraft } from "@/lib/hooks/useAutoSaveDraft";
@@ -180,45 +179,22 @@ export function ProjectForm({
         <FormField
           control={form.control}
           name="platforms"
-          render={() => (
+          render={({ field }) => (
             <FormItem>
               <FormLabel>Select Platforms *</FormLabel>
-              <div className="space-y-2">
-                {Object.entries(PLATFORMS).map(([key, platform]) => (
-                  <FormField
-                    key={key}
-                    control={form.control}
-                    name="platforms"
-                    render={({ field }) => {
-                      return (
-                        <FormItem
-                          key={key}
-                          className="flex flex-row items-start space-x-3 space-y-0"
-                        >
-                          <FormControl>
-                            <Checkbox
-                              checked={field.value?.includes(key as "linkedin" | "twitter" | "email")}
-                              onCheckedChange={(checked) => {
-                                return checked
-                                  ? field.onChange([...field.value, key as "linkedin" | "twitter" | "email"])
-                                  : field.onChange(
-                                      field.value?.filter(
-                                        (value) => value !== key
-                                      )
-                                    );
-                              }}
-                            />
-                          </FormControl>
-                          <FormLabel className="font-normal flex items-center gap-2">
-                            <span>{platform.icon}</span>
-                            <span>{platform.name}</span>
-                          </FormLabel>
-                        </FormItem>
-                      );
-                    }}
-                  />
-                ))}
-              </div>
+              <FormControl>
+                <PlatformSelector
+                  selectedPlatforms={field.value ?? []}
+                  onPlatformToggle={(platform) => {
+                    const current = field.value ?? [];
+                    const next = current.includes(platform)
+                      ? current.filter((p) => p !== platform)
+                      : [...current, platform];
+                    field.onChange(next);
+                  }}
+                  disabled={isSubmitting}
+                />
+              </FormControl>
               <FormMessage />
             </FormItem>
           )}

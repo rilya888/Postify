@@ -60,6 +60,7 @@ export function sanitizeContent(content: string): string {
 export function validateContentSafety(content: string): { isValid: boolean; message?: string } {
   // Check for prohibited patterns
   const prohibitedPatterns = [
+    /<script\b/i,
     /<iframe/i,
     /<object/i,
     /<embed/i,

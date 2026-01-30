@@ -6,6 +6,7 @@ import { getPlatformPromptTemplate, formatPrompt } from "@/lib/ai/prompt-templat
 import { checkProjectQuota } from "../services/quota";
 import { Logger } from "@/lib/utils/logger";
 import { getProjectById } from "../services/projects";
+import { logProjectChange } from "../services/project-history";
 import { validatePlatformContent, sanitizeContent } from "@/lib/utils/content-validation";
 
 /**
@@ -64,20 +65,30 @@ export async function generateForPlatforms(
       // Validate content for the specific platform
       const validation = validatePlatformContent(sanitizedContent, platform);
 
-      // Save to database
-      await prisma.output.create({
-        data: {
+      const metadata = {
+        model: options?.model || "gpt-4-turbo",
+        temperature: options?.temperature || 0.7,
+        maxTokens: options?.maxTokens || 2000,
+        timestamp: new Date().toISOString(),
+        success: true,
+        validationMessages: validation.messages,
+      };
+
+      // Upsert to support re-generation and regenerate for same platform
+      await prisma.output.upsert({
+        where: {
+          projectId_platform: { projectId, platform },
+        },
+        update: {
+          content: sanitizedContent,
+          isEdited: false,
+          generationMetadata: metadata as object,
+        },
+        create: {
           projectId,
           platform,
           content: sanitizedContent,
-          generationMetadata: {
-            model: options?.model || "gpt-4-turbo",
-            temperature: options?.temperature || 0.7,
-            maxTokens: options?.maxTokens || 2000,
-            timestamp: new Date().toISOString(),
-            success: true,
-            validationMessages: validation.messages,
-          },
+          generationMetadata: metadata as object,
         },
       });
 
@@ -103,20 +114,28 @@ export async function generateForPlatforms(
         platform,
       });
 
-      // Save error to database
-      await prisma.output.create({
-        data: {
+      const errorMetadata = {
+        model: options?.model || "gpt-4-turbo",
+        temperature: options?.temperature || 0.7,
+        maxTokens: options?.maxTokens || 2000,
+        timestamp: new Date().toISOString(),
+        success: false,
+        errorMessage: error instanceof Error ? error.message : String(error),
+      };
+
+      await prisma.output.upsert({
+        where: {
+          projectId_platform: { projectId, platform },
+        },
+        update: {
+          content: "",
+          generationMetadata: errorMetadata as object,
+        },
+        create: {
           projectId,
           platform,
           content: "",
-          generationMetadata: {
-            model: options?.model || "gpt-4-turbo",
-            temperature: options?.temperature || 0.7,
-            maxTokens: options?.maxTokens || 2000,
-            timestamp: new Date().toISOString(),
-            success: false,
-            errorMessage: error instanceof Error ? error.message : String(error),
-          },
+          generationMetadata: errorMetadata as object,
         },
       });
 
@@ -146,6 +165,12 @@ export async function generateForPlatforms(
   // Separate successful and failed results
   const successful = results.filter(r => r.success);
   const failed = results.filter(r => !r.success);
+
+  await logProjectChange(projectId, userId, "generate", {
+    platforms,
+    successful: successful.length,
+    failed: failed.length,
+  });
 
   // Log generation completion
   Logger.info("Content generation completed", {
