@@ -84,10 +84,10 @@ export default function GeneratePage() {
   }, [projectId]);
   
   const handlePlatformToggle = (platform: string) => {
-    setSelectedPlatforms(prev => 
-      prev.includes(platform) 
-        ? prev.filter(p => p !== platform) 
-        : [...prev, platform]
+    setSelectedPlatforms(prev =>
+      prev.includes(platform as Platform)
+        ? prev.filter(p => p !== platform) as Platform[]
+        : [...prev, platform as Platform]
     );
   };
   
