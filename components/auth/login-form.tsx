@@ -38,17 +38,12 @@ export function LoginForm() {
 
     try {
       // Используем signIn с автоматическим редиректом
-      const result = await signIn("credentials", {
+      await signIn("credentials", {
         email: data.email,
         password: data.password,
         redirect: true,
         callbackUrl: "/dashboard"
       });
-
-      // Если результат содержит ошибку
-      if (result?.error) {
-        toast.error(result.error === "CredentialsSignin" ? "Invalid email or password" : String(result.error));
-      }
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "An unexpected error occurred");
     } finally {
