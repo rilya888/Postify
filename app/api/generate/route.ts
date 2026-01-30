@@ -61,7 +61,7 @@ export async function POST(request: NextRequest) {
     });
   } catch (error) {
     Logger.error("Error in generate API route", {
-      error: error instanceof Error ? error.message : String(error),
+      errorMessage: error instanceof Error ? error.message : String(error),
       stack: error instanceof Error ? error.stack : undefined,
     });
 
