@@ -51,8 +51,8 @@ export function LoginForm() {
         toast.error(signInResult.error === "CredentialsSignin" ? "Invalid email or password" : String(signInResult.error));
       } else {
         toast.success("Signed in successfully");
-        // Успешный вход - перенаправляем вручную и обновляем сессию
-        window.location.href = "/dashboard";
+        // Успешный вход - обновляем страницу для обновления сессии
+        window.location.reload();
       }
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "An unexpected error occurred");
