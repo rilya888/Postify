@@ -1,14 +1,13 @@
 import { NextRequest } from "next/server";
-import { getServerSession } from "next-auth";
-import { authOptions } from "@/lib/auth/config";
+import { auth } from "@/lib/auth/config"; // Use the new NextAuth v5 approach
 import { generateForPlatforms } from "@/lib/services/ai";
 import { prisma } from "@/lib/db/prisma";
 import { Logger } from "@/lib/utils/logger";
 
 export async function POST(request: NextRequest) {
   try {
-    // Get session
-    const session = await getServerSession(authOptions);
+    // Get session using the new NextAuth v5 approach
+    const session = await auth();
     if (!session || !session.user?.id) {
       return new Response("Unauthorized", { status: 401 });
     }

@@ -166,6 +166,8 @@ export async function generateForPlatforms(
 /**
  * Regenerate content for a specific platform
  */
+export { BulkGenerationResult };
+
 export async function regenerateForPlatform(
   projectId: string,
   userId: string,
@@ -279,3 +281,5 @@ export async function regenerateForPlatform(
     return result;
   }
 }
+
+export { BulkGenerationResult };
