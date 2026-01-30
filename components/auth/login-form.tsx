@@ -45,24 +45,14 @@ export function LoginForm() {
         redirect: false,
       });
 
-      // NextAuth can return { error }, { url } on redirect, or ok/status
       if (result?.error) {
         toast.error(result.error === "CredentialsSignin" ? "Invalid email or password" : String(result.error));
         return;
       }
-      if (result?.ok ?? !result?.error) {
-        toast.success("Signed in successfully");
-        router.push("/dashboard");
-        router.refresh();
-        return;
-      }
-      // Fallback: if we got a redirect URL, follow it
-      if (result?.url) {
-        router.push(result.url);
-        router.refresh();
-        return;
-      }
-      toast.error("Sign in failed. Please try again.");
+
+      toast.success("Signed in successfully");
+      router.push("/dashboard");
+      router.refresh();
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "An unexpected error occurred");
     } finally {
