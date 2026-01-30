@@ -49,13 +49,9 @@ export function LoginForm() {
 
       if (signInResult?.error) {
         toast.error(signInResult.error === "CredentialsSignin" ? "Invalid email or password" : String(signInResult.error));
-      } else if (signInResult?.ok) {
-        toast.success("Signed in successfully");
-        // Успешный вход - перенаправляем вручную
-        window.location.href = "/dashboard";
       } else {
-        // В случае успешного входа без ошибок, но с отсутствием ok - также перенаправляем
         toast.success("Signed in successfully");
+        // Успешный вход - перенаправляем вручную и обновляем сессию
         window.location.href = "/dashboard";
       }
     } catch (err) {
