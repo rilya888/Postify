@@ -61,6 +61,7 @@ model Output {
   platform           String    // Platform identifier: "linkedin" | "twitter" | "email"
   content            String    @db.Text // Generated/edited content
   isEdited           Boolean   @default(false) // Track if user edited the content
+  originalContent    String?   @db.Text // Store original content for comparison/reverting
   generationMetadata Json?     // Metadata about the generation process (model, params, etc.)
   createdAt          DateTime  @default(now())
   updatedAt          DateTime  @updatedAt

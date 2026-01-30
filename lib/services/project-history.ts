@@ -7,7 +7,7 @@ import { Logger } from "@/lib/utils/logger";
 export async function logProjectChange(
   projectId: string,
   userId: string,
-  action: "create" | "update" | "delete" | "generate",
+  action: "create" | "update" | "delete" | "generate" | "edit_output" | "revert_output",
   changes: Record<string, unknown>
 ) {
   Logger.info("Logging project change", { projectId, userId, action });
