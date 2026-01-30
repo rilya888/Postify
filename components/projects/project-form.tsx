@@ -197,10 +197,10 @@ export function ProjectForm({
                         >
                           <FormControl>
                             <Checkbox
-                              checked={field.value?.includes(key as string)}
+                              checked={field.value?.includes(key as "linkedin" | "twitter" | "email")}
                               onCheckedChange={(checked) => {
                                 return checked
-                                  ? field.onChange([...field.value, key])
+                                  ? field.onChange([...field.value, key as "linkedin" | "twitter" | "email"])
                                   : field.onChange(
                                       field.value?.filter(
                                         (value) => value !== key
