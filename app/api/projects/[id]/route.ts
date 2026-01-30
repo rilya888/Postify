@@ -5,6 +5,7 @@ import { createErrorResponse, createSuccessResponse } from "@/lib/utils/api-erro
 import { updateProjectSchema } from "@/lib/validations/project";
 import { logProjectChange } from "@/lib/services/project-history";
 import { Logger } from "@/lib/utils/logger";
+import { z } from "zod";
 
 /**
  * GET /api/projects/[id]

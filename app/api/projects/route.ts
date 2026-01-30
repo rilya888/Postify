@@ -5,6 +5,7 @@ import { createProjectSchema } from "@/lib/validations/project";
 import { checkProjectQuota } from "@/lib/services/quota";
 import { logProjectChange } from "@/lib/services/project-history";
 import { Logger } from "@/lib/utils/logger";
+import { z } from "zod";
 
 /**
  * GET /api/projects

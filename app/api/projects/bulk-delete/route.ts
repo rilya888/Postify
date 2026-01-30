@@ -3,6 +3,7 @@ import { prisma } from "@/lib/db/prisma";
 import { createErrorResponse, createSuccessResponse } from "@/lib/utils/api-error";
 import { bulkOperationSchema } from "@/lib/validations/project";
 import { Logger } from "@/lib/utils/logger";
+import { z } from "zod";
 
 /**
  * POST /api/projects/bulk-delete
