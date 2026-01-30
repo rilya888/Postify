@@ -40,7 +40,6 @@ export function LoginForm() {
     setIsLoading(true);
 
     try {
-      // redirect: false чтобы получить ответ; с Credentials редирект по callbackUrl часто не срабатывает
       const result = await signIn("credentials", {
         email: data.email,
         password: data.password,
@@ -53,15 +52,14 @@ export function LoginForm() {
         return;
       }
 
-      // Явный редирект после успешного входа (полная перезагрузка, чтобы middleware увидел сессию)
-      if (result?.url) {
-        window.location.href = result.url;
-        return;
-      }
-      window.location.href = callbackUrl;
+      // Успешный вход: даём время на запись куки сессии (NextAuth v5), затем полная перезагрузка
+      const targetUrl = result?.url ?? callbackUrl;
+      const absoluteUrl = targetUrl.startsWith("http") ? targetUrl : `${window.location.origin}${targetUrl.startsWith("/") ? targetUrl : `/${targetUrl}`}`;
+      setTimeout(() => {
+        window.location.replace(absoluteUrl);
+      }, 150);
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "An unexpected error occurred");
-    } finally {
       setIsLoading(false);
     }
   }
