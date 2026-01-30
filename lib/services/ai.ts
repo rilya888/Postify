@@ -97,11 +97,10 @@ export async function generateForPlatforms(
       results.push(result);
       return result;
     } catch (error) {
-      Logger.error("Error generating content for platform", {
+      Logger.error("Error generating content for platform", error as Error, {
         userId,
         projectId,
         platform,
-        error: error instanceof Error ? error.message : String(error),
       });
 
       // Save error to database
@@ -255,11 +254,10 @@ export async function regenerateForPlatform(
 
     return result;
   } catch (error) {
-    Logger.error("Error regenerating content for platform", {
+    Logger.error("Error regenerating content for platform", error as Error, {
       userId,
       projectId,
       platform,
-      error: error instanceof Error ? error.message : String(error),
     });
 
     const result: GenerationResult = {
