@@ -177,7 +177,11 @@ export async function getProjectWithOutputs(id: string, userId: string) {
   const project = await prisma.project.findUnique({
     where: { id },
     include: {
-      outputs: true,
+      outputs: {
+        orderBy: {
+          createdAt: 'desc',
+        },
+      },
     },
   });
 
@@ -188,4 +192,88 @@ export async function getProjectWithOutputs(id: string, userId: string) {
   }
 
   return project;
+}
+
+/**
+ * Get outputs for a specific project
+ */
+export async function getProjectOutputs(projectId: string, userId: string) {
+  Logger.info("Fetching project outputs", { userId, projectId });
+
+  const project = await prisma.project.findUnique({
+    where: { id: projectId },
+  });
+
+  if (!project || project.userId !== userId) {
+    throw new Error("Project not found or access denied");
+  }
+
+  const outputs = await prisma.output.findMany({
+    where: { projectId },
+    orderBy: {
+      createdAt: 'desc',
+    },
+  });
+
+  Logger.info("Project outputs fetched", { userId, projectId, count: outputs.length });
+  return outputs;
+}
+
+/**
+ * Get a specific output by ID
+ */
+export async function getOutputById(outputId: string, userId: string) {
+  Logger.info("Fetching output by ID", { userId, outputId });
+
+  const output = await prisma.output.findUnique({
+    where: { id: outputId },
+    include: {
+      project: {
+        select: {
+          userId: true,
+        },
+      },
+    },
+  });
+
+  if (!output || output.project.userId !== userId) {
+    Logger.warn("Output not found", { userId, outputId });
+    return null;
+  }
+
+  Logger.info("Output found", { userId, outputId });
+  return output;
+}
+
+/**
+ * Update an output
+ */
+export async function updateOutput(outputId: string, userId: string, content: string) {
+  Logger.info("Updating output", { userId, outputId });
+
+  const output = await prisma.output.findUnique({
+    where: { id: outputId },
+    include: {
+      project: {
+        select: {
+          userId: true,
+        },
+      },
+    },
+  });
+
+  if (!output || output.project.userId !== userId) {
+    throw new Error("Output not found or access denied");
+  }
+
+  const updatedOutput = await prisma.output.update({
+    where: { id: outputId },
+    data: {
+      content,
+      isEdited: true, // Mark as edited when user modifies content
+    },
+  });
+
+  Logger.info("Output updated", { userId, outputId });
+  return updatedOutput;
 }
