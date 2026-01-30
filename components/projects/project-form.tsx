@@ -61,16 +61,20 @@ export function ProjectForm({
   });
 
   // Auto-save draft functionality
-  const [formData, setFormData] = useState(form.getValues());
+  const [formData, setFormData] = useState<ProjectFormData>(form.getValues());
   const [savedDraft, isSavingDraft] = useAutoSaveDraft(
-    `project-draft-${projectId || 'new'}`, 
+    `project-draft-${projectId || 'new'}`,
     formData
   );
 
   // Update formData when form changes
   useEffect(() => {
     const subscription = form.watch((value) => {
-      setFormData(value);
+      setFormData({
+        title: value.title || "",
+        sourceContent: value.sourceContent || "",
+        platforms: value.platforms || []
+      });
     });
     return () => subscription.unsubscribe();
   }, [form]);
