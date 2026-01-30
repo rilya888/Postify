@@ -20,7 +20,7 @@ export type GenerationMetadata = {
   model: string;
   temperature: number;
   maxTokens: number;
-  timestamp: Date;
+  timestamp: Date | string;
   success: boolean;
   errorMessage?: string;
   validationMessages?: string[];

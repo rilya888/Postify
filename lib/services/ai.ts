@@ -241,7 +241,7 @@ export async function regenerateForPlatform(
         model: options?.model || "gpt-4-turbo",
         temperature: options?.temperature || 0.7,
         maxTokens: options?.maxTokens || 2000,
-        timestamp: new Date().toISOString(),
+        timestamp: new Date(),
         success: true,
       },
     };
