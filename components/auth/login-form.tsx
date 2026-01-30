@@ -38,8 +38,14 @@ export function LoginForm() {
 
   async function onSubmit(data: LoginInput) {
     setIsLoading(true);
+    const log = (msg: string, obj?: unknown) => {
+      const payload = obj !== undefined ? ` ${JSON.stringify(obj)}` : "";
+      console.log(`[Login] ${msg}${payload}`);
+    };
 
     try {
+      log("onSubmit start", { callbackUrl, origin: typeof window !== "undefined" ? window.location.origin : "" });
+
       const result = await signIn("credentials", {
         email: data.email,
         password: data.password,
@@ -47,18 +53,31 @@ export function LoginForm() {
         callbackUrl,
       });
 
+      log("signIn result", {
+        hasResult: !!result,
+        url: result?.url,
+        error: result?.error,
+        status: result?.status,
+        ok: (result as { ok?: boolean })?.ok,
+        keys: result ? Object.keys(result) : [],
+      });
+
       if (result?.error) {
+        log("signIn error, not redirecting", { error: result.error });
         toast.error(result.error === "CredentialsSignin" ? "Invalid email or password" : String(result.error));
         return;
       }
 
-      // Успешный вход: даём время на запись куки сессии (NextAuth v5), затем полная перезагрузка
       const targetUrl = result?.url ?? callbackUrl;
       const absoluteUrl = targetUrl.startsWith("http") ? targetUrl : `${window.location.origin}${targetUrl.startsWith("/") ? targetUrl : `/${targetUrl}`}`;
+      log("redirect scheduled", { targetUrl, absoluteUrl });
+
       setTimeout(() => {
+        log("redirect now", { absoluteUrl });
         window.location.replace(absoluteUrl);
       }, 150);
     } catch (err) {
+      log("onSubmit catch", { err: err instanceof Error ? err.message : String(err) });
       toast.error(err instanceof Error ? err.message : "An unexpected error occurred");
       setIsLoading(false);
     }
