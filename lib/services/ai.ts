@@ -65,7 +65,7 @@ export async function generateForPlatforms(
       const validation = validatePlatformContent(sanitizedContent, platform);
 
       // Save to database
-      const output = await prisma.output.create({
+      await prisma.output.create({
         data: {
           projectId,
           platform,
@@ -201,7 +201,7 @@ export async function regenerateForPlatform(
     );
 
     // Update or create output in database
-    const output = await prisma.output.upsert({
+    await prisma.output.upsert({
       where: {
         projectId_platform: {
           projectId,

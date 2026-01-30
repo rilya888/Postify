@@ -1,20 +1,18 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
-import { useParams, useRouter } from "next/navigation";
+import { useParams } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { Separator } from "@/components/ui/separator";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
-import { 
-  PlayIcon, 
-  PauseIcon, 
-  RotateCcwIcon, 
-  CheckCircleIcon, 
+import {
+  PlayIcon,
+  RotateCcwIcon,
+  CheckCircleIcon,
   XCircleIcon,
   Loader2Icon
 } from "lucide-react";
@@ -22,7 +20,7 @@ import { toast } from "sonner";
 import PlatformSelector from "@/components/ai/platform-selector";
 import PlatformBadge from "@/components/ai/platform-badge";
 import { getProjectWithOutputs } from "@/lib/services/projects";
-import { generateForPlatforms } from "@/lib/services/ai";
+import { generateForPlatforms, BulkGenerationResult } from "@/lib/services/ai";
 import { PLATFORMS } from "@/lib/constants/platforms";
 
 interface Output {
@@ -46,7 +44,6 @@ interface Project {
 }
 
 export default function GeneratePage() {
-  const router = useRouter();
   const params = useParams<{ id: string }>();
   const projectId = params.id;
   
@@ -55,7 +52,7 @@ export default function GeneratePage() {
   const [isLoading, setIsLoading] = useState(true);
   const [isGenerating, setIsGenerating] = useState(false);
   const [progress, setProgress] = useState(0);
-  const [generationResults, setGenerationResults] = useState<any>(null);
+  const [generationResults, setGenerationResults] = useState<BulkGenerationResult | null>(null);
   const [error, setError] = useState<string | null>(null);
   
   // Load project data
@@ -123,7 +120,7 @@ export default function GeneratePage() {
         project.id,
         "", // userId would come from session context
         project.sourceContent,
-        selectedPlatforms as any
+        selectedPlatforms as Platform[]
       );
       
       clearInterval(interval);
@@ -296,20 +293,20 @@ export default function GeneratePage() {
                 
                 <Tabs defaultValue={generationResults.successful[0]?.platform} className="w-full">
                   <TabsList className="grid w-full grid-cols-2">
-                    {generationResults.successful.map((result: any) => (
+                    {generationResults.successful.map((result) => (
                       <TabsTrigger key={result.platform} value={result.platform}>
                         {PLATFORMS[result.platform as keyof typeof PLATFORMS]?.name || result.platform}
                       </TabsTrigger>
                     ))}
                   </TabsList>
-                  
-                  {generationResults.successful.map((result: any) => (
+
+                  {generationResults.successful.map((result) => (
                     <TabsContent key={result.platform} value={result.platform} className="mt-4">
                       <Card>
                         <CardContent className="pt-6">
                           <div className="flex justify-between items-start mb-4">
                             <PlatformBadge platform={result.platform} variant="success" />
-                            <Button 
+                            <Button
                               variant="outline" 
                               size="sm"
                               onClick={() => {

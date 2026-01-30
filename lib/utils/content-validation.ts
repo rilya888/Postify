@@ -42,7 +42,7 @@ export function validateContentLength(content: string, platform: string): { isVa
  */
 export function sanitizeContent(content: string): string {
   // Remove potentially dangerous script tags and attributes
-  let sanitized = content
+  const sanitized = content
     // Remove script tags
     .replace(/<script\b[^<]*(?:(?!<\/script>)<[^<]*)*<\/script>/gi, '')
     // Remove javascript: hrefs
