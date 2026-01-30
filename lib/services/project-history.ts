@@ -11,13 +11,13 @@ export async function logProjectChange(
   changes: Record<string, unknown>
 ) {
   Logger.info("Logging project change", { projectId, userId, action });
-  
+
   const historyEntry = await prisma.projectHistory.create({
     data: {
       projectId,
       userId,
       action,
-      changes: changes as any, // Приведение к типу, которое принимает Prisma
+      changes: changes as import("@prisma/client").Prisma.JsonObject,
     },
   });
   
