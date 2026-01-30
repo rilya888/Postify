@@ -50,9 +50,13 @@ export function LoginForm() {
         return;
       }
 
-      toast.success("Signed in successfully");
-      router.push("/dashboard");
-      router.refresh();
+      if (result?.ok) {
+        toast.success("Signed in successfully");
+        // Используем прямой редирект через Next.js вместо router.push
+        window.location.href = "/dashboard";
+      } else {
+        toast.error("Sign in failed. Please try again.");
+      }
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "An unexpected error occurred");
     } finally {
