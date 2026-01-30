@@ -27,12 +27,12 @@ export async function importProjectFromFile(file: File): Promise<ProjectWithOutp
         const content = event.target?.result as string;
         const project = JSON.parse(content);
         resolve(project);
-      } catch (_) {
+      } catch {
         reject(new Error("Invalid project file format"));
       }
     };
 
-    reader.onerror = (_error) => {
+    reader.onerror = () => {
       reject(new Error("Error reading file"));
     };
     
