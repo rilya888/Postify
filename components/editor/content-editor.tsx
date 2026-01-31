@@ -11,7 +11,7 @@ import { ContentEditorProps } from '@/types/editor';
 import { DEFAULT_EDITOR_OPTIONS } from '@/lib/constants/editor';
 import EditorToolbar from './editor-toolbar';
 import CharacterCountDisplay from './character-count-display';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, memo } from 'react';
 import { getCharacterCountInfo } from '@/lib/utils/editor';
 import { Platform } from '@/lib/constants/platforms';
 
@@ -19,7 +19,7 @@ interface ExtendedContentEditorProps extends ContentEditorProps {
   platform?: Platform;
 }
 
-export default function ContentEditor({
+function ContentEditor({
   content,
   onChange,
   options = {},
@@ -63,10 +63,12 @@ export default function ContentEditor({
   return (
     <div className="border rounded-lg overflow-hidden">
       {editor && <EditorToolbar editor={editor} />}
+      <div aria-label="Content editor">
       <EditorContent
         editor={editor}
         className="p-4 min-h-[300px] max-h-[500px] overflow-y-auto"
       />
+      </div>
       {platform && (
         <div className="p-2 bg-gray-50 border-t">
           <CharacterCountDisplay info={charCountInfo} />
@@ -75,3 +77,5 @@ export default function ContentEditor({
     </div>
   );
 }
+
+export default memo(ContentEditor);

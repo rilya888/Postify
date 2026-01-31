@@ -5,10 +5,10 @@ import { prisma } from "@/lib/db/prisma";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Eye, Edit, RotateCcw } from "lucide-react";
+import { Edit, RotateCcw } from "lucide-react";
 import Link from "next/link";
-import { PLATFORMS } from "@/lib/constants/platforms";
 import { ExportProjectButton } from "@/components/projects/export-project-button";
+import { EditableContentCard } from "@/components/projects/editable-content-card";
 import { ProjectErrorBoundary } from "@/components/projects/project-error-boundary";
 import type { ProjectWithOutputs } from "@/types/project";
 
@@ -91,32 +91,16 @@ export default async function ProjectDetailPage({
             {project.outputs.length > 0 ? (
               <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3">
                 {project.outputs.map((output) => (
-                  <Card key={output.id}>
-                    <CardHeader>
-                      <CardTitle className="flex items-center gap-2">
-                        <span className="text-lg">
-                          {PLATFORMS[output.platform as keyof typeof PLATFORMS]?.icon}
-                        </span>
-                        {output.platform}
-                      </CardTitle>
-                    </CardHeader>
-                    <CardContent>
-                      <div className="whitespace-pre-line text-sm mb-2 line-clamp-5">
-                        {output.content}
-                      </div>
-                      {output.isEdited && (
-                        <Badge variant="outline" className="text-xs">
-                          Edited
-                        </Badge>
-                      )}
-                      <Button variant="outline" size="sm" className="mt-2 w-full" asChild>
-                        <Link href={`/projects/${params.id}/outputs/${output.id}/edit`}>
-                          <Eye className="mr-2 h-4 w-4" />
-                          View/Edit
-                        </Link>
-                      </Button>
-                    </CardContent>
-                  </Card>
+                  <EditableContentCard
+                    key={output.id}
+                    projectId={params.id}
+                    output={{
+                      id: output.id,
+                      platform: output.platform,
+                      content: output.content,
+                      isEdited: output.isEdited,
+                    }}
+                  />
                 ))}
               </div>
             ) : (

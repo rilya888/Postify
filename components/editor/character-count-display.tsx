@@ -2,13 +2,14 @@
  * Component to display character count information
  */
 
+import { memo } from 'react';
 import { CharacterCountInfo } from '@/types/editor';
 
 interface CharacterCountDisplayProps {
   info: CharacterCountInfo;
 }
 
-export default function CharacterCountDisplay({ info }: CharacterCountDisplayProps) {
+function CharacterCountDisplay({ info }: CharacterCountDisplayProps) {
   const percentage = (info.current / info.max) * 100;
   let barColor = 'bg-green-500';
   
@@ -19,7 +20,7 @@ export default function CharacterCountDisplay({ info }: CharacterCountDisplayPro
   }
 
   return (
-    <div className="mt-2">
+    <div className="mt-2" role="status" aria-live="polite" aria-label={`${info.current} of ${info.max} characters`}>
       <div className="flex justify-between text-sm mb-1">
         <span>
           {info.current} / {info.max} characters
@@ -39,3 +40,5 @@ export default function CharacterCountDisplay({ info }: CharacterCountDisplayPro
     </div>
   );
 }
+
+export default memo(CharacterCountDisplay);

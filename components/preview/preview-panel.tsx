@@ -2,7 +2,7 @@
  * Preview panel component
  */
 
-import { useState } from 'react';
+import { useState, useEffect, useCallback, useRef, memo } from 'react';
 import { Platform, getPlatform } from '@/lib/constants/platforms';
 import { getCharacterCountInfo } from '@/lib/utils/editor';
 import { Button } from '@/components/ui/button';
@@ -16,7 +16,7 @@ interface PreviewPanelProps {
   onCopy?: () => void;
 }
 
-export default function PreviewPanel({ 
+function PreviewPanel({ 
   content, 
   platform, 
   onCopy 
@@ -25,22 +25,35 @@ export default function PreviewPanel({
   const charCountInfo = getCharacterCountInfo(content, platform);
   const [copied, setCopied] = useState(false);
 
-  const handleCopy = async () => {
+  const handleCopy = useCallback(async () => {
     const success = await copyToClipboard(content);
-    
     if (success) {
       setCopied(true);
       toast.success(`${platformConfig.name} content copied to clipboard!`);
       onCopy?.();
-      
-      // Reset the copied state after 2 seconds
       setTimeout(() => setCopied(false), 2000);
     } else {
       toast.error(`Failed to copy ${platformConfig.name} content`);
     }
-  };
+  }, [content, platformConfig.name, onCopy]);
+
+  const previewRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const onKeyDown = (e: KeyboardEvent) => {
+      if ((e.metaKey || e.ctrlKey) && e.key === 'c') {
+        if (previewRef.current?.contains(document.activeElement as Node)) {
+          e.preventDefault();
+          handleCopy();
+        }
+      }
+    };
+    document.addEventListener('keydown', onKeyDown);
+    return () => document.removeEventListener('keydown', onKeyDown);
+  }, [handleCopy]);
 
   return (
+    <div ref={previewRef} tabIndex={0} className="h-full outline-none" role="region" aria-label={`${platformConfig.name} preview`}>
     <Card className="h-full flex flex-col">
       <CardHeader className="pb-2">
         <CardTitle className="flex justify-between items-center">
@@ -66,10 +79,14 @@ export default function PreviewPanel({
         <Button 
           onClick={handleCopy}
           className="w-full"
+          aria-label={copied ? 'Copied to clipboard' : 'Copy to clipboard'}
         >
           {copied ? '✓ Copied!' : 'Copy to Clipboard'}
         </Button>
       </CardFooter>
     </Card>
+    </div>
   );
 }
+
+export default memo(PreviewPanel);
