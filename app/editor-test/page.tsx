@@ -20,9 +20,9 @@ export default function EditorTestPage() {
       
       <div className="mb-6">
         <label className="block mb-2">Select Platform:</label>
-        <select 
-          value={platform} 
-          onChange={(e) => setPlatform(e.target.value as any)}
+        <select
+          value={platform}
+          onChange={(e) => setPlatform(e.target.value as 'linkedin' | 'twitter' | 'email')}
           className="border rounded p-2 mr-4"
         >
           {Object.entries(PLATFORMS).map(([key, config]) => (

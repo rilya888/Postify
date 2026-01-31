@@ -19,7 +19,7 @@ export class Logger {
     // In production, send to external service like Sentry, LogRocket, etc.
     if (process.env.NODE_ENV === 'production' && typeof window === 'undefined') {
       // Send to external logging service
-      this.sendToExternalService(logEntry);
+      this._sendToExternalService(logEntry);
     }
   }
 
@@ -37,7 +37,7 @@ export class Logger {
     console.warn(JSON.stringify(logEntry));
     
     if (process.env.NODE_ENV === 'production' && typeof window === 'undefined') {
-      this.sendToExternalService(logEntry);
+      this._sendToExternalService(logEntry);
     }
   }
 
@@ -61,7 +61,7 @@ export class Logger {
     
     // Always send errors to external service in production
     if (typeof window === 'undefined') {
-      this.sendToExternalService(logEntry);
+      this._sendToExternalService(logEntry);
     }
   }
 
@@ -96,17 +96,17 @@ export class Logger {
     console.log(JSON.stringify(logEntry));
     
     if (process.env.NODE_ENV === 'production' && typeof window === 'undefined') {
-      this.sendToExternalService(logEntry);
+      this._sendToExternalService(logEntry);
     }
   }
 
   /**
    * Send log to external service (placeholder implementation)
    */
-  private static async sendToExternalService(logEntry: any) {
+  private static async _sendToExternalService(_logEntry: any) {
     // In a real implementation, this would send to a service like Sentry, LogRocket, etc.
     // For now, we'll just log to console in a server environment
-    
+
     // Example implementation for external service:
     /*
     try {
@@ -139,7 +139,7 @@ export class Logger {
     console.log(JSON.stringify(logEntry));
     
     if (process.env.NODE_ENV === 'production' && typeof window === 'undefined') {
-      this.sendToExternalService(logEntry);
+      this._sendToExternalService(logEntry);
     }
   }
 }

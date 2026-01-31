@@ -1,5 +1,4 @@
 import { MetadataRoute } from 'next';
-import { prisma } from '@/lib/db/prisma';
 
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   // Base URLs for static pages
