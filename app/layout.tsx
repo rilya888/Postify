@@ -32,6 +32,14 @@ export const metadata: Metadata = {
     title: APP_NAME,
     description: APP_DESCRIPTION,
     siteName: APP_NAME,
+    images: [
+      {
+        url: `${APP_URL}/og-image.png`,
+        width: 1200,
+        height: 630,
+        alt: APP_NAME,
+      },
+    ],
   },
   twitter: {
     card: "summary_large_image",
@@ -64,7 +72,9 @@ export default function RootLayout({
   return (
     <html lang="en">
       <head>
-        <link rel="icon" href="/favicon.ico" />
+        <link rel="icon" href="/favicon.ico" type="image/x-icon" />
+        <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+        <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
       </head>
       <body className={inter.className}>
         <SessionProvider>

@@ -1,16 +1,26 @@
 /** @type {import('next').NextConfig} */
+
+const securityHeaders = [
+  { key: 'X-DNS-Prefetch-Control', value: 'on' },
+  { key: 'Strict-Transport-Security', value: 'max-age=63072000; includeSubDomains; preload' },
+  { key: 'X-XSS-Protection', value: '1; mode=block' },
+  { key: 'X-Frame-Options', value: 'SAMEORIGIN' },
+  { key: 'X-Content-Type-Options', value: 'nosniff' },
+  { key: 'Referrer-Policy', value: 'origin-when-cross-origin' },
+];
+
 const nextConfig = {
-  // Enable React strict mode for better development experience
   reactStrictMode: true,
-  
-  // Optimize images
+
   images: {
-    domains: [], // Add image domains if needed in future
+    domains: [],
+    formats: ['image/avif', 'image/webp'],
   },
-  
-  // Environment variables that should be available on client side
-  env: {
-    // Add client-side env vars here if needed
+
+  env: {},
+
+  async headers() {
+    return [{ source: '/(.*)', headers: securityHeaders }];
   },
 };
 

@@ -33,6 +33,18 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
       changeFrequency: 'weekly',
       priority: 0.9,
     },
+    {
+      url: `${process.env.NEXTAUTH_URL || 'http://localhost:3000'}/privacy`,
+      lastModified: new Date(),
+      changeFrequency: 'monthly',
+      priority: 0.5,
+    },
+    {
+      url: `${process.env.NEXTAUTH_URL || 'http://localhost:3000'}/terms`,
+      lastModified: new Date(),
+      changeFrequency: 'monthly',
+      priority: 0.5,
+    },
   ];
 
   // Dynamic URLs for projects (if publicly accessible)

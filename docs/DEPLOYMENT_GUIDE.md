@@ -72,6 +72,18 @@ npm run build
 2. Set environment variables
 3. Start the server: `npm start`
 
+## Static Assets (Production)
+
+Place these files in the `public/` directory for full SEO and branding:
+
+- **favicon.ico** — Browser tab icon (optional; `public/favicon.svg` is included as fallback).
+- **og-image.png** — Open Graph image for social sharing (1200×630 px).
+- **apple-touch-icon.png** — iOS home screen icon (180×180 px).
+
+## Database Backup
+
+Configure automated backups with your database provider (e.g. Railway PostgreSQL backups, or pg_dump cron). Document your backup schedule and restore procedure for disaster recovery.
+
 ## Post-Deployment Checklist
 
 - [ ] Verify the application loads correctly

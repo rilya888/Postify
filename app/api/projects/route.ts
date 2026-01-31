@@ -4,6 +4,7 @@ import { createErrorResponse, createSuccessResponse } from "@/lib/utils/api-erro
 import { createProjectSchema } from "@/lib/validations/project";
 import { checkProjectQuota } from "@/lib/services/quota";
 import { logProjectChange } from "@/lib/services/project-history";
+import { checkProjectsRateLimit } from "@/lib/utils/rate-limit";
 import { Logger } from "@/lib/utils/logger";
 import { z } from "zod";
 
@@ -29,6 +30,25 @@ export async function GET(request: Request) {
       return createErrorResponse(
         { error: "Unauthorized", code: "UNAUTHORIZED" },
         401
+      );
+    }
+
+    const rateLimit = checkProjectsRateLimit(session.user.id);
+    if (!rateLimit.allowed) {
+      return new Response(
+        JSON.stringify({
+          error: "Too many requests",
+          details: "Rate limit exceeded. Try again later.",
+        }),
+        {
+          status: 429,
+          headers: {
+            "Content-Type": "application/json",
+            ...(rateLimit.retryAfterSeconds != null
+              ? { "Retry-After": String(rateLimit.retryAfterSeconds) }
+              : {}),
+          },
+        }
       );
     }
 
@@ -117,6 +137,25 @@ export async function POST(request: Request) {
       return createErrorResponse(
         { error: "Unauthorized", code: "UNAUTHORIZED" },
         401
+      );
+    }
+
+    const rateLimit = checkProjectsRateLimit(session.user.id);
+    if (!rateLimit.allowed) {
+      return new Response(
+        JSON.stringify({
+          error: "Too many requests",
+          details: "Rate limit exceeded. Try again later.",
+        }),
+        {
+          status: 429,
+          headers: {
+            "Content-Type": "application/json",
+            ...(rateLimit.retryAfterSeconds != null
+              ? { "Retry-After": String(rateLimit.retryAfterSeconds) }
+              : {}),
+          },
+        }
       );
     }
 

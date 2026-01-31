@@ -162,3 +162,31 @@ Reverts an output to its original (pre-edit) content. Requires authentication. T
 - **401 Unauthorized** — `{ "error": "Unauthorized" }`
 - **404 Not Found** — `{ "error": "Output not found or access denied" }`
 - **500 Internal Server Error** — `{ "error": "Internal server error", "details": "..." }`
+
+---
+
+## Projects API
+
+### GET /api/projects
+
+Lists projects for the authenticated user. Supports pagination and sorting.
+
+**Rate limiting:** 60 requests per minute per user (shared with other projects endpoints). On exceed: **429 Too Many Requests** with `Retry-After` header and body `{ "error": "Too many requests", "details": "Rate limit exceeded. Try again later." }`.
+
+### POST /api/projects
+
+Creates a new project. Requires authentication and respects project quota.
+
+**Rate limiting:** Same as GET (60 requests per minute per user). **429** with `Retry-After` when exceeded.
+
+### GET /api/projects/[id], PATCH /api/projects/[id], DELETE /api/projects/[id]
+
+Get, update, or delete a project by ID. Require authentication; project must belong to the user.
+
+**Rate limiting:** Same as above (60 requests per minute per user). **429** with `Retry-After` when exceeded.
+
+### POST /api/projects/bulk-delete
+
+Deletes multiple projects at once. Body: `{ "projectIds": string[] }`.
+
+**Rate limiting:** Same as above (60 requests per minute per user). **429** with `Retry-After` when exceeded.

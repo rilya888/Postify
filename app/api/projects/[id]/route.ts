@@ -4,8 +4,27 @@ import { prisma } from "@/lib/db/prisma";
 import { createErrorResponse, createSuccessResponse } from "@/lib/utils/api-error";
 import { updateProjectSchema } from "@/lib/validations/project";
 import { logProjectChange } from "@/lib/services/project-history";
+import { checkProjectsRateLimit } from "@/lib/utils/rate-limit";
 import { Logger } from "@/lib/utils/logger";
 import { z } from "zod";
+
+function rateLimitResponse(rateLimit: { retryAfterSeconds?: number }) {
+  return new Response(
+    JSON.stringify({
+      error: "Too many requests",
+      details: "Rate limit exceeded. Try again later.",
+    }),
+    {
+      status: 429,
+      headers: {
+        "Content-Type": "application/json",
+        ...(rateLimit.retryAfterSeconds != null
+          ? { "Retry-After": String(rateLimit.retryAfterSeconds) }
+          : {}),
+      },
+    }
+  );
+}
 
 /**
  * GET /api/projects/[id]
@@ -29,6 +48,9 @@ export async function GET(
         401
       );
     }
+
+    const rl = checkProjectsRateLimit(session.user.id);
+    if (!rl.allowed) return rateLimitResponse(rl);
 
     const project = await prisma.project.findUnique({
       where: { id: params.id },
@@ -88,6 +110,9 @@ export async function PATCH(
         401
       );
     }
+
+    const rl = checkProjectsRateLimit(session.user.id);
+    if (!rl.allowed) return rateLimitResponse(rl);
 
     const body = await request.json();
     const validatedData = updateProjectSchema.parse(body);
@@ -167,6 +192,9 @@ export async function DELETE(
         401
       );
     }
+
+    const rl = checkProjectsRateLimit(session.user.id);
+    if (!rl.allowed) return rateLimitResponse(rl);
 
     const existingProject = await prisma.project.findUnique({
       where: { id: params.id },

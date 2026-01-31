@@ -75,6 +75,10 @@ content-repurposing-tool/
 
 See [Deployment Guide](./docs/DEPLOYMENT_GUIDE.md) for detailed instructions on deploying to production.
 
+## Support
+
+For questions, bugs, or feature requests, open an issue in the repository or contact the maintainers. For security issues, see [SECURITY.md](./SECURITY.md).
+
 ## Contributing
 
 This project is part of a structured development plan with multiple stages. See the STAGES directory for the roadmap.

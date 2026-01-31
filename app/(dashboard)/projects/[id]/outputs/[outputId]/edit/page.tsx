@@ -5,6 +5,7 @@
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
+import dynamic from 'next/dynamic';
 import { useParams, useRouter } from 'next/navigation';
 import { useSession } from 'next-auth/react';
 import { toast } from 'sonner';
@@ -23,8 +24,30 @@ import {
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
 import { Skeleton } from '@/components/ui/skeleton';
-import ContentEditor from '@/components/editor/content-editor';
-import PreviewPanel from '@/components/preview/preview-panel';
+
+const ContentEditor = dynamic(
+  () => import('@/components/editor/content-editor'),
+  {
+    loading: () => (
+      <div className="flex min-h-[200px] items-center justify-center rounded-md border bg-muted/30 p-4">
+        <Skeleton className="h-full w-full max-w-2xl" />
+      </div>
+    ),
+    ssr: false,
+  }
+);
+
+const PreviewPanel = dynamic(
+  () => import('@/components/preview/preview-panel'),
+  {
+    loading: () => (
+      <div className="flex min-h-[200px] items-center justify-center rounded-md border bg-muted/30 p-4">
+        <Skeleton className="h-full w-full" />
+      </div>
+    ),
+    ssr: false,
+  }
+);
 import { useAutoSave } from '@/hooks/use-auto-save';
 import { Platform } from '@/lib/constants/platforms';
 import { PLATFORM_CHARACTER_LIMITS } from '@/lib/constants/editor';

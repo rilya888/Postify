@@ -2,6 +2,7 @@ import { auth } from "@/lib/auth/config";
 import { prisma } from "@/lib/db/prisma";
 import { createErrorResponse, createSuccessResponse } from "@/lib/utils/api-error";
 import { bulkOperationSchema } from "@/lib/validations/project";
+import { checkProjectsRateLimit } from "@/lib/utils/rate-limit";
 import { Logger } from "@/lib/utils/logger";
 import { z } from "zod";
 
@@ -27,6 +28,25 @@ export async function POST(request: Request) {
       return createErrorResponse(
         { error: "Unauthorized", code: "UNAUTHORIZED" },
         401
+      );
+    }
+
+    const rateLimit = checkProjectsRateLimit(session.user.id);
+    if (!rateLimit.allowed) {
+      return new Response(
+        JSON.stringify({
+          error: "Too many requests",
+          details: "Rate limit exceeded. Try again later.",
+        }),
+        {
+          status: 429,
+          headers: {
+            "Content-Type": "application/json",
+            ...(rateLimit.retryAfterSeconds != null
+              ? { "Retry-After": String(rateLimit.retryAfterSeconds) }
+              : {}),
+          },
+        }
       );
     }
 
