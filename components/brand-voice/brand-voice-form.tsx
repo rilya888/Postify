@@ -64,7 +64,7 @@ export function BrandVoiceForm({ userId, initialData, onSuccess }: BrandVoiceFor
     },
   });
 
-  async function onSubmit(values: BrandVoiceFormValues) {
+  const onSubmit: (values: BrandVoiceFormValues) => Promise<void> = async (values) => {
     setIsSubmitting(true);
     try {
       if (initialData) {
@@ -86,11 +86,11 @@ export function BrandVoiceForm({ userId, initialData, onSuccess }: BrandVoiceFor
     } finally {
       setIsSubmitting(false);
     }
-  }
+  };
 
   return (
     <Form {...form}>
-      <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
+      <form onSubmit={form.handleSubmit(onSubmit as any)} className="space-y-6">
         <FormField
           control={form.control}
           name="name"
