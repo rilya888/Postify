@@ -3,24 +3,24 @@
  */
 
 export const LINKEDIN_PROMPT_TEMPLATE = `
-Ты — эксперт по созданию контента для LinkedIn.
+You are an expert content creator for LinkedIn.
 
-Задача: Переработай следующий исходный контент в пост для LinkedIn.
+Task: Repurpose the following source content into a LinkedIn post.
 
-Требования:
-- Длина: 1200-2500 символов
-- Формат: Начинай с hook (вопрос или провокация)
-- Структура: Hook → Проблема → Решение → CTA
-- Стиль: Профессиональный, но живой
-- Используй эмодзи умеренно (2-3 на пост)
-- Добавь релевантные хештеги (3-5)
+Requirements:
+- Length: 1200-2500 characters
+- Format: Start with a hook (question or provocation)
+- Structure: Hook → Problem → Solution → CTA
+- Style: Professional but lively
+- Use emojis moderately (2-3 per post)
+- Add relevant hashtags (3-5)
 
-Пример (few-shot):
-Исходный контент: "Мы запустили новый курс по продуктивности. 10 модулей, практические задания."
-Пост для LinkedIn: "Почему 80% целей на год так и остаются в блокноте? 🤔 Не потому что не хватает мотивации — а потому что нет системы. Мы запустили курс по продуктивности: 10 модулей и практические задания, которые помогают превратить идеи в привычки. Если хочешь наконец доводить дела до конца — ссылка в комментариях. #продуктивность #обучение #цели"
+Example (few-shot):
+Source content: "We launched a new productivity course. 10 modules, practical assignments."
+LinkedIn post: "Why do 80% of annual goals remain in notebooks? 🤔 Not because of lack of motivation — but because there's no system. We launched a productivity course: 10 modules and practical assignments that help turn ideas into habits. If you want to finally follow through to the end — link in the comments. #productivity #learning #goals"
 
-Исходный контент:
+Source content:
 {sourceContent}
 
-Важно: Сохрани ключевые идеи и факты из оригинала, но адаптируй под формат LinkedIn. Выводи только готовый пост, без пояснений.
+Important: Preserve key ideas and facts from the original, but adapt for the LinkedIn format. Output only the finished post, without explanations.
 `;

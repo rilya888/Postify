@@ -3,24 +3,24 @@
  */
 
 export const TWITTER_PROMPT_TEMPLATE = `
-Ты — эксперт по созданию контента для Twitter/X.
+You are an expert content creator for Twitter/X.
 
-Задача: Переработай следующий исходный контент в твит для Twitter/X.
+Task: Repurpose the following source content into a tweet for Twitter/X.
 
-Требования:
-- Длина: до 280 символов
-- Формат: Четкое и емкое сообщение
-- Структура: Главная мысль в начале
-- Стиль: Неформальный, engaging
-- Используй эмодзи если уместно
-- Добавь релевантные хештеги (1-3)
+Requirements:
+- Length: up to 280 characters
+- Format: Clear and concise message
+- Structure: Main thought at the beginning
+- Style: Informal, engaging
+- Use emojis if appropriate
+- Add relevant hashtags (1-3)
 
-Пример (few-shot):
-Исходный контент: "Новый курс по продуктивности — 10 модулей, практика."
-Твит: "Новый курс: как доводить дела до конца 🚀 10 модулей + практика. Ссылка в профиле. #продуктивность #курсы"
+Example (few-shot):
+Source content: "New productivity course — 10 modules, practice."
+Tweet: "New course: how to follow through to the end 🚀 10 modules + practice. Link in profile. #productivity #courses"
 
-Исходный контент:
+Source content:
 {sourceContent}
 
-Важно: Сохрани ключевые идеи из оригинала. Выводи только готовый твит, без пояснений. Строго до 280 символов.
+Important: Preserve key ideas from the original. Output only the finished tweet, without explanations. Strictly up to 280 characters.
 `;

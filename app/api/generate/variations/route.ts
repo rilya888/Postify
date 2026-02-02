@@ -1,6 +1,6 @@
 import { NextRequest } from "next/server";
 import { auth } from "@/lib/auth/config";
-import { generateForPlatforms } from "@/lib/services/ai";
+import { generateContentVariations } from "@/lib/services/ai";
 import { prisma } from "@/lib/db/prisma";
 import { Logger } from "@/lib/utils/logger";
 import { checkGenerateRateLimit } from "@/lib/utils/rate-limit";
@@ -32,12 +32,12 @@ export async function POST(request: NextRequest) {
     }
 
     // Parse request body
-    const { projectId, platforms, sourceContent, options, brandVoiceId } = await request.json();
+    const { projectId, platform, sourceContent, variationCount, options, brandVoiceId } = await request.json();
 
     // Validate required fields
-    if (!projectId || !Array.isArray(platforms) || sourceContent == null) {
+    if (!projectId || !platform || sourceContent == null) {
       return new Response(
-        JSON.stringify({ error: "Missing required fields: projectId, platforms, sourceContent" }),
+        JSON.stringify({ error: "Missing required fields: projectId, platform, sourceContent" }),
         { status: 400, headers: { "Content-Type": "application/json" } }
       );
     }
@@ -57,6 +57,15 @@ export async function POST(request: NextRequest) {
       return new Response("Project not found or access denied", { status: 404 });
     }
 
+    // Validate platform
+    const validPlatforms = getAllPlatformIds();
+    if (!validPlatforms.includes(platform)) {
+      return new Response(
+        JSON.stringify({ error: `Invalid platform: ${platform}` }),
+        { status: 400, headers: { "Content-Type": "application/json" } }
+      );
+    }
+
     const subscription = await prisma.subscription.findUnique({
       where: { userId },
     });
@@ -72,23 +81,17 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Validate platforms
-    const validPlatforms = getAllPlatformIds();
-    const invalidPlatforms = platforms.filter((p: string) => !validPlatforms.includes(p));
+    // Validate variation count
+    const maxVariations = PLAN_LIMITS[plan]?.maxVariationsPerGeneration ?? PLAN_LIMITS.free.maxVariationsPerGeneration ?? 3;
+    const count = variationCount ? Math.min(variationCount, maxVariations) : 3;
 
-    if (invalidPlatforms.length > 0) {
-      return new Response(
-        JSON.stringify({ error: `Invalid platforms: ${invalidPlatforms.join(", ")}` }),
-        { status: 400, headers: { "Content-Type": "application/json" } }
-      );
-    }
-
-    // Perform generation
-    const result = await generateForPlatforms(
+    // Perform generation of variations
+    const result = await generateContentVariations(
       projectId,
       userId,
       sourceContent,
-      platforms,
+      platform,
+      count,
       options,
       brandVoiceId
     );
@@ -99,13 +102,13 @@ export async function POST(request: NextRequest) {
       headers: { "Content-Type": "application/json" },
     });
   } catch (error) {
-    Logger.error("Error in generate API route", error as Error, {
+    Logger.error("Error in generate variations API route", error as Error, {
       stack: error instanceof Error ? error.stack : undefined,
     });
 
     return new Response(
       JSON.stringify({
-        error: "Internal server error during content generation",
+        error: "Internal server error during content variations generation",
         details: error instanceof Error ? error.message : String(error)
       }),
       { status: 500, headers: { "Content-Type": "application/json" } }

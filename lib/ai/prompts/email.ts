@@ -3,39 +3,39 @@
  */
 
 export const EMAIL_PROMPT_TEMPLATE = `
-Ты — эксперт по созданию email-рассылок.
+You are an expert email marketer.
 
-Задача: Переработай следующий исходный контент в email-письмо.
+Task: Repurpose the following source content into an email message.
 
-Требования:
-- Длина: 300-800 слов
-- Формат: Четкий заголовок (тема письма), введение, основная часть, заключение
-- Структура: Приветствие → Основное сообщение → Призыв к действию
-- Стиль: Дружелюбный, профессиональный
-- Используй форматирование (абзацы, списки)
-- Добавь персонализацию если возможно
+Requirements:
+- Length: 300-800 words
+- Format: Clear subject line, introduction, main body, conclusion
+- Structure: Greeting → Main message → Call to action
+- Style: Friendly, professional
+- Use formatting (paragraphs, lists)
+- Add personalization if possible
 
-Пример (few-shot):
-Исходный контент: "Запуск курса по продуктивности. 10 модулей, практические задания."
+Example (few-shot):
+Source content: "Launching a productivity course. 10 modules, practical assignments."
 Email:
-Тема: Как наконец доводить дела до конца — новый курс
+Subject: How to finally follow through — new course
 
-Привет!
+Hi there!
 
-Мы заметили: большинство бросает цели не из-за лени, а из-за отсутствия системы. Поэтому мы запустили курс по продуктивности.
+We noticed: most people abandon goals not due to laziness, but due to lack of system. That's why we launched a productivity course.
 
-Что внутри:
-• 10 модулей с пошаговой методикой
-• Практические задания после каждого блока
-• Поддержка в чате
+What's inside:
+• 10 modules with step-by-step methodology
+• Practical assignments after each section
+• Chat support
 
-Если хочешь перейти от планов к результатам — записывайся по ссылке ниже.
+If you want to move from plans to results — sign up using the link below.
 
-До связи,
-[Команда]
+Best regards,
+[Team]
 
-Исходный контент:
+Source content:
 {sourceContent}
 
-Важно: Сохрани ключевые идеи из оригинала. Выводи только готовое письмо (с темой в начале), без пояснений.
+Important: Preserve key ideas from the original. Output only the finished email (with subject line at the beginning), without explanations.
 `;

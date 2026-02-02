@@ -4,6 +4,10 @@
 import { LINKEDIN_PROMPT_TEMPLATE } from './prompts/linkedin';
 import { TWITTER_PROMPT_TEMPLATE } from './prompts/twitter';
 import { EMAIL_PROMPT_TEMPLATE } from './prompts/email';
+import { INSTAGRAM_PROMPT_TEMPLATE } from './prompts/instagram';
+import { FACEBOOK_PROMPT_TEMPLATE } from './prompts/facebook';
+import { TIKTOK_PROMPT_TEMPLATE } from './prompts/tiktok';
+import { YOUTUBE_PROMPT_TEMPLATE } from './prompts/youtube';
 
 /**
  * Replace placeholders in a prompt template
@@ -29,6 +33,14 @@ export function getPlatformPromptTemplate(platform: string): string {
       return TWITTER_PROMPT_TEMPLATE;
     case 'email':
       return EMAIL_PROMPT_TEMPLATE;
+    case 'instagram':
+      return INSTAGRAM_PROMPT_TEMPLATE;
+    case 'facebook':
+      return FACEBOOK_PROMPT_TEMPLATE;
+    case 'tiktok':
+      return TIKTOK_PROMPT_TEMPLATE;
+    case 'youtube':
+      return YOUTUBE_PROMPT_TEMPLATE;
     default:
       throw new Error(`Unsupported platform: ${platform}`);
   }
