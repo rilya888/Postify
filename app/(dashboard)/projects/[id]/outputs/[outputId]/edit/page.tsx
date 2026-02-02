@@ -51,6 +51,7 @@ const PreviewPanel = dynamic(
 import { useAutoSave } from '@/hooks/use-auto-save';
 import { Platform } from '@/lib/constants/platforms';
 import { PLATFORM_CHARACTER_LIMITS } from '@/lib/constants/editor';
+import { VersionHistoryPanel } from '@/components/editor/version-history-panel';
 
 export default function EditOutputPage() {
   const router = useRouter();
@@ -432,6 +433,17 @@ export default function EditOutputPage() {
             )}
           </div>
           <div className="flex gap-2 flex-wrap">
+            {outputId && (
+              <VersionHistoryPanel
+                outputId={outputId}
+                onRestore={(restoredContent) => {
+                  setContent(restoredContent);
+                  setOriginalContent(restoredContent);
+                  setHasUnsavedChanges(false);
+                  clearDraft();
+                }}
+              />
+            )}
             {canRevert && (
               <Button
                 type="button"

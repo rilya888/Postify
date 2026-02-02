@@ -5,6 +5,9 @@ import { describe, it, expect, vi, beforeEach } from "vitest";
 
 const mockPrismaOutputFindUnique = vi.fn();
 const mockPrismaOutputUpdate = vi.fn();
+const mockPrismaOutputVersionCreate = vi.fn();
+const mockPrismaOutputVersionFindMany = vi.fn();
+const mockPrismaOutputVersionFindFirst = vi.fn();
 const mockCheckProjectQuota = vi.fn();
 const mockLogProjectChange = vi.fn();
 
@@ -13,6 +16,11 @@ vi.mock("@/lib/db/prisma", () => ({
     output: {
       findUnique: (...args: unknown[]) => mockPrismaOutputFindUnique(...args),
       update: (...args: unknown[]) => mockPrismaOutputUpdate(...args),
+    },
+    outputVersion: {
+      create: (...args: unknown[]) => mockPrismaOutputVersionCreate(...args),
+      findMany: (...args: unknown[]) => mockPrismaOutputVersionFindMany(...args),
+      findFirst: (...args: unknown[]) => mockPrismaOutputVersionFindFirst(...args),
     },
   },
 }));
@@ -33,6 +41,8 @@ import {
   updateOutputContent,
   revertOutputContent,
   getOutputById,
+  getOutputVersions,
+  revertOutputToVersion,
 } from "@/lib/services/editor";
 
 describe("editor service", () => {
@@ -56,6 +66,9 @@ describe("editor service", () => {
     mockPrismaOutputUpdate.mockImplementation((args: { where: { id: string }; data: object }) =>
       Promise.resolve({ ...mockOutput, ...args.data })
     );
+    mockPrismaOutputVersionCreate.mockResolvedValue({ id: "ver-1", outputId, content: "", createdAt: new Date() });
+    mockPrismaOutputVersionFindMany.mockResolvedValue([]);
+    mockPrismaOutputVersionFindFirst.mockResolvedValue(null);
     mockLogProjectChange.mockResolvedValue(undefined);
   });
 
@@ -181,6 +194,77 @@ describe("editor service", () => {
         where: { id: outputId },
         include: { project: true },
       });
+    });
+  });
+
+  describe("getOutputVersions", () => {
+    it("throws when output not found", async () => {
+      mockPrismaOutputFindUnique.mockResolvedValueOnce(null);
+
+      await expect(getOutputVersions(outputId, userId)).rejects.toThrow("not found");
+      expect(mockPrismaOutputVersionFindMany).not.toHaveBeenCalled();
+    });
+
+    it("returns versions when found and owned", async () => {
+      const versions = [
+        { id: "ver-1", outputId, content: "v1", createdAt: new Date() },
+      ];
+      mockPrismaOutputVersionFindMany.mockResolvedValueOnce(versions);
+
+      const result = await getOutputVersions(outputId, userId);
+
+      expect(result).toEqual(versions);
+      expect(mockPrismaOutputVersionFindMany).toHaveBeenCalledWith({
+        where: { outputId },
+        orderBy: { createdAt: "desc" },
+        take: 50,
+      });
+    });
+  });
+
+  describe("revertOutputToVersion", () => {
+    const versionId = "ver-1";
+    const mockVersion = {
+      id: versionId,
+      outputId,
+      content: "Previous content",
+      createdAt: new Date(),
+    };
+
+    beforeEach(() => {
+      mockPrismaOutputFindUnique.mockResolvedValue(mockOutput);
+      mockPrismaOutputVersionFindFirst.mockResolvedValue(mockVersion);
+      mockPrismaOutputVersionCreate.mockResolvedValue({ id: "ver-2", outputId, content: "", createdAt: new Date() });
+      mockPrismaOutputUpdate.mockImplementation((args: { where: { id: string }; data: object }) =>
+        Promise.resolve({ ...mockOutput, ...args.data })
+      );
+    });
+
+    it("throws when version not found", async () => {
+      mockPrismaOutputVersionFindFirst.mockResolvedValueOnce(null);
+
+      await expect(
+        revertOutputToVersion(outputId, versionId, userId)
+      ).rejects.toThrow("not found");
+    });
+
+    it("reverts content and logs history on success", async () => {
+      const result = await revertOutputToVersion(outputId, versionId, userId);
+
+      expect(result.content).toBe("Previous content");
+      expect(mockPrismaOutputVersionCreate).toHaveBeenCalledWith({
+        data: { outputId, content: "Original content" },
+      });
+      expect(mockPrismaOutputUpdate).toHaveBeenCalledWith({
+        where: { id: outputId },
+        data: { content: "Previous content", isEdited: true },
+      });
+      expect(mockLogProjectChange).toHaveBeenCalledWith(
+        projectId,
+        userId,
+        "revert_to_version",
+        expect.objectContaining({ outputId, versionId })
+      );
     });
   });
 });

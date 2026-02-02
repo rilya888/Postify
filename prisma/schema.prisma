@@ -68,12 +68,29 @@ model Output {
 
   // Relations
   project            Project   @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  versions           OutputVersion[]
 
   // Indexes for performance
   @@index([projectId])
   @@index([projectId, platform]) // For querying specific platform output
   @@unique([projectId, platform]) // Unique constraint for upsert operations
   @@map("outputs")
+}
+
+// OutputVersion model - stores content history per output for versioning and revert
+// Used in: Version History (Stage 6), diff view, revert to previous version
+model OutputVersion {
+  id        String   @id @default(cuid())
+  outputId  String
+  content   String   @db.Text // Snapshot of content at this version
+  createdAt DateTime @default(now())
+
+  // Relations
+  output    Output   @relation(fields: [outputId], references: [id], onDelete: Cascade)
+
+  @@index([outputId])
+  @@index([outputId, createdAt])
+  @@map("output_versions")
 }
 
 // Subscription model - stores user subscription data

@@ -35,6 +35,16 @@ export async function updateOutputContent(
     throw new Error('Output not found or access denied');
   }
 
+  // Save current content as a version before updating (only if content actually changed)
+  if (output.content !== newContent) {
+    await prisma.outputVersion.create({
+      data: {
+        outputId,
+        content: output.content,
+      },
+    });
+  }
+
   // Update the output content
   const updatedOutput = await prisma.output.update({
     where: { id: outputId },
@@ -129,4 +139,88 @@ export async function getOutputById(
   }
 
   return output;
+}
+
+/**
+ * Get version history for an output (newest first)
+ */
+export async function getOutputVersions(
+  outputId: string,
+  userId: string
+) {
+  const output = await prisma.output.findUnique({
+    where: { id: outputId },
+    include: { project: true }
+  });
+
+  if (!output || output.project.userId !== userId) {
+    throw new Error('Output not found or access denied');
+  }
+
+  const versions = await prisma.outputVersion.findMany({
+    where: { outputId },
+    orderBy: { createdAt: 'desc' },
+    take: 50,
+  });
+
+  return versions;
+}
+
+/**
+ * Revert an output to a specific version (restore content from that version)
+ */
+export async function revertOutputToVersion(
+  outputId: string,
+  versionId: string,
+  userId: string
+) {
+  const output = await prisma.output.findUnique({
+    where: { id: outputId },
+    include: { project: true }
+  });
+
+  if (!output || output.project.userId !== userId) {
+    throw new Error('Output not found or access denied');
+  }
+
+  const version = await prisma.outputVersion.findFirst({
+    where: { id: versionId, outputId },
+  });
+
+  if (!version) {
+    throw new Error('Version not found or does not belong to this output');
+  }
+
+  // Save current content as a version before reverting
+  if (output.content !== version.content) {
+    await prisma.outputVersion.create({
+      data: {
+        outputId,
+        content: output.content,
+      },
+    });
+  }
+
+  const revertedOutput = await prisma.output.update({
+    where: { id: outputId },
+    data: {
+      content: version.content,
+      isEdited: true,
+    },
+  });
+
+  await logProjectChange(output.projectId, userId, 'revert_to_version', {
+    outputId,
+    versionId,
+    platform: output.platform,
+  });
+
+  Logger.info('Output reverted to version', {
+    userId,
+    outputId,
+    versionId,
+    platform: output.platform,
+  });
+
+  return revertedOutput;
 }
