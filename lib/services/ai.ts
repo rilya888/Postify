@@ -1,7 +1,7 @@
 import { prisma } from "@/lib/db/prisma";
 import { Platform } from "@/lib/constants/platforms";
 import { GenerationOptions, GenerationResult, BulkGenerationResult } from "@/types/ai";
-import { generateContentWithGracefulDegradation, generateContentWithRetry } from "@/lib/ai/openai-client";
+import { generateContentWithGracefulDegradation } from "@/lib/ai/openai-client";
 import { getPlatformPromptTemplate, formatPrompt } from "@/lib/ai/prompt-templates";
 import { checkProjectQuota } from "../services/quota";
 import { Logger } from "@/lib/utils/logger";
@@ -548,7 +548,7 @@ export async function generateContentVariations(
         };
 
         // Create a unique output record for this variation
-        const variationOutput = await prisma.output.create({
+        await prisma.output.create({
           data: {
             projectId,
             platform,
@@ -583,18 +583,6 @@ export async function generateContentVariations(
           platform,
           variationIndex: i,
         });
-
-        const errorMetadata = {
-          model: options?.model || "gpt-4-turbo",
-          temperature: (options?.temperature || 0.7) + (i * 0.1),
-          maxTokens: options?.maxTokens || 2000,
-          timestamp: new Date().toISOString(),
-          success: false,
-          errorMessage: error instanceof Error ? error.message : String(error),
-          brandVoiceId: brandVoice?.id || null, // Track which brand voice was used
-          variationStyle: style.name, // Track the style of this variation
-          variationIndex: i, // Track the index of this variation
-        };
 
         const result: GenerationResult = {
           platform,

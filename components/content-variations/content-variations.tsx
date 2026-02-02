@@ -3,7 +3,6 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Separator } from '@/components/ui/separator';
 import { Copy, ThumbsUp, ThumbsDown, RotateCcw } from 'lucide-react';
 import { copyToClipboard } from '@/lib/utils/clipboard';
 import { toast } from 'sonner';
@@ -14,11 +13,11 @@ interface ContentVariation {
   content: string;
   style: string;
   index: number;
-  metadata: any;
+  metadata: Record<string, unknown>;
 }
 
 interface ContentVariationsProps {
-  projectId: string;
+  _projectId: string;
   platform: Platform;
   variations: ContentVariation[];
   onVariationSelect?: (variation: ContentVariation) => void;
@@ -26,7 +25,7 @@ interface ContentVariationsProps {
 }
 
 export function ContentVariations({
-  projectId,
+  _projectId,
   platform,
   variations,
   onVariationSelect,

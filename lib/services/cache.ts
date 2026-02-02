@@ -1,17 +1,6 @@
 import { prisma } from "@/lib/db/prisma";
 import crypto from "crypto";
 
-/**
- * Cache entry interface
- */
-interface CacheEntry {
-  id: string;
-  key: string;
-  value: string;
-  expiresAt: Date;
-  createdAt: Date;
-  updatedAt: Date;
-}
 
 /**
  * Generate a hash key for cache entries

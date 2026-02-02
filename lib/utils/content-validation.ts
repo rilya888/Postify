@@ -236,7 +236,6 @@ export function validateContentQuality(content: string, platform: string): { isV
 
   // Check for excessive punctuation
   const exclamationCount = (content.match(/!/g) || []).length;
-  const questionCount = (content.match(/\?/g) || []).length;
 
   if (platform === 'linkedin' && exclamationCount > 3) {
     return {

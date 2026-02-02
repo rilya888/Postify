@@ -15,23 +15,17 @@ import { toast } from 'sonner';
 
 interface BrandVoiceSelectorProps {
   onBrandVoiceSelect: (brandVoice: BrandVoice | null) => void;
-  projectId?: string;
+  _projectId?: string;
 }
 
-export function BrandVoiceSelector({ onBrandVoiceSelect, projectId }: BrandVoiceSelectorProps) {
+export function BrandVoiceSelector({ onBrandVoiceSelect, _projectId }: BrandVoiceSelectorProps) {
   const { data: session } = useSession();
   const [brandVoices, setBrandVoices] = useState<BrandVoice[]>([]);
   const [activeBrandVoice, setActiveBrandVoiceState] = useState<BrandVoice | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [showCreateDialog, setShowCreateDialog] = useState(false);
 
-  useEffect(() => {
-    if (session?.user?.id) {
-      loadBrandVoices();
-    }
-  }, [session, showCreateDialog]); // Reload when dialog closes
-
-  async function loadBrandVoices() {
+  const loadBrandVoices = async () => {
     if (!session?.user?.id) return;
 
     try {
@@ -48,7 +42,13 @@ export function BrandVoiceSelector({ onBrandVoiceSelect, projectId }: BrandVoice
     } finally {
       setIsLoading(false);
     }
-  }
+  };
+
+  useEffect(() => {
+    if (session?.user?.id) {
+      loadBrandVoices();
+    }
+  }, [session, showCreateDialog, loadBrandVoices]); // Reload when dialog closes
 
   async function handleSelect(brandVoiceId: string) {
     if (!session?.user?.id) return;

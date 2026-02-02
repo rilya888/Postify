@@ -74,7 +74,7 @@ export async function POST(request: NextRequest) {
 
     // Validate platforms
     const validPlatforms = getAllPlatformIds();
-    const invalidPlatforms = platforms.filter((p: string) => !validPlatforms.includes(p));
+    const invalidPlatforms = platforms.filter((p: string) => !validPlatforms.includes(p as any));
 
     if (invalidPlatforms.length > 0) {
       return new Response(

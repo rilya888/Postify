@@ -1,14 +1,13 @@
 import { NextRequest } from 'next/server';
 import { auth } from '@/lib/auth/config';
-import { 
-  createBrandVoice, 
-  getBrandVoiceById, 
-  getUserBrandVoices, 
-  updateBrandVoice, 
+import {
+  createBrandVoice,
+  getBrandVoiceById,
+  getUserBrandVoices,
+  updateBrandVoice,
   deleteBrandVoice,
   getActiveBrandVoice
 } from '@/lib/services/brand-voice';
-import { prisma } from '@/lib/db/prisma';
 
 export async function GET(request: NextRequest) {
   try {
