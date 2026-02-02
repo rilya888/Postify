@@ -22,6 +22,10 @@ export type GenerationMetadata = {
   maxTokens: number;
   timestamp: Date | string;
   success: boolean;
+  source?: 'api' | 'cache' | 'template'; // Track if content came from API, cache, or template
+  brandVoiceId?: string; // Track which brand voice was used
+  variationStyle?: string; // Track the style of this variation
+  variationIndex?: number; // Track the index of this variation
   errorMessage?: string;
   validationMessages?: string[];
 };

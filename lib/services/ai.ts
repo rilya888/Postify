@@ -94,7 +94,7 @@ export async function generateForPlatforms(
       userId,
       projectId,
       platforms,
-      brandVoice: brandVoice?.id || null,
+      brandVoice: brandVoice?.id,
     });
 
     // Prepare results array
@@ -145,7 +145,7 @@ export async function generateForPlatforms(
           success: true,
           validationMessages: validation.messages,
           source: generationResult.source, // Track if content came from API, cache, or template
-          brandVoiceId: brandVoice?.id || null, // Track which brand voice was used
+          brandVoiceId: brandVoice?.id, // Track which brand voice was used
         };
 
         // Upsert to support re-generation and regenerate for same platform
@@ -177,7 +177,7 @@ export async function generateForPlatforms(
             timestamp: new Date(),
             success: true,
             source: generationResult.source, // Track if content came from API, cache, or template
-            brandVoiceId: brandVoice?.id || null, // Track which brand voice was used
+            brandVoiceId: brandVoice?.id, // Track which brand voice was used
           },
         };
 
@@ -197,7 +197,7 @@ export async function generateForPlatforms(
           timestamp: new Date().toISOString(),
           success: false,
           errorMessage: error instanceof Error ? error.message : String(error),
-          brandVoiceId: brandVoice?.id || null, // Track which brand voice was used
+          brandVoiceId: brandVoice?.id, // Track which brand voice was used
         };
 
         await prisma.output.upsert({
@@ -227,7 +227,7 @@ export async function generateForPlatforms(
             timestamp: new Date(),
             success: false,
             errorMessage: error instanceof Error ? error.message : String(error),
-            brandVoiceId: brandVoice?.id || null, // Track which brand voice was used
+            brandVoiceId: brandVoice?.id, // Track which brand voice was used
           },
           error: error instanceof Error ? error.message : String(error),
         };
@@ -251,7 +251,7 @@ export async function generateForPlatforms(
       platforms,
       successful: successful.length,
       failed: failed.length,
-      brandVoiceId: brandVoice?.id || null,
+      brandVoiceId: brandVoice?.id,
     });
 
     // Log generation completion
@@ -260,7 +260,7 @@ export async function generateForPlatforms(
       projectId,
       successful: successful.length,
       failed: failed.length,
-      brandVoice: brandVoice?.id || null,
+      brandVoice: brandVoice?.id,
     });
 
     return {
@@ -359,7 +359,7 @@ export async function regenerateForPlatform(
             timestamp: new Date().toISOString(),
             success: true,
             source: generationResult.source, // Track if content came from API, cache, or template
-            brandVoiceId: brandVoice?.id || null, // Track which brand voice was used
+            brandVoiceId: brandVoice?.id, // Track which brand voice was used
           },
         },
         create: {
@@ -373,7 +373,7 @@ export async function regenerateForPlatform(
             timestamp: new Date().toISOString(),
             success: true,
             source: generationResult.source, // Track if content came from API, cache, or template
-            brandVoiceId: brandVoice?.id || null, // Track which brand voice was used
+            brandVoiceId: brandVoice?.id, // Track which brand voice was used
           },
         },
       });
@@ -389,7 +389,7 @@ export async function regenerateForPlatform(
           timestamp: new Date(),
           success: true,
           source: generationResult.source, // Track if content came from API, cache, or template
-          brandVoiceId: brandVoice?.id || null, // Track which brand voice was used
+          brandVoiceId: brandVoice?.id, // Track which brand voice was used
         },
       };
 
@@ -397,7 +397,7 @@ export async function regenerateForPlatform(
         userId,
         projectId,
         platform,
-        brandVoice: brandVoice?.id || null,
+        brandVoice: brandVoice?.id,
       });
 
       return result;
@@ -419,7 +419,7 @@ export async function regenerateForPlatform(
           timestamp: new Date(),
           success: false,
           errorMessage: error instanceof Error ? error.message : String(error),
-          brandVoiceId: brandVoice?.id || null, // Track which brand voice was used
+          brandVoiceId: brandVoice?.id, // Track which brand voice was used
         },
         error: error instanceof Error ? error.message : String(error),
       };
@@ -542,7 +542,7 @@ export async function generateContentVariations(
           success: true,
           validationMessages: validation.messages,
           source: generationResult.source, // Track if content came from API, cache, or template
-          brandVoiceId: brandVoice?.id || null, // Track which brand voice was used
+          brandVoiceId: brandVoice?.id, // Track which brand voice was used
           variationStyle: style.name, // Track the style of this variation
           variationIndex: i, // Track the index of this variation
         };
@@ -569,7 +569,7 @@ export async function generateContentVariations(
             timestamp: new Date(),
             success: true,
             source: generationResult.source, // Track if content came from API, cache, or template
-            brandVoiceId: brandVoice?.id || null, // Track which brand voice was used
+            brandVoiceId: brandVoice?.id, // Track which brand voice was used
             variationStyle: style.name, // Track the style of this variation
             variationIndex: i, // Track the index of this variation
           },
@@ -595,7 +595,7 @@ export async function generateContentVariations(
             timestamp: new Date(),
             success: false,
             errorMessage: error instanceof Error ? error.message : String(error),
-            brandVoiceId: brandVoice?.id || null, // Track which brand voice was used
+            brandVoiceId: brandVoice?.id, // Track which brand voice was used
             variationStyle: style.name, // Track the style of this variation
             variationIndex: i, // Track the index of this variation
           },

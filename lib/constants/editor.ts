@@ -11,6 +11,10 @@ export const PLATFORM_CHARACTER_LIMITS: Record<Platform, number> = {
   linkedin: 3000,
   twitter: 280,
   email: 10000, // This is actually word limit, but we'll handle that separately
+  instagram: 2200,
+  facebook: 5000,
+  tiktok: 150,
+  youtube: 5000,
 };
 
 /**

@@ -73,7 +73,7 @@ export function ProjectForm({
       setFormData({
         title: value.title || "",
         sourceContent: value.sourceContent || "",
-        platforms: (value.platforms || []).filter(Boolean) as ("linkedin" | "twitter" | "email")[]
+        platforms: (value.platforms || []).filter(Boolean) as Platform[]
       });
     });
     return () => subscription.unsubscribe();

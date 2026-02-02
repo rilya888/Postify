@@ -10,9 +10,9 @@ export const createProjectSchema = z.object({
   sourceContent: z.string()
     .min(10, "Content must be at least 10 characters")
     .max(10000, "Content must be less than 10,000 characters"),
-  platforms: z.array(z.enum(["linkedin", "twitter", "email"]))
+  platforms: z.array(z.enum(["linkedin", "twitter", "email", "instagram", "facebook", "tiktok", "youtube"]))
     .min(1, "Select at least one platform")
-    .max(3, "Maximum 3 platforms allowed"),
+    .max(7, "Maximum 7 platforms allowed"),
 });
 
 export type CreateProjectInput = z.infer<typeof createProjectSchema>;
@@ -29,9 +29,9 @@ export const updateProjectSchema = z.object({
     .min(10, "Content must be at least 10 characters")
     .max(10000, "Content must be less than 10,000 characters")
     .optional(),
-  platforms: z.array(z.enum(["linkedin", "twitter", "email"]))
+  platforms: z.array(z.enum(["linkedin", "twitter", "email", "instagram", "facebook", "tiktok", "youtube"]))
     .min(1, "Select at least one platform")
-    .max(3, "Maximum 3 platforms allowed")
+    .max(7, "Maximum 7 platforms allowed")
     .optional(),
 });
 

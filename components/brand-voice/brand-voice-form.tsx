@@ -92,7 +92,7 @@ export function BrandVoiceForm({ userId, initialData, onSuccess }: BrandVoiceFor
     <Form {...form}>
       <form onSubmit={form.handleSubmit(onSubmit as any)} className="space-y-6">
         <FormField
-          control={form.control}
+          control={form.control as any}
           name="name"
           render={({ field }) => (
             <FormItem>
@@ -106,7 +106,7 @@ export function BrandVoiceForm({ userId, initialData, onSuccess }: BrandVoiceFor
         />
 
         <FormField
-          control={form.control}
+          control={form.control as any}
           name="description"
           render={({ field }) => (
             <FormItem>
@@ -125,7 +125,7 @@ export function BrandVoiceForm({ userId, initialData, onSuccess }: BrandVoiceFor
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           <FormField
-            control={form.control}
+            control={form.control as any}
             name="tone"
             render={({ field }) => (
               <FormItem>
@@ -139,7 +139,7 @@ export function BrandVoiceForm({ userId, initialData, onSuccess }: BrandVoiceFor
           />
 
           <FormField
-            control={form.control}
+            control={form.control as any}
             name="style"
             render={({ field }) => (
               <FormItem>
@@ -154,7 +154,7 @@ export function BrandVoiceForm({ userId, initialData, onSuccess }: BrandVoiceFor
         </div>
 
         <FormField
-          control={form.control}
+          control={form.control as any}
           name="vocabulary"
           render={({ field }) => (
             <FormItem>
@@ -172,7 +172,7 @@ export function BrandVoiceForm({ userId, initialData, onSuccess }: BrandVoiceFor
         />
 
         <FormField
-          control={form.control}
+          control={form.control as any}
           name="avoidVocabulary"
           render={({ field }) => (
             <FormItem>
@@ -191,7 +191,7 @@ export function BrandVoiceForm({ userId, initialData, onSuccess }: BrandVoiceFor
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           <FormField
-            control={form.control}
+            control={form.control as any}
             name="sentenceStructure"
             render={({ field }) => (
               <FormItem>
@@ -205,7 +205,7 @@ export function BrandVoiceForm({ userId, initialData, onSuccess }: BrandVoiceFor
           />
 
           <FormField
-            control={form.control}
+            control={form.control as any}
             name="personality"
             render={({ field }) => (
               <FormItem>
@@ -220,7 +220,7 @@ export function BrandVoiceForm({ userId, initialData, onSuccess }: BrandVoiceFor
         </div>
 
         <FormField
-          control={form.control}
+          control={form.control as any}
           name="examples"
           render={({ field }) => (
             <FormItem>
@@ -239,7 +239,7 @@ export function BrandVoiceForm({ userId, initialData, onSuccess }: BrandVoiceFor
 
         {initialData && (
           <FormField
-            control={form.control}
+            control={form.control as any}
             name="isActive"
             render={({ field }) => (
               <FormItem className="flex flex-row items-start space-x-3 space-y-0 rounded-md border p-4">
