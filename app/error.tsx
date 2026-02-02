@@ -5,6 +5,7 @@ import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { AlertCircle } from "lucide-react";
+import { APP_NAME } from "@/lib/constants/app";
 
 /**
  * Global error boundary component
@@ -38,7 +39,7 @@ export default function Error({
       <div className="mt-4 flex gap-4">
         <Button onClick={reset}>Try Again</Button>
         <Button asChild variant="outline">
-          <Link href="/">Go Home</Link>
+          <Link href="/">Return to {APP_NAME}</Link>
         </Button>
       </div>
     </div>

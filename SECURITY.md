@@ -2,7 +2,7 @@
 
 ## Reporting a Vulnerability
 
-If you discover a security vulnerability in the AI Content Repurposing Tool, please report it responsibly.
+If you discover a security vulnerability in HelixCast, please report it responsibly.
 
 **Do not** open a public GitHub issue for security-sensitive findings.
 

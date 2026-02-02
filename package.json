@@ -1,6 +1,25 @@
 {
-  "name": "content-repurposing-tool",
+  "name": "helixcast",
   "version": "0.1.0",
+  "description": "AI-powered content repurposing - from one source, infinite reach",
+  "keywords": [
+    "ai",
+    "content",
+    "repurposing",
+    "helixcast",
+    "content-transformation",
+    "social-media",
+    "linkedin",
+    "twitter",
+    "email-marketing"
+  ],
+  "author": "HelixCast Team",
+  "license": "MIT",
+  "homepage": "https://helixcast.io",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/yourusername/helixcast"
+  },
   "private": true,
   "scripts": {
     "dev": "next dev",

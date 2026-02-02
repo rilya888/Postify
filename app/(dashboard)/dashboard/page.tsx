@@ -8,7 +8,7 @@ import Link from "next/link";
 import { DashboardActions } from "@/components/dashboard/dashboard-actions";
 
 export const metadata: Metadata = {
-  title: "Dashboard | Content Repurposing Tool",
+  title: "Dashboard",
   description: "Your content repurposing dashboard",
 };
 
@@ -44,7 +44,10 @@ export default async function DashboardPage() {
   return (
     <div className="space-y-6">
       <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
-        <h1 className="text-3xl font-bold">Dashboard</h1>
+        <div>
+          <h1 className="text-3xl font-bold">Dashboard</h1>
+          <p className="text-sm text-muted-foreground mt-1">Your content DNA, one place.</p>
+        </div>
         <DashboardActions />
       </div>
 

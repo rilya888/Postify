@@ -9,7 +9,8 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { User } from "lucide-react";
+import { User, Dna } from "lucide-react";
+import { APP_NAME } from "@/lib/constants/app";
 
 /**
  * Header component with navigation and user menu
@@ -21,8 +22,9 @@ export function Header() {
   return (
     <header className="border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
       <div className="container flex h-14 items-center justify-between">
-        <Link href="/" className="font-bold text-xl">
-          Content Repurposing
+        <Link href="/" className="flex items-center gap-2 font-bold text-xl">
+          <Dna className="h-5 w-5 text-primary" aria-hidden />
+          {APP_NAME}
         </Link>
         
         <nav className="flex items-center gap-4">

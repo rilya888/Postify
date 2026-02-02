@@ -79,8 +79,25 @@ const colors = {
   border: {
     default: '#e5e7eb',
     muted: '#f3f4f6',
-  }
+  },
+  // HelixCast accent (cyan "Cast" effect)
+  accent: {
+    50: '#ecfeff',
+    100: '#cffafe',
+    200: '#a5f3fc',
+    300: '#67e8f9',
+    400: '#22d3ee',
+    500: '#06b6d4',  // Main accent (Cyan)
+    600: '#0891b2',
+    700: '#0e7490',
+    800: '#155e75',
+    900: '#164e63',
+  },
 }
+
+// HelixCast gradients (use bg-gradient-helix / bg-gradient-cast in Tailwind)
+// gradient-helix: linear-gradient(135deg, #6366f1, #8b5cf6)
+// gradient-cast: linear-gradient(90deg, #8b5cf6, #06b6d4)
 ```
 
 ## Typography

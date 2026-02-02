@@ -108,6 +108,10 @@ const config: Config = {
           900: "#78350f",
         },
       },
+      backgroundImage: {
+        "gradient-helix": "linear-gradient(135deg, #6366f1, #8b5cf6)",
+        "gradient-cast": "linear-gradient(90deg, #8b5cf6, #06b6d4)",
+      },
       borderRadius: {
         lg: "var(--radius)",
         md: "calc(var(--radius) - 2px)",

@@ -2,6 +2,7 @@ import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { Header } from "@/components/layout/header";
 import { Footer } from "@/components/layout/footer";
+import { APP_NAME } from "@/lib/constants/app";
 
 /**
  * 404 Not Found page
@@ -24,7 +25,7 @@ export default function NotFound() {
           </p>
           <div className="flex gap-4">
             <Button asChild>
-              <Link href="/">Go Home</Link>
+              <Link href="/">Back to {APP_NAME}</Link>
             </Button>
             <Button asChild variant="outline">
               <Link href="/dashboard">Go to Dashboard</Link>

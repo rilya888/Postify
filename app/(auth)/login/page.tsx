@@ -3,7 +3,7 @@ import Link from "next/link";
 import { LoginForm } from "@/components/auth/login-form";
 
 export const metadata: Metadata = {
-  title: "Sign In | Content Repurposing Tool",
+  title: "Sign In",
   description: "Sign in to your account",
 };
 
@@ -20,7 +20,7 @@ export default function LoginPage() {
             Welcome back
           </h1>
           <p className="text-sm text-muted-foreground">
-            Enter your email and password to sign in
+            Sign in to your HelixCast account
           </p>
         </div>
         <LoginForm />

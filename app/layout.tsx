@@ -3,27 +3,19 @@ import { Inter } from "next/font/google";
 import "./globals.css";
 import { SessionProvider } from "@/components/providers/session-provider";
 import { Toaster } from "@/components/ui/sonner";
-import { APP_NAME, APP_DESCRIPTION, APP_URL } from "@/lib/constants/app";
+import { APP_NAME, APP_DESCRIPTION, APP_URL, APP_KEYWORDS } from "@/lib/constants/app";
 
 const inter = Inter({ subsets: ["latin"] });
 
 export const metadata: Metadata = {
   title: {
-    default: APP_NAME,
+    default: `${APP_NAME} - AI Content Repurposing`,
     template: `%s | ${APP_NAME}`,
   },
   description: APP_DESCRIPTION,
-  keywords: [
-    "AI content",
-    "content repurposing",
-    "social media",
-    "content marketing",
-    "LinkedIn",
-    "Twitter",
-    "email marketing",
-  ],
-  authors: [{ name: "Content Repurposing Team" }],
-  creator: "Content Repurposing Team",
+  keywords: APP_KEYWORDS,
+  authors: [{ name: "HelixCast Team" }],
+  creator: "HelixCast Team",
   metadataBase: new URL(APP_URL),
   openGraph: {
     type: "website",
@@ -37,7 +29,7 @@ export const metadata: Metadata = {
         url: `${APP_URL}/og-image.png`,
         width: 1200,
         height: 630,
-        alt: APP_NAME,
+        alt: `${APP_NAME} - From one source, infinite reach`,
       },
     ],
   },
@@ -45,7 +37,8 @@ export const metadata: Metadata = {
     card: "summary_large_image",
     title: APP_NAME,
     description: APP_DESCRIPTION,
-    creator: "@contentrepurpose",
+    creator: "@helixcast",
+    images: [`${APP_URL}/twitter-image.png`],
   },
   robots: {
     index: true,
@@ -57,6 +50,10 @@ export const metadata: Metadata = {
       "max-image-preview": "large",
       "max-snippet": -1,
     },
+  },
+  icons: {
+    icon: "/favicon.ico",
+    apple: "/apple-touch-icon.png",
   },
 };
 

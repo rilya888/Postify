@@ -11,7 +11,7 @@ import { ProjectsListClient } from "@/components/projects/projects-list-client";
 import { ProjectErrorBoundary } from "@/components/projects/project-error-boundary";
 
 export const metadata: Metadata = {
-  title: "Projects | Content Repurposing Tool",
+  title: "Projects",
   description: "Manage your content repurposing projects",
 };
 

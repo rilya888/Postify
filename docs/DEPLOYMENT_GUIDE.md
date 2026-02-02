@@ -1,6 +1,6 @@
 # Deployment Guide
 
-This guide explains how to deploy the AI Content Repurposing Tool to production.
+This guide explains how to deploy HelixCast to production.
 
 ## Prerequisites
 

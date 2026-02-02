@@ -4,7 +4,7 @@ import { redirect } from "next/navigation";
 import { ProjectForm } from "@/components/projects/project-form";
 
 export const metadata: Metadata = {
-  title: "New Project | Content Repurposing Tool",
+  title: "New Project",
   description: "Create a new content repurposing project",
 };
 

@@ -13,7 +13,7 @@ import { ProjectErrorBoundary } from "@/components/projects/project-error-bounda
 import type { ProjectWithOutputs } from "@/types/project";
 
 export const metadata: Metadata = {
-  title: "Project Details | Content Repurposing Tool",
+  title: "Project Details",
   description: "View project details and outputs",
 };
 

@@ -1,6 +1,6 @@
 # Troubleshooting Guide
 
-Common issues and solutions for the AI Content Repurposing Tool.
+Common issues and solutions for HelixCast.
 
 ## Environment and Setup
 

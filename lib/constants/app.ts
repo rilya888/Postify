@@ -5,17 +5,39 @@
 /**
  * App name used in metadata and UI
  */
-export const APP_NAME = "AI Content Repurposing Tool";
+export const APP_NAME = "HelixCast";
+
+/**
+ * App tagline for marketing
+ */
+export const APP_TAGLINE = "From one source, infinite reach";
 
 /**
  * App description for SEO and metadata
  */
-export const APP_DESCRIPTION = "Transform one piece of content into multiple platform formats with AI";
+export const APP_DESCRIPTION =
+  "Transform your content DNA into platform-perfect posts with AI. " +
+  "One source content automatically repurposed for LinkedIn, Twitter, and Email.";
 
 /**
  * App URL (will be set from environment variable in production)
  */
-export const APP_URL = process.env.NEXTAUTH_URL || "http://localhost:3000";
+export const APP_URL = process.env.NEXTAUTH_URL || "https://helixcast.io";
+
+/**
+ * SEO Keywords
+ */
+export const APP_KEYWORDS = [
+  "AI content repurposing",
+  "content transformation",
+  "multi-platform publishing",
+  "content DNA",
+  "social media automation",
+  "HelixCast",
+  "LinkedIn content",
+  "Twitter content",
+  "Email marketing",
+];
 
 /**
  * Session configuration

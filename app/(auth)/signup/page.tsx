@@ -3,7 +3,7 @@ import Link from "next/link";
 import { SignupForm } from "@/components/auth/signup-form";
 
 export const metadata: Metadata = {
-  title: "Sign Up | Content Repurposing Tool",
+  title: "Sign Up",
   description: "Create a new account",
 };
 
@@ -20,7 +20,7 @@ export default function SignupPage() {
             Create an account
           </h1>
           <p className="text-sm text-muted-foreground">
-            Enter your information to get started
+            Get started with HelixCast — from one source, infinite reach
           </p>
         </div>
         <SignupForm />

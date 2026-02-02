@@ -6,7 +6,7 @@ import { ProjectForm } from "@/components/projects/project-form";
 import { ProjectErrorBoundary } from "@/components/projects/project-error-boundary";
 
 export const metadata: Metadata = {
-  title: "Edit Project | Content Repurposing Tool",
+  title: "Edit Project",
   description: "Edit your content repurposing project",
 };
 

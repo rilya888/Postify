@@ -256,7 +256,7 @@ export default function GeneratePage() {
       <div className="mb-8">
         <h1 className="text-3xl font-bold">Generate Content</h1>
         <p className="text-muted-foreground mt-2">
-          Transform your source content into platform-specific formats
+          Decode once. Cast everywhere. Transform your content DNA into platform-specific formats.
         </p>
       </div>
       
