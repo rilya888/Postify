@@ -1,0 +1,238 @@
+// Prisma schema for AI Content Repurposing Tool
+// This schema supports all MVP features and is designed for future expansion
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// User model - stores authentication and user profile data
+// Used in: Auth (Stage 1), Dashboard (Stage 2), Projects (Stage 2-5)
+model User {
+  id            String    @id @default(cuid())
+  email         String    @unique
+  name          String?
+  passwordHash  String?   // Nullable for future OAuth providers
+  emailVerified DateTime? // For future email verification
+  image         String?   // For future profile pictures
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  // Relations
+  projects      Project[]
+  subscription  Subscription?
+  brandVoices   BrandVoice[]
+
+  // Indexes for performance
+  @@index([email])
+  @@map("users")
+}
+
+// Project model - stores user's content repurposing projects
+// Used in: Dashboard (Stage 2), AI Generation (Stage 3), Editor (Stage 4)
+model Project {
+  id            String    @id @default(cuid())
+  userId        String
+  title         String
+  sourceContent String    @db.Text // Original content to repurpose
+  platforms     String[] // Array of target platforms: ["linkedin", "twitter", "email"]
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  // Relations
+  user          User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  outputs       Output[]
+  history       ProjectHistory[]
+  contentPacks  ContentPack[]
+  sourceAssets  SourceAsset[]
+
+  // Indexes for performance (queries by userId are frequent)
+  @@index([userId])
+  @@index([userId, createdAt]) // For sorting user's projects
+  @@map("projects")
+}
+
+// SourceAsset - ingested source (text or audio); Stage 4 audio ingest
+model SourceAsset {
+  id              String    @id @default(cuid())
+  projectId       String
+  userId          String
+  type            String    // "text" | "audio"
+  fileUrlOrPath   String?   @db.Text // Cleared after transcription; audio file deleted
+  durationSeconds Float?    // For audio
+  createdAt       DateTime  @default(now())
+
+  project   Project    @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  transcript Transcript?
+
+  @@index([projectId])
+  @@index([userId])
+  @@map("source_assets")
+}
+
+// Transcript - result of audio transcription; one per SourceAsset (audio)
+model Transcript {
+  id                   String    @id @default(cuid())
+  sourceAssetId        String    @unique
+  rawTranscript        String    @db.Text
+  normalizedTranscript String?   @db.Text
+  language             String?
+  durationSeconds       Float?
+  transcriptionModel   String?
+  costEstimate         Float?
+  status               String    @default("pending") // pending | in_progress | completed | failed
+  createdAt            DateTime  @default(now())
+
+  sourceAsset SourceAsset @relation(fields: [sourceAssetId], references: [id], onDelete: Cascade)
+
+  @@index([sourceAssetId])
+  @@map("transcripts")
+}
+
+// ContentPack model - structured content summary for generation (one per source text version)
+// Used in: Content Pack pipeline (Stage 2), generate posts from pack instead of full text
+model ContentPack {
+  id        String   @id @default(cuid())
+  projectId String
+  userId    String
+  packJson  Json     // summary_short, summary_long, key_points[], audience, quotes[], cta_options[], etc.
+  inputHash String   // sha256 of normalized text (and options) for cache lookup
+  model     String?  // Model used to build the pack
+  createdAt DateTime @default(now())
+
+  // Relations
+  project   Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
+
+  @@index([projectId])
+  @@index([projectId, inputHash])
+  @@map("content_packs")
+}
+
+// Output model - stores generated content for each platform
+// Used in: AI Generation (Stage 3), Editor (Stage 4), Preview (Stage 4)
+model Output {
+  id                 String    @id @default(cuid())
+  projectId          String
+  platform           String    // Platform identifier: "linkedin" | "twitter" | "email"
+  content            String    @db.Text // Generated/edited content
+  isEdited           Boolean   @default(false) // Track if user edited the content
+  originalContent    String?   @db.Text // Store original content for comparison/reverting
+  generationMetadata Json?     // Metadata about the generation process (model, params, etc.)
+  createdAt          DateTime  @default(now())
+  updatedAt          DateTime  @updatedAt
+
+  // Relations
+  project            Project   @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  versions           OutputVersion[]
+
+  // Indexes for performance
+  @@index([projectId])
+  @@index([projectId, platform]) // For querying specific platform output
+  @@unique([projectId, platform]) // Unique constraint for upsert operations
+  @@map("outputs")
+}
+
+// OutputVersion model - stores content history per output for versioning and revert
+// Used in: Version History (Stage 6), diff view, revert to previous version
+model OutputVersion {
+  id                 String   @id @default(cuid())
+  outputId           String
+  content            String   @db.Text // Snapshot of content at this version
+  generationMetadata Json?    // Duplicate of Output.generationMetadata at snapshot time (Stage 6)
+  createdAt          DateTime @default(now())
+
+  // Relations
+  output    Output   @relation(fields: [outputId], references: [id], onDelete: Cascade)
+
+  @@index([outputId])
+  @@index([outputId, createdAt])
+  @@map("output_versions")
+}
+
+// Subscription model - stores user subscription data
+// Used in: Future monetization features (Post-MVP), Stage 3 plan types (text / text_audio)
+model Subscription {
+  id                String    @id @default(cuid())
+  userId            String    @unique
+  plan              String    @default("free") // "free" | "pro" | "enterprise"
+  status            String    @default("active") // "active" | "canceled" | "past_due"
+  currentPeriodEnd  DateTime?
+  stripeCustomerId  String?   // For future Stripe integration
+  stripeSubscriptionId String? // For future Stripe integration
+  // Audio usage for text_audio plan (Stage 3): reset when currentPeriodEnd advances
+  audioMinutesUsedThisPeriod Int     @default(0)
+  audioMinutesLimit          Int?    // From plan; null for text-only
+  createdAt         DateTime  @default(now())
+  updatedAt         DateTime  @updatedAt
+
+  // Relations
+  user              User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@map("subscriptions")
+}
+
+// History model - stores changes to projects for versioning
+// Used in: Project versioning (Stage 2+), Audit trail (Future)
+model ProjectHistory {
+  id          String    @id @default(cuid())
+  projectId   String
+  userId      String    // Who made the change
+  action      String    // "create", "update", "delete"
+  changes     Json      // Stores the changes made
+  timestamp   DateTime  @default(now())
+
+  // Relations
+  project     Project   @relation(fields: [projectId], references: [id], onDelete: Cascade)
+
+  @@index([projectId])
+  @@index([userId])
+  @@index([timestamp])
+  @@map("project_history")
+}
+
+// BrandVoice model - stores user's brand voice characteristics for AI generation
+// Used in: Brand voice preservation (Stage 7+)
+model BrandVoice {
+  id              String    @id @default(cuid())
+  userId          String
+  name            String    // Name for the brand voice profile (e.g., "Professional", "Casual", "Corporate")
+  description     String?   // Optional description of the brand voice
+  tone            String    // Tone characteristics (e.g., "professional", "casual", "friendly", "authoritative")
+  style           String    // Writing style (e.g., "formal", "conversational", "storytelling")
+  vocabulary      String[]  // Preferred vocabulary and phrases
+  avoidVocabulary String[]  // Vocabulary to avoid
+  sentenceStructure String // Sentence structure preferences (e.g., "short", "medium", "complex", "varied")
+  personality     String    // Personality traits (e.g., "confident", "humble", "humorous", "serious")
+  examples        String[]  // Example content that represents the brand voice
+  isActive        Boolean   @default(false) // Whether this is the active brand voice for the user
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+
+  // Relations
+  user            User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  // Indexes for performance
+  @@index([userId])
+  @@index([isActive])
+  @@map("brand_voices")
+}
+
+// Cache model - stores cached API responses and other temporary data
+// Used in: Caching layer implementation (Stage 9+)
+model Cache {
+  id          String    @id @default(cuid())
+  key         String    @unique // Cache key
+  value       String    @db.Text // Cached value
+  expiresAt   DateTime  // Expiration time
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  // Indexes for performance
+  @@index([expiresAt]) // For efficient cleanup of expired entries
+  @@map("cache")
+}
