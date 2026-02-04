@@ -1,0 +1,3 @@
+fix: ESLint errors for build (unused NextResponse, writeErr; no-explicit-any)
+
+Co-authored-by: Cursor <cursoragent@cursor.com>
