@@ -5,20 +5,32 @@ import { describe, it, expect, vi, beforeEach } from "vitest";
 
 const mockUpsert = vi.fn();
 const mockFindUnique = vi.fn();
-const mockGenerateContentWithRetry = vi.fn();
+const mockBrandVoiceFindFirst = vi.fn();
+const mockBrandVoiceFindUnique = vi.fn();
+const mockGenerateContentWithGracefulDegradation = vi.fn();
 const mockCheckProjectQuota = vi.fn();
 const mockGetProjectById = vi.fn();
 const mockLogProjectChange = vi.fn();
+const mockGetOrCreateContentPack = vi.fn();
 
 vi.mock("@/lib/db/prisma", () => ({
   prisma: {
     output: { upsert: (...args: unknown[]) => mockUpsert(...args) },
     project: { findUnique: (...args: unknown[]) => mockFindUnique(...args) },
+    brandVoice: {
+      findFirst: (...args: unknown[]) => mockBrandVoiceFindFirst(...args),
+      findUnique: (...args: unknown[]) => mockBrandVoiceFindUnique(...args),
+    },
   },
 }));
 
 vi.mock("@/lib/ai/openai-client", () => ({
-  generateContentWithRetry: (...args: unknown[]) => mockGenerateContentWithRetry(...args),
+  generateContentWithGracefulDegradation: (...args: unknown[]) => mockGenerateContentWithGracefulDegradation(...args),
+}));
+
+vi.mock("@/lib/services/content-pack", () => ({
+  getOrCreateContentPack: (...args: unknown[]) => mockGetOrCreateContentPack(...args),
+  formatContentPackForPrompt: (pack: { summary_short: string }) => pack?.summary_short ?? "",
 }));
 
 vi.mock("@/lib/services/quota", () => ({
@@ -39,13 +51,19 @@ describe("ai-service", () => {
   const projectId = "proj-1";
   const userId = "user-1";
   const sourceContent = "a".repeat(1500);
-  const platforms = ["linkedin", "twitter"] as const;
+  const platforms: ("linkedin" | "twitter")[] = ["linkedin", "twitter"];
 
   beforeEach(() => {
     vi.clearAllMocks();
     mockCheckProjectQuota.mockResolvedValue({ canCreate: true });
     mockGetProjectById.mockResolvedValue({ id: projectId, userId });
-    mockGenerateContentWithRetry.mockResolvedValue("Generated content for platform.");
+    mockBrandVoiceFindFirst.mockResolvedValue(null);
+    mockBrandVoiceFindUnique.mockResolvedValue(null);
+    mockGetOrCreateContentPack.mockResolvedValue(null);
+    mockGenerateContentWithGracefulDegradation.mockResolvedValue({
+      content: "Generated content for platform.",
+      source: "api",
+    });
   });
 
   it("generateForPlatforms is a function", () => {
@@ -58,7 +76,7 @@ describe("ai-service", () => {
     await expect(
       generateForPlatforms(projectId, userId, sourceContent, ["linkedin"])
     ).rejects.toThrow("Quota exceeded");
-    expect(mockGenerateContentWithRetry).not.toHaveBeenCalled();
+    expect(mockGenerateContentWithGracefulDegradation).not.toHaveBeenCalled();
   });
 
   it("throws when project not found", async () => {
@@ -67,15 +85,15 @@ describe("ai-service", () => {
     await expect(
       generateForPlatforms(projectId, userId, sourceContent, ["linkedin"])
     ).rejects.toThrow("Project not found");
-    expect(mockGenerateContentWithRetry).not.toHaveBeenCalled();
+    expect(mockGenerateContentWithGracefulDegradation).not.toHaveBeenCalled();
   });
 
-  it("calls generateContentWithRetry and upsert for each platform on success", async () => {
+  it("calls generateContentWithGracefulDegradation and upsert for each platform on success", async () => {
     mockUpsert.mockResolvedValue({ id: "out-1", projectId, platform: "linkedin", content: "x" });
 
     const result = await generateForPlatforms(projectId, userId, sourceContent, platforms);
 
-    expect(mockGenerateContentWithRetry).toHaveBeenCalledTimes(2);
+    expect(mockGenerateContentWithGracefulDegradation).toHaveBeenCalledTimes(2);
     expect(mockUpsert).toHaveBeenCalledTimes(2);
     expect(mockLogProjectChange).toHaveBeenCalledWith(
       projectId,

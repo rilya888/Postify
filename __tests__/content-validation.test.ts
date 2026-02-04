@@ -95,7 +95,9 @@ describe("content-validation", () => {
 
   describe("validatePlatformContent", () => {
     it("returns valid for safe content within length", () => {
-      const content = "a".repeat(1500);
+      // LinkedIn requires min 1200, max 2500, 3–5 hashtags, and a hook at start
+      const content =
+        "Why do we need this? #insight #growth #leadership " + "a".repeat(1200);
       const result = validatePlatformContent(content, "linkedin");
       expect(result.isValid).toBe(true);
       expect(result.messages).toHaveLength(0);

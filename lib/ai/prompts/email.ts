@@ -1,41 +1,24 @@
 /**
- * Email-specific prompt template
+ * Email-specific prompt templates.
  */
 
-export const EMAIL_PROMPT_TEMPLATE = `
-You are an expert email marketer.
+export const EMAIL_SYSTEM_PROMPT = `You are an expert email marketer. Requirements: 300-800 words. Clear subject line, intro, body, conclusion. Greeting → message → CTA. Friendly, professional. Paragraphs and lists. Output only the email (subject first), no explanations.`;
 
-Task: Repurpose the following source content into an email message.
+export const EMAIL_USER_TEMPLATE = `Task: Repurpose the following into an email.
 
-Requirements:
-- Length: 300-800 words
-- Format: Clear subject line, introduction, main body, conclusion
-- Structure: Greeting → Main message → Call to action
-- Style: Friendly, professional
-- Use formatting (paragraphs, lists)
-- Add personalization if possible
+Example: Source "Launching a productivity course. 10 modules, practical assignments." → Email with subject "How to finally follow through — new course", greeting, main message, CTA.
 
-Example (few-shot):
-Source content: "Launching a productivity course. 10 modules, practical assignments."
-Email:
-Subject: How to finally follow through — new course
-
-Hi there!
-
-We noticed: most people abandon goals not due to laziness, but due to lack of system. That's why we launched a productivity course.
-
-What's inside:
-• 10 modules with step-by-step methodology
-• Practical assignments after each section
-• Chat support
-
-If you want to move from plans to results — sign up using the link below.
-
-Best regards,
-[Team]
+{brandVoice}
 
 Source content:
-{sourceContent}
+{sourceContent}`;
 
-Important: Preserve key ideas from the original. Output only the finished email (with subject line at the beginning), without explanations.
-`;
+export const EMAIL_USER_TEMPLATE_FROM_PACK = `Task: Write an email using ONLY the following content pack. Include subject line first.
+
+{brandVoice}
+
+Content pack:
+{contentPack}`;
+
+/** @deprecated Use SYSTEM + USER_TEMPLATE */
+export const EMAIL_PROMPT_TEMPLATE = `${EMAIL_SYSTEM_PROMPT}\n\n${EMAIL_USER_TEMPLATE}`;

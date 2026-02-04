@@ -103,7 +103,8 @@ describe("openai-client", () => {
       await expect(
         generateContentWithRetry("p", "s", undefined, 2)
       ).rejects.toThrow("Always fail");
-      expect(mockCreate).toHaveBeenCalledTimes(2);
+      // 2 retries with primary model + 2 with fallback (gpt-3.5-turbo) = 4
+      expect(mockCreate).toHaveBeenCalledTimes(4);
     });
   });
 });

@@ -47,11 +47,69 @@ model Project {
   user          User      @relation(fields: [userId], references: [id], onDelete: Cascade)
   outputs       Output[]
   history       ProjectHistory[]
+  contentPacks  ContentPack[]
+  sourceAssets  SourceAsset[]
 
   // Indexes for performance (queries by userId are frequent)
   @@index([userId])
   @@index([userId, createdAt]) // For sorting user's projects
   @@map("projects")
+}
+
+// SourceAsset - ingested source (text or audio); Stage 4 audio ingest
+model SourceAsset {
+  id              String    @id @default(cuid())
+  projectId       String
+  userId          String
+  type            String    // "text" | "audio"
+  fileUrlOrPath   String?   @db.Text // Cleared after transcription; audio file deleted
+  durationSeconds Float?    // For audio
+  createdAt       DateTime  @default(now())
+
+  project   Project    @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  transcript Transcript?
+
+  @@index([projectId])
+  @@index([userId])
+  @@map("source_assets")
+}
+
+// Transcript - result of audio transcription; one per SourceAsset (audio)
+model Transcript {
+  id                   String    @id @default(cuid())
+  sourceAssetId        String    @unique
+  rawTranscript        String    @db.Text
+  normalizedTranscript String?   @db.Text
+  language             String?
+  durationSeconds       Float?
+  transcriptionModel   String?
+  costEstimate         Float?
+  status               String    @default("pending") // pending | in_progress | completed | failed
+  createdAt            DateTime  @default(now())
+
+  sourceAsset SourceAsset @relation(fields: [sourceAssetId], references: [id], onDelete: Cascade)
+
+  @@index([sourceAssetId])
+  @@map("transcripts")
+}
+
+// ContentPack model - structured content summary for generation (one per source text version)
+// Used in: Content Pack pipeline (Stage 2), generate posts from pack instead of full text
+model ContentPack {
+  id        String   @id @default(cuid())
+  projectId String
+  userId    String
+  packJson  Json     // summary_short, summary_long, key_points[], audience, quotes[], cta_options[], etc.
+  inputHash String   // sha256 of normalized text (and options) for cache lookup
+  model     String?  // Model used to build the pack
+  createdAt DateTime @default(now())
+
+  // Relations
+  project   Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
+
+  @@index([projectId])
+  @@index([projectId, inputHash])
+  @@map("content_packs")
 }
 
 // Output model - stores generated content for each platform
@@ -81,10 +139,11 @@ model Output {
 // OutputVersion model - stores content history per output for versioning and revert
 // Used in: Version History (Stage 6), diff view, revert to previous version
 model OutputVersion {
-  id        String   @id @default(cuid())
-  outputId  String
-  content   String   @db.Text // Snapshot of content at this version
-  createdAt DateTime @default(now())
+  id                 String   @id @default(cuid())
+  outputId           String
+  content            String   @db.Text // Snapshot of content at this version
+  generationMetadata Json?    // Duplicate of Output.generationMetadata at snapshot time (Stage 6)
+  createdAt          DateTime @default(now())
 
   // Relations
   output    Output   @relation(fields: [outputId], references: [id], onDelete: Cascade)
@@ -95,7 +154,7 @@ model OutputVersion {
 }
 
 // Subscription model - stores user subscription data
-// Used in: Future monetization features (Post-MVP)
+// Used in: Future monetization features (Post-MVP), Stage 3 plan types (text / text_audio)
 model Subscription {
   id                String    @id @default(cuid())
   userId            String    @unique
@@ -104,6 +163,9 @@ model Subscription {
   currentPeriodEnd  DateTime?
   stripeCustomerId  String?   // For future Stripe integration
   stripeSubscriptionId String? // For future Stripe integration
+  // Audio usage for text_audio plan (Stage 3): reset when currentPeriodEnd advances
+  audioMinutesUsedThisPeriod Int     @default(0)
+  audioMinutesLimit          Int?    // From plan; null for text-only
   createdAt         DateTime  @default(now())
   updatedAt         DateTime  @updatedAt
 

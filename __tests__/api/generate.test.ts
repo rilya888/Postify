@@ -143,7 +143,10 @@ describe("POST /api/generate", () => {
       "user-1",
       "Hello world",
       ["linkedin"],
-      undefined
+      undefined,
+      undefined,
+      expect.stringMatching(/^[0-9a-f-]{36}$/i),
+      "free"
     );
     const json = await res.json();
     expect(json.successful).toHaveLength(1);

@@ -14,7 +14,9 @@ import {
   CheckCircleIcon,
   XCircleIcon,
   Loader2Icon,
-  SquareIcon
+  SquareIcon,
+  UploadIcon,
+  MicIcon,
 } from "lucide-react";
 import { toast } from "sonner";
 import PlatformSelector from "@/components/ai/platform-selector";
@@ -54,8 +56,19 @@ export default function GeneratePage() {
   const [regeneratingPlatform, setRegeneratingPlatform] = useState<string | null>(null);
   const [progress, setProgress] = useState(0);
   const [generationResults, setGenerationResults] = useState<BulkGenerationResult | null>(null);
+  const [piiWarnings, setPiiWarnings] = useState<string[]>([]);
   const [error, setError] = useState<string | null>(null);
   const abortControllerRef = useRef<AbortController | null>(null);
+  const [planFeatures, setPlanFeatures] = useState<{
+    planType: string;
+    canUseAudio: boolean;
+    audioLimits: { usedMinutes: number; limitMinutes: number } | null;
+  } | null>(null);
+  const [isUploadingAudio, setIsUploadingAudio] = useState(false);
+  const [audioUploadError, setAudioUploadError] = useState<string | null>(null);
+  const audioInputRef = useRef<HTMLInputElement | null>(null);
+  const [isUploadingTxt, setIsUploadingTxt] = useState(false);
+  const txtInputRef = useRef<HTMLInputElement | null>(null);
 
   const loadProject = useCallback(async () => {
     if (!projectId) return null;
@@ -105,6 +118,26 @@ export default function GeneratePage() {
     })();
     return () => { cancelled = true; };
   }, [loadProject]);
+
+  // Load plan features (text vs text_audio)
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      try {
+        const res = await fetch("/api/subscription/features");
+        if (!res.ok || cancelled) return;
+        const data = await res.json();
+        setPlanFeatures({
+          planType: data.planType ?? "text",
+          canUseAudio: data.canUseAudio === true,
+          audioLimits: data.audioLimits ?? null,
+        });
+      } catch {
+        // ignore
+      }
+    })();
+    return () => { cancelled = true; };
+  }, []);
   
   const handlePlatformToggle = (platform: string) => {
     setSelectedPlatforms(prev =>
@@ -127,6 +160,7 @@ export default function GeneratePage() {
       setProgress(0);
       setError(null);
       setGenerationResults(null);
+      setPiiWarnings([]);
       const interval = setInterval(() => {
         setProgress(prev => (prev >= 90 ? prev : prev + 10));
       }, 500);
@@ -149,8 +183,12 @@ export default function GeneratePage() {
         toast.error(message);
         return;
       }
-      const results = (await res.json()) as BulkGenerationResult;
-      setGenerationResults(results);
+      const data = (await res.json()) as BulkGenerationResult & { piiWarnings?: string[] };
+      setGenerationResults(data);
+      setPiiWarnings(data.piiWarnings ?? []);
+      if ((data.piiWarnings?.length ?? 0) > 0) {
+        toast.warning("Source may contain personal data. Check the notice below.");
+      }
       toast.success("Content generation completed!");
       const updated = await loadProject();
       if (updated) setProject(updated);
@@ -173,6 +211,64 @@ export default function GeneratePage() {
   const handleCancelGenerate = () => {
     if (abortControllerRef.current) {
       abortControllerRef.current.abort();
+    }
+  };
+
+  const handleUploadAudio = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file || !projectId) return;
+    setAudioUploadError(null);
+    setIsUploadingAudio(true);
+    try {
+      const formData = new FormData();
+      formData.set("file", file);
+      const res = await fetch(`/api/projects/${projectId}/ingest-audio`, {
+        method: "POST",
+        body: formData,
+      });
+      const body = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        setAudioUploadError(body.details ?? body.error ?? "Upload failed");
+        toast.error(body.details ?? body.error ?? "Upload failed");
+        return;
+      }
+      toast.success("Audio transcribed. Source content updated.");
+      const updated = await loadProject();
+      if (updated) setProject(updated);
+      if (audioInputRef.current) audioInputRef.current.value = "";
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : "Upload failed";
+      setAudioUploadError(msg);
+      toast.error(msg);
+    } finally {
+      setIsUploadingAudio(false);
+    }
+  };
+
+  const handleUploadTxt = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file || !projectId) return;
+    setIsUploadingTxt(true);
+    try {
+      const text = await file.text();
+      const res = await fetch(`/api/projects/${projectId}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ sourceContent: text }),
+      });
+      if (!res.ok) {
+        const body = await res.json().catch(() => ({}));
+        toast.error(body.details ?? body.error ?? "Update failed");
+        return;
+      }
+      toast.success("Source content updated from file.");
+      const updated = await loadProject();
+      if (updated) setProject(updated);
+      if (txtInputRef.current) txtInputRef.current.value = "";
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Upload failed");
+    } finally {
+      setIsUploadingTxt(false);
     }
   };
 
@@ -253,12 +349,85 @@ export default function GeneratePage() {
   
   return (
     <div className="container mx-auto py-10 max-w-4xl">
-      <div className="mb-8">
-        <h1 className="text-3xl font-bold">Generate Content</h1>
-        <p className="text-muted-foreground mt-2">
-          Decode once. Cast everywhere. Transform your content DNA into platform-specific formats.
-        </p>
+      <div className="mb-8 flex flex-wrap items-center gap-4">
+        <div>
+          <h1 className="text-3xl font-bold">Generate Content</h1>
+          <p className="text-muted-foreground mt-2">
+            Decode once. Cast everywhere. Transform your content DNA into platform-specific formats.
+          </p>
+        </div>
+        {planFeatures && (
+          <span className="rounded-full border px-3 py-1 text-sm font-medium bg-muted">
+            {planFeatures.planType === "text_audio" ? (
+              <>
+                <MicIcon className="inline h-4 w-4 mr-1.5 -mt-0.5" />
+                Текст + Аудио
+              </>
+            ) : (
+              "Текст"
+            )}
+          </span>
+        )}
       </div>
+
+      {piiWarnings.length > 0 && (
+        <Alert variant="default" className="mb-8 border-amber-500 bg-amber-50 dark:bg-amber-950/20">
+          <AlertDescription>
+            <strong>Privacy notice:</strong> Your source content may contain personal data (e.g. email, phone, address).
+            Consider removing it before publishing. {piiWarnings.join(" ")}
+          </AlertDescription>
+        </Alert>
+      )}
+
+      {planFeatures?.canUseAudio && (
+        <Card className="mb-8">
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <UploadIcon className="h-5 w-5" />
+              Загрузить аудио
+            </CardTitle>
+            <CardDescription>
+              Загрузите MP3, M4A, WAV или другой аудиофайл — он будет транскрибирован и подставлен в исходный текст.
+              {planFeatures.audioLimits && (
+                <span className="block mt-1">
+                  Использовано: {planFeatures.audioLimits.usedMinutes} / {planFeatures.audioLimits.limitMinutes} мин в периоде.
+                </span>
+              )}
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <input
+              ref={audioInputRef}
+              type="file"
+              accept="audio/*,.mp3,.m4a,.wav,.webm,.ogg,.flac"
+              className="hidden"
+              onChange={handleUploadAudio}
+              disabled={isUploadingAudio}
+            />
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => audioInputRef.current?.click()}
+              disabled={isUploadingAudio}
+            >
+              {isUploadingAudio ? (
+                <>
+                  <Loader2Icon className="mr-2 h-4 w-4 animate-spin" />
+                  Транскрипция…
+                </>
+              ) : (
+                <>
+                  <UploadIcon className="mr-2 h-4 w-4" />
+                  Выбрать файл
+                </>
+              )}
+            </Button>
+            {audioUploadError && (
+              <p className="mt-2 text-sm text-destructive">{audioUploadError}</p>
+            )}
+          </CardContent>
+        </Card>
+      )}
       
       <Card className="mb-8">
         <CardHeader>
@@ -267,7 +436,33 @@ export default function GeneratePage() {
             This content will be repurposed for the selected platforms
           </CardDescription>
         </CardHeader>
-        <CardContent>
+        <CardContent className="space-y-3">
+          {planFeatures?.planType === "text" && (
+            <div>
+              <input
+                ref={txtInputRef}
+                type="file"
+                accept=".txt,text/plain"
+                className="hidden"
+                onChange={handleUploadTxt}
+                disabled={isUploadingTxt}
+              />
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={() => txtInputRef.current?.click()}
+                disabled={isUploadingTxt}
+              >
+                {isUploadingTxt ? (
+                  <Loader2Icon className="mr-2 h-4 w-4 animate-spin" />
+                ) : (
+                  <UploadIcon className="mr-2 h-4 w-4" />
+                )}
+                Загрузить .txt
+              </Button>
+            </div>
+          )}
           <div className="bg-muted rounded-lg p-4 max-h-60 overflow-y-auto">
             <p className="whitespace-pre-line">{project.sourceContent}</p>
           </div>

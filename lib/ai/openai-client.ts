@@ -126,51 +126,48 @@ export async function generateContentWithRetry(
 }
 
 /**
- * Generate content with graceful degradation to cached responses
+ * Generate content with graceful degradation to cached responses.
+ * Uses deterministic cacheKey when provided; ttlSeconds for outputs (default 7 days per plan).
  */
 export async function generateContentWithGracefulDegradation(
-  prompt: string,
+  userMessage: string,
   systemPrompt: string,
   options?: GenerationOptions,
   maxRetries: number = 3,
-  cacheKey?: string
-): Promise<{ content: string; source: 'api' | 'cache' | 'template' }> {
-  // Generate cache key from inputs if not provided
-  const effectiveCacheKey = cacheKey || generateCacheKey(JSON.stringify({ prompt, systemPrompt, options }));
+  cacheKey?: string,
+  ttlSeconds: number = 7 * 24 * 3600
+): Promise<{ content: string; source: "api" | "cache" | "template" }> {
+  const effectiveCacheKey =
+    cacheKey || generateCacheKey(JSON.stringify({ userMessage, systemPrompt, options }));
 
-  // Try to get from cache first
   try {
     const cachedResponse = await getCachedValue(effectiveCacheKey);
     if (cachedResponse) {
-      console.log("Using cached response for:", effectiveCacheKey);
-      return { content: cachedResponse, source: 'cache' };
+      return { content: cachedResponse, source: "cache" };
     }
   } catch (cacheError) {
     console.warn("Cache retrieval failed:", cacheError);
   }
 
-  // Try to generate content normally
   try {
-    const content = await generateContentWithRetry(prompt, systemPrompt, options, maxRetries);
+    const content = await generateContentWithRetry(userMessage, systemPrompt, options, maxRetries);
 
-    // Cache the successful response
     try {
-      await setCachedValue(effectiveCacheKey, content, 3600); // Cache for 1 hour
+      await setCachedValue(effectiveCacheKey, content, ttlSeconds);
     } catch (cacheError) {
       console.warn("Cache storage failed:", cacheError);
     }
 
-    return { content, source: 'api' };
+    return { content, source: "api" };
   } catch (error) {
     console.error("API generation failed, attempting fallback methods:", error);
 
-    // Try to return a basic template as a last resort
     try {
-      const templateContent = generateBasicTemplate(prompt);
-      return { content: templateContent, source: 'template' };
+      const templateContent = generateBasicTemplate(userMessage);
+      return { content: templateContent, source: "template" };
     } catch (templateError) {
       console.error("All fallback methods failed:", templateError);
-      throw error; // Re-throw the original error if even template generation fails
+      throw error;
     }
   }
 }

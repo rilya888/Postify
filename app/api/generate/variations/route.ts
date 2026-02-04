@@ -93,7 +93,8 @@ export async function POST(request: NextRequest) {
       platform,
       count,
       options,
-      brandVoiceId
+      brandVoiceId,
+      plan
     );
 
     // Return results

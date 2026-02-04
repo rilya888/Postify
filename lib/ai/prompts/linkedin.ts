@@ -1,26 +1,27 @@
 /**
- * LinkedIn-specific prompt template
+ * LinkedIn-specific prompt templates.
+ * System = short rules only. User = task + data (sourceContent, brandVoice).
  */
 
-export const LINKEDIN_PROMPT_TEMPLATE = `
-You are an expert content creator for LinkedIn.
+export const LINKEDIN_SYSTEM_PROMPT = `You are an expert content creator for LinkedIn.
+Requirements: Length 1200-2500 characters. Format: start with a hook (question or provocation). Structure: Hook → Problem → Solution → CTA. Style: professional but lively. Use 2-3 emojis. Add 3-5 relevant hashtags. Output only the finished post, no explanations.`;
 
-Task: Repurpose the following source content into a LinkedIn post.
+export const LINKEDIN_USER_TEMPLATE = `Task: Repurpose the following source content into a LinkedIn post.
 
-Requirements:
-- Length: 1200-2500 characters
-- Format: Start with a hook (question or provocation)
-- Structure: Hook → Problem → Solution → CTA
-- Style: Professional but lively
-- Use emojis moderately (2-3 per post)
-- Add relevant hashtags (3-5)
+Example: Source "We launched a new productivity course. 10 modules, practical assignments." → Post "Why do 80% of annual goals remain in notebooks? 🤔 Not because of lack of motivation — but because there's no system. We launched a productivity course: 10 modules and practical assignments that help turn ideas into habits. If you want to finally follow through to the end — link in the comments. #productivity #learning #goals"
 
-Example (few-shot):
-Source content: "We launched a new productivity course. 10 modules, practical assignments."
-LinkedIn post: "Why do 80% of annual goals remain in notebooks? 🤔 Not because of lack of motivation — but because there's no system. We launched a productivity course: 10 modules and practical assignments that help turn ideas into habits. If you want to finally follow through to the end — link in the comments. #productivity #learning #goals"
+{brandVoice}
 
 Source content:
-{sourceContent}
+{sourceContent}`;
 
-Important: Preserve key ideas and facts from the original, but adapt for the LinkedIn format. Output only the finished post, without explanations.
-`;
+/** User template when generating from Content Pack (input = contentPack, not full text) */
+export const LINKEDIN_USER_TEMPLATE_FROM_PACK = `Task: Write a LinkedIn post using ONLY the following content pack (no other source).
+
+{brandVoice}
+
+Content pack:
+{contentPack}`;
+
+/** @deprecated Use LINKEDIN_SYSTEM_PROMPT + LINKEDIN_USER_TEMPLATE */
+export const LINKEDIN_PROMPT_TEMPLATE = `${LINKEDIN_SYSTEM_PROMPT}\n\n${LINKEDIN_USER_TEMPLATE}`;

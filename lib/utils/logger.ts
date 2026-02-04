@@ -1,6 +1,6 @@
 /**
- * Enhanced application logging service
- * Centralized logging for debugging and monitoring
+ * Enhanced application logging service.
+ * Do not log user content (sourceContent, content, brandVoice.examples) in meta — only requestId, userId, projectId, lengths, hashes, errors.
  */
 export class Logger {
   /**

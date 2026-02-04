@@ -1,12 +1,69 @@
 import { prisma } from "@/lib/db/prisma";
 import crypto from "crypto";
 
+/** TTL in seconds: Content Pack 7–30 days, Outputs 7 days (per plan) */
+export const CACHE_TTL = {
+  OUTPUTS_SECONDS: 7 * 24 * 3600,
+  CONTENT_PACK_SECONDS: 7 * 24 * 3600,
+} as const;
 
 /**
  * Generate a hash key for cache entries
  */
 export function generateCacheKey(input: string): string {
-  return crypto.createHash('sha256').update(input).digest('hex');
+  return crypto.createHash("sha256").update(input).digest("hex");
+}
+
+const GENERATION_KEY_PREFIX = "gen_";
+
+/**
+ * Build deterministic cache key for generation (no Date.now()).
+ * Key = gen_${projectId}_ + sha256(...) so project cache can be invalidated.
+ */
+export function buildGenerationCacheKey(params: {
+  userId: string;
+  projectId: string;
+  step: string;
+  model: string;
+  platform: string;
+  inputHash: string;
+  optionsHash: string;
+  brandVoiceId: string | null;
+  brandVoiceUpdatedAt: string | null;
+}): string {
+  const parts = [
+    params.userId,
+    params.projectId,
+    params.step,
+    params.model,
+    params.platform,
+    params.inputHash,
+    params.optionsHash,
+    params.brandVoiceId ?? "",
+    params.brandVoiceUpdatedAt ?? "",
+  ].join("|");
+  return `${GENERATION_KEY_PREFIX}${params.projectId}_${generateCacheKey(parts)}`;
+}
+
+/**
+ * Invalidate all generation and content-pack cache entries for a project.
+ * Call when project.sourceContent (or brand voice used by this project) changes.
+ */
+export async function invalidateProjectGenerationCache(projectId: string): Promise<number> {
+  try {
+    const prefix = `${GENERATION_KEY_PREFIX}${projectId}_`;
+    const entries = await prisma.cache.findMany({
+      where: { key: { startsWith: prefix } },
+      select: { key: true },
+    });
+    for (const { key } of entries) {
+      await prisma.cache.delete({ where: { key } });
+    }
+    return entries.length;
+  } catch (error) {
+    console.error("Error invalidating project cache:", error);
+    return 0;
+  }
 }
 
 /**

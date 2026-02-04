@@ -41,6 +41,7 @@ export async function updateOutputContent(
       data: {
         outputId,
         content: output.content,
+        generationMetadata: output.generationMetadata as object | undefined,
       },
     });
   }
@@ -197,6 +198,7 @@ export async function revertOutputToVersion(
       data: {
         outputId,
         content: output.content,
+        generationMetadata: output.generationMetadata as object | undefined,
       },
     });
   }

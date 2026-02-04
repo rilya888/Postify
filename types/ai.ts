@@ -14,7 +14,7 @@ export type GenerationOptions = {
 };
 
 /**
- * Metadata for AI generation
+ * Metadata for AI generation (Stage 6: extended for versioning)
  */
 export type GenerationMetadata = {
   model: string;
@@ -28,6 +28,10 @@ export type GenerationMetadata = {
   variationIndex?: number; // Track the index of this variation
   errorMessage?: string;
   validationMessages?: string[];
+  latencyMs?: number;
+  tokensUsed?: number | null;
+  costEstimate?: number | null;
+  seed?: number | null;
 };
 
 /**

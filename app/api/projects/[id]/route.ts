@@ -4,6 +4,7 @@ import { prisma } from "@/lib/db/prisma";
 import { createErrorResponse, createSuccessResponse } from "@/lib/utils/api-error";
 import { updateProjectSchema } from "@/lib/validations/project";
 import { logProjectChange } from "@/lib/services/project-history";
+import { invalidateProjectGenerationCache } from "@/lib/services/cache";
 import { checkProjectsRateLimit } from "@/lib/utils/rate-limit";
 import { Logger } from "@/lib/utils/logger";
 import { z } from "zod";
@@ -155,7 +156,10 @@ export async function PATCH(
       },
     });
 
-    // Log the change
+    if (validatedData.sourceContent !== undefined) {
+      await invalidateProjectGenerationCache(params.id);
+    }
+
     await logProjectChange(project.id, session.user.id, "update", validatedData);
 
     Logger.info("Updated project", { userId: session.user.id, projectId: params.id });

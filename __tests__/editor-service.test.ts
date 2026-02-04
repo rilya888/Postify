@@ -253,7 +253,7 @@ describe("editor service", () => {
 
       expect(result.content).toBe("Previous content");
       expect(mockPrismaOutputVersionCreate).toHaveBeenCalledWith({
-        data: { outputId, content: "Original content" },
+        data: expect.objectContaining({ outputId, content: "Original content" }),
       });
       expect(mockPrismaOutputUpdate).toHaveBeenCalledWith({
         where: { id: outputId },

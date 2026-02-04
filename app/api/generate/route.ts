@@ -1,13 +1,16 @@
 import { NextRequest } from "next/server";
+import { randomUUID } from "crypto";
 import { auth } from "@/lib/auth/config";
 import { generateForPlatforms } from "@/lib/services/ai";
 import { prisma } from "@/lib/db/prisma";
 import { Logger } from "@/lib/utils/logger";
 import { checkGenerateRateLimit } from "@/lib/utils/rate-limit";
+import { detectPII } from "@/lib/utils/pii-check";
 import { PLAN_LIMITS } from "@/lib/constants/plans";
 import { getAllPlatformIds } from "@/lib/constants/platforms";
 
 export async function POST(request: NextRequest) {
+  const requestId = randomUUID();
   try {
     const session = await auth();
     if (!session || !session.user?.id) {
@@ -83,24 +86,32 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Perform generation
     const result = await generateForPlatforms(
       projectId,
       userId,
       sourceContent,
       platforms,
       options,
-      brandVoiceId
+      brandVoiceId,
+      requestId,
+      plan
     );
 
-    // Return results
-    return new Response(JSON.stringify(result), {
+    const pii = detectPII(sourceContent);
+
+    return new Response(
+      JSON.stringify({
+        ...result,
+        ...(pii.warnings.length > 0 ? { piiWarnings: pii.warnings } : {}),
+      }),
+      {
       status: 200,
       headers: { "Content-Type": "application/json" },
     });
   } catch (error) {
     Logger.error("Error in generate API route", error as Error, {
-      stack: error instanceof Error ? error.stack : undefined,
+      requestId,
+      stack: process.env.NODE_ENV === "development" ? (error instanceof Error ? error.stack : undefined) : undefined,
     });
 
     return new Response(
