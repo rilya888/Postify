@@ -39,14 +39,5 @@ export function formatContentForPlatform(content: string, _platform: Platform): 
   return content;
 }
 
-/**
- * Sanitize content for storage
- */
-export function sanitizeContent(content: string): string {
-  // Basic sanitization - remove potentially harmful content
-  // In a production environment, you'd want more robust sanitization
-  return content
-    .replace(/<script\b[^<]*(?:(?!<\/script>)<[^<]*)*<\/script>/gi, '') // Remove script tags
-    .replace(/javascript:/gi, '') // Remove javascript: urls
-    .trim();
-}
+/** Re-export: single source of truth for sanitization (content-validation). */
+export { sanitizeContent } from "@/lib/utils/content-validation";

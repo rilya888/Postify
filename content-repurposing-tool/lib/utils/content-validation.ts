@@ -325,7 +325,8 @@ export function sanitizeContent(content: string): string {
     .replace(/href\s*=\s*["']javascript:/gi, 'href="#"')
     .replace(/href\s*=\s*["']vbscript:/gi, 'href="#"')
     // Remove on-event handlers
-    .replace(/\s+on\w+\s*=\s*["'][^"']*["']/gi, '');
+    .replace(/\s+on\w+\s*=\s*["'][^"']*["']/gi, '')
+    .trim();
 
   return sanitized;
 }

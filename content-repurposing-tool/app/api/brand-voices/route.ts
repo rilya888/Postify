@@ -13,7 +13,10 @@ export async function GET(request: NextRequest) {
   try {
     const session = await auth();
     if (!session || !session.user?.id) {
-      return new Response('Unauthorized', { status: 401 });
+      return new Response(JSON.stringify({ error: 'Unauthorized' }), {
+        status: 401,
+        headers: { 'Content-Type': 'application/json' },
+      });
     }
 
     const userId = session.user.id;
@@ -46,7 +49,10 @@ export async function POST(request: NextRequest) {
   try {
     const session = await auth();
     if (!session || !session.user?.id) {
-      return new Response('Unauthorized', { status: 401 });
+      return new Response(JSON.stringify({ error: 'Unauthorized' }), {
+        status: 401,
+        headers: { 'Content-Type': 'application/json' },
+      });
     }
 
     const userId = session.user.id;
@@ -89,7 +95,10 @@ export async function PUT(request: NextRequest) {
   try {
     const session = await auth();
     if (!session || !session.user?.id) {
-      return new Response('Unauthorized', { status: 401 });
+      return new Response(JSON.stringify({ error: 'Unauthorized' }), {
+        status: 401,
+        headers: { 'Content-Type': 'application/json' },
+      });
     }
 
     const userId = session.user.id;
@@ -97,7 +106,10 @@ export async function PUT(request: NextRequest) {
     const id = searchParams.get('id');
 
     if (!id) {
-      return new Response('Brand voice ID is required', { status: 400 });
+      return new Response(JSON.stringify({ error: 'Brand voice ID is required' }), {
+        status: 400,
+        headers: { 'Content-Type': 'application/json' },
+      });
     }
 
     const data = await request.json();
@@ -105,7 +117,10 @@ export async function PUT(request: NextRequest) {
     // Check if the brand voice belongs to the user
     const existingVoice = await getBrandVoiceById(id, userId);
     if (!existingVoice) {
-      return new Response('Brand voice not found or access denied', { status: 404 });
+      return new Response(JSON.stringify({ error: 'Brand voice not found or access denied' }), {
+        status: 404,
+        headers: { 'Content-Type': 'application/json' },
+      });
     }
 
     const updatedVoice = await updateBrandVoice(id, userId, {
@@ -138,7 +153,10 @@ export async function DELETE(request: NextRequest) {
   try {
     const session = await auth();
     if (!session || !session.user?.id) {
-      return new Response('Unauthorized', { status: 401 });
+      return new Response(JSON.stringify({ error: 'Unauthorized' }), {
+        status: 401,
+        headers: { 'Content-Type': 'application/json' },
+      });
     }
 
     const userId = session.user.id;
@@ -146,18 +164,27 @@ export async function DELETE(request: NextRequest) {
     const id = searchParams.get('id');
 
     if (!id) {
-      return new Response('Brand voice ID is required', { status: 400 });
+      return new Response(JSON.stringify({ error: 'Brand voice ID is required' }), {
+        status: 400,
+        headers: { 'Content-Type': 'application/json' },
+      });
     }
 
     // Check if the brand voice belongs to the user
     const existingVoice = await getBrandVoiceById(id, userId);
     if (!existingVoice) {
-      return new Response('Brand voice not found or access denied', { status: 404 });
+      return new Response(JSON.stringify({ error: 'Brand voice not found or access denied' }), {
+        status: 404,
+        headers: { 'Content-Type': 'application/json' },
+      });
     }
 
     const success = await deleteBrandVoice(id, userId);
     if (!success) {
-      return new Response('Failed to delete brand voice', { status: 500 });
+      return new Response(JSON.stringify({ error: 'Failed to delete brand voice' }), {
+        status: 500,
+        headers: { 'Content-Type': 'application/json' },
+      });
     }
 
     return new Response(JSON.stringify({ success: true }), {

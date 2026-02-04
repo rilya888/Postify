@@ -52,7 +52,7 @@ export default auth((req) => {
   // Apply rate limiting to all requests
   const ip = req.ip ?? "127.0.0.1";
   if (isRateLimited(ip)) {
-    return new Response("Rate limit exceeded", { status: 429 });
+    return NextResponse.json({ error: "Rate limit exceeded" }, { status: 429 });
   }
 
   // Protect dashboard routes

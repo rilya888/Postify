@@ -7,14 +7,18 @@ import { Logger } from "@/lib/utils/logger";
 import { checkGenerateRateLimit } from "@/lib/utils/rate-limit";
 import { detectPII } from "@/lib/utils/pii-check";
 import { PLAN_LIMITS } from "@/lib/constants/plans";
-import { getAllPlatformIds } from "@/lib/constants/platforms";
+import { generateBodySchema } from "@/lib/validations/generate";
+import { createErrorResponse } from "@/lib/utils/api-error";
 
 export async function POST(request: NextRequest) {
   const requestId = randomUUID();
   try {
     const session = await auth();
     if (!session || !session.user?.id) {
-      return new Response("Unauthorized", { status: 401 });
+      return new Response(
+        JSON.stringify({ error: "Unauthorized" }),
+        { status: 401, headers: { "Content-Type": "application/json" } }
+      );
     }
 
     const userId = session.user.id;
@@ -34,30 +38,33 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Parse request body
-    const { projectId, platforms, sourceContent, options, brandVoiceId } = await request.json();
-
-    // Validate required fields
-    if (!projectId || !Array.isArray(platforms) || sourceContent == null) {
+    // Parse and validate request body
+    let body: unknown;
+    try {
+      body = await request.json();
+    } catch {
       return new Response(
-        JSON.stringify({ error: "Missing required fields: projectId, platforms, sourceContent" }),
+        JSON.stringify({ error: "Invalid JSON body" }),
         { status: 400, headers: { "Content-Type": "application/json" } }
       );
     }
 
-    if (typeof sourceContent !== "string" || !sourceContent.trim()) {
-      return new Response(
-        JSON.stringify({ error: "Source content cannot be empty", details: "Source content cannot be empty" }),
-        { status: 400, headers: { "Content-Type": "application/json" } }
-      );
+    const parsed = generateBodySchema.safeParse(body);
+    if (!parsed.success) {
+      return createErrorResponse(parsed.error, 400);
     }
+
+    const { projectId, platforms, sourceContent, options, brandVoiceId } = parsed.data;
 
     const project = await prisma.project.findUnique({
       where: { id: projectId },
     });
 
     if (!project || project.userId !== userId) {
-      return new Response("Project not found or access denied", { status: 404 });
+      return new Response(
+        JSON.stringify({ error: "Project not found or access denied" }),
+        { status: 404, headers: { "Content-Type": "application/json" } }
+      );
     }
 
     const subscription = await prisma.subscription.findUnique({
@@ -71,19 +78,6 @@ export async function POST(request: NextRequest) {
           error: "Source content exceeds plan limit",
           details: `Maximum ${maxChars} characters allowed for your plan. Current: ${sourceContent.length}.`,
         }),
-        { status: 400, headers: { "Content-Type": "application/json" } }
-      );
-    }
-
-    // Validate platforms
-    const validPlatforms = getAllPlatformIds();
-    const invalidPlatforms = platforms.filter(
-      (p: string) => !(validPlatforms as readonly string[]).includes(p)
-    );
-
-    if (invalidPlatforms.length > 0) {
-      return new Response(
-        JSON.stringify({ error: `Invalid platforms: ${invalidPlatforms.join(", ")}` }),
         { status: 400, headers: { "Content-Type": "application/json" } }
       );
     }

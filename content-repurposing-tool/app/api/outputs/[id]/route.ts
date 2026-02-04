@@ -7,7 +7,7 @@ import { auth } from '@/lib/auth/config';
 import { updateOutputContent } from '@/lib/services/editor';
 import { prisma } from '@/lib/db/prisma';
 import { checkOutputUpdateRateLimit } from '@/lib/utils/rate-limit';
-import { sanitizeContent } from '@/lib/utils/editor';
+import { sanitizeContent } from '@/lib/utils/content-validation';
 import { PLATFORM_CHARACTER_LIMITS } from '@/lib/constants/editor';
 import type { Platform } from '@/lib/constants/platforms';
 

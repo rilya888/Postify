@@ -95,11 +95,12 @@ describe("POST /api/generate", () => {
 
     expect(res.status).toBe(400);
     const json = await res.json();
-    expect(json.error).toContain("Missing required fields");
+    expect(json.error).toBe("Validation failed");
+    expect(json.code).toBe("VALIDATION_ERROR");
     expect(mockGenerateForPlatforms).not.toHaveBeenCalled();
   });
 
-  it("returns 400 when sourceContent is empty", async () => {
+  it("returns 400 when sourceContent is empty or whitespace", async () => {
     const req = createRequest({
       projectId: "proj-1",
       platforms: ["linkedin"],
@@ -109,7 +110,8 @@ describe("POST /api/generate", () => {
 
     expect(res.status).toBe(400);
     const json = await res.json();
-    expect(json.error).toContain("cannot be empty");
+    expect(json.error).toBe("Validation failed");
+    expect(json.code).toBe("VALIDATION_ERROR");
     expect(mockGenerateForPlatforms).not.toHaveBeenCalled();
   });
 
@@ -124,8 +126,8 @@ describe("POST /api/generate", () => {
     const res = await POST(req);
 
     expect(res.status).toBe(404);
-    const text = await res.text();
-    expect(text).toContain("not found");
+    const json = await res.json();
+    expect(json.error).toContain("not found");
     expect(mockGenerateForPlatforms).not.toHaveBeenCalled();
   });
 

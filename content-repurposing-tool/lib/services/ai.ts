@@ -70,6 +70,15 @@ Follow these brand voice characteristics while adapting for the platform.
 }
 
 /**
+ * Single source of truth: sanitize + validate, return one string for DB and API response.
+ */
+function finalizeGeneratedContent(raw: string, platform: Platform): string {
+  const sanitized = sanitizeContent(raw);
+  validatePlatformContent(sanitized, platform); // side-effect: messages available for metadata
+  return sanitized;
+}
+
+/**
  * Generate content for multiple platforms.
  * Uses short system prompt + user message (task + sourceContent + brandVoice). Deterministic cache key, no Date.now().
  */
@@ -204,8 +213,8 @@ export async function generateForPlatforms(
         );
         const latencyMs = Date.now() - startMs;
 
-        const sanitizedContent = sanitizeContent(generationResult.content);
-        const validation = validatePlatformContent(sanitizedContent, platform);
+        const finalContent = finalizeGeneratedContent(generationResult.content, platform);
+        const validation = validatePlatformContent(finalContent, platform);
 
         const metadata = {
           model,
@@ -227,21 +236,21 @@ export async function generateForPlatforms(
             projectId_platform: { projectId, platform },
           },
           update: {
-            content: sanitizedContent,
+            content: finalContent,
             isEdited: false,
             generationMetadata: metadata as object,
           },
           create: {
             projectId,
             platform,
-            content: sanitizedContent,
+            content: finalContent,
             generationMetadata: metadata as object,
           },
         });
 
         const result: GenerationResult = {
           platform,
-          content: generationResult.content,
+          content: finalContent,
           success: true,
           metadata: {
             model,
@@ -437,12 +446,16 @@ export async function regenerateForPlatform(
       );
       const latencyMs = Date.now() - startMs;
 
+      const finalContent = finalizeGeneratedContent(generationResult.content, platform);
+      const validation = validatePlatformContent(finalContent, platform);
+
       const metadata = {
         model,
         temperature,
         maxTokens,
         timestamp: new Date().toISOString(),
         success: true,
+        validationMessages: validation.messages,
         source: generationResult.source,
         brandVoiceId: brandVoice?.id,
         latencyMs,
@@ -456,21 +469,21 @@ export async function regenerateForPlatform(
           projectId_platform: { projectId, platform },
         },
         update: {
-          content: generationResult.content,
+          content: finalContent,
           isEdited: false,
           generationMetadata: metadata as object,
         },
         create: {
           projectId,
           platform,
-          content: generationResult.content,
+          content: finalContent,
           generationMetadata: metadata as object,
         },
       });
 
       const result: GenerationResult = {
         platform,
-        content: generationResult.content,
+        content: finalContent,
         success: true,
         metadata: {
           model,
@@ -628,11 +641,8 @@ export async function generateContentVariations(
           CACHE_TTL.OUTPUTS_SECONDS
         );
 
-        // Sanitize content
-        const sanitizedContent = sanitizeContent(generationResult.content);
-
-        // Validate content for the specific platform
-        const validation = validatePlatformContent(sanitizedContent, platform);
+        const finalContent = finalizeGeneratedContent(generationResult.content, platform);
+        const validation = validatePlatformContent(finalContent, platform);
 
         const metadata = {
           model,
@@ -647,12 +657,21 @@ export async function generateContentVariations(
           variationIndex: i,
         };
 
-        // Create a unique output record for this variation
-        await prisma.output.create({
-          data: {
+        // Output has @@unique([projectId, platform]); we can only store one record per (projectId, platform).
+        // Use upsert so we overwrite with each variation; all variations are still returned in results.
+        await prisma.output.upsert({
+          where: {
+            projectId_platform: { projectId, platform },
+          },
+          update: {
+            content: finalContent,
+            isEdited: false,
+            generationMetadata: metadata as object,
+          },
+          create: {
             projectId,
             platform,
-            content: sanitizedContent,
+            content: finalContent,
             isEdited: false,
             generationMetadata: metadata as object,
           },
@@ -660,7 +679,7 @@ export async function generateContentVariations(
 
         const result: GenerationResult = {
           platform,
-          content: generationResult.content,
+          content: finalContent,
           success: true,
           metadata: {
             model,

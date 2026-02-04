@@ -11,7 +11,10 @@ export async function POST(request: NextRequest) {
   try {
     const session = await auth();
     if (!session || !session.user?.id) {
-      return new Response("Unauthorized", { status: 401 });
+      return new Response(
+        JSON.stringify({ error: "Unauthorized" }),
+        { status: 401, headers: { "Content-Type": "application/json" } }
+      );
     }
 
     const userId = session.user.id;
@@ -54,7 +57,10 @@ export async function POST(request: NextRequest) {
     });
 
     if (!project || project.userId !== userId) {
-      return new Response("Project not found or access denied", { status: 404 });
+      return new Response(
+        JSON.stringify({ error: "Project not found or access denied" }),
+        { status: 404, headers: { "Content-Type": "application/json" } }
+      );
     }
 
     // Validate platform
