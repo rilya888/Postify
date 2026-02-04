@@ -90,7 +90,7 @@ export async function POST(request: NextRequest) {
     try {
       const buffer = Buffer.from(await file.arrayBuffer());
       await fs.writeFile(tempPath, buffer);
-    } catch (writeErr) {
+    } catch {
       return Response.json({ error: "Failed to process file" }, { status: 500 });
     }
 
