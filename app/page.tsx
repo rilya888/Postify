@@ -52,7 +52,7 @@ export default function LandingPage() {
             </div>
 
             <p className="text-sm text-muted-foreground">
-              No credit card required • Free tier available • 2 minute setup
+              No credit card required • 3-day free trial • 2 minute setup
             </p>
           </div>
         </section>
@@ -163,31 +163,32 @@ export default function LandingPage() {
               Simple, Transparent Pricing
             </h2>
             <p className="max-w-[750px] text-lg text-muted-foreground">
-              Choose the plan that works best for you
+              Start with a free trial, then choose the plan that fits
             </p>
           </div>
           <div className="grid gap-8 md:grid-cols-3">
-            {/* Free Plan */}
-            <div className="flex flex-col space-y-4 rounded-lg border p-6">
-              <h3 className="text-2xl font-bold">Free</h3>
+            {/* Trial */}
+            <div className="flex flex-col space-y-4 rounded-lg border-2 border-primary p-6">
+              <h3 className="text-2xl font-bold">Trial</h3>
               <div className="text-3xl font-bold">
-                $0
+                Free
                 <span className="text-lg font-normal text-muted-foreground">
-                  /month
+                  {" "}3 days
                 </span>
               </div>
-              <ul className="flex-1 space-y-2 text-sm text-muted-foreground">
-                <li>3 projects per month</li>
-                <li>1 platform per project</li>
-                <li>Basic templates</li>
+              <ul className="flex-1 space-y-2 text-sm">
+                <li>3 projects</li>
+                <li>Text + audio (full)</li>
+                <li>All platforms</li>
+                <li>No credit card</li>
               </ul>
-              <Button asChild variant="outline" className="w-full">
-                <Link href="/signup">Get Started</Link>
+              <Button asChild className="w-full">
+                <Link href="/signup">Start Free Trial</Link>
               </Button>
             </div>
 
             {/* Pro Plan */}
-            <div className="flex flex-col space-y-4 rounded-lg border-2 border-primary p-6">
+            <div className="flex flex-col space-y-4 rounded-lg border p-6">
               <h3 className="text-2xl font-bold">Pro</h3>
               <div className="text-3xl font-bold">
                 $29
@@ -195,13 +196,13 @@ export default function LandingPage() {
                   /month
                 </span>
               </div>
-              <ul className="flex-1 space-y-2 text-sm">
-                <li>Unlimited projects</li>
+              <ul className="flex-1 space-y-2 text-sm text-muted-foreground">
+                <li>50 projects</li>
+                <li>Text only</li>
                 <li>All platforms</li>
                 <li>Advanced templates</li>
-                <li>Priority support</li>
               </ul>
-              <Button asChild className="w-full">
+              <Button asChild variant="outline" className="w-full">
                 <Link href="/signup">Get Started</Link>
               </Button>
             </div>
@@ -216,10 +217,10 @@ export default function LandingPage() {
                 </span>
               </div>
               <ul className="flex-1 space-y-2 text-sm text-muted-foreground">
-                <li>Everything in Pro</li>
-                <li>Brand voice training</li>
-                <li>API access</li>
-                <li>Team collaboration</li>
+                <li>100 projects</li>
+                <li>Text + audio</li>
+                <li>Higher limits</li>
+                <li>Priority support</li>
               </ul>
               <Button asChild variant="outline" className="w-full">
                 <Link href="/signup">Contact Sales</Link>
@@ -245,7 +246,7 @@ export default function LandingPage() {
               </Link>
             </Button>
             <p className="text-sm text-muted-foreground">
-              No credit card required • Free tier available
+              No credit card required • 3-day free trial with full access
             </p>
           </div>
         </section>
