@@ -1,4 +1,5 @@
 import { Metadata } from "next";
+import dynamic from "next/dynamic";
 import { auth } from "@/lib/auth/config";
 import { redirect } from "next/navigation";
 import { PlanBadge } from "@/components/subscription/plan-badge";
@@ -8,8 +9,13 @@ import { ChangePasswordForm } from "@/components/settings/change-password-form";
 import { BrandVoiceSettings } from "@/components/settings/brand-voice-settings";
 import { DangerZone } from "@/components/settings/danger-zone";
 import { SettingsLegal } from "@/components/settings/settings-legal";
-import { ThemeSwitcher } from "@/components/settings/theme-switcher";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+
+const ThemeSwitcher = dynamic(
+  () =>
+    import("@/components/settings/theme-switcher").then((m) => ({ default: m.ThemeSwitcher })),
+  { ssr: false }
+);
 
 export const metadata: Metadata = {
   title: "Settings",

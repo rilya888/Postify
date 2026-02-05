@@ -11,19 +11,23 @@ import {
 import { Moon, Sun, Monitor } from "lucide-react";
 import { useEffect, useState } from "react";
 
+const placeholder = (
+  <div className="h-9 w-24 animate-pulse rounded-md bg-muted" aria-hidden />
+);
+
 export function ThemeSwitcher() {
-  const { theme, setTheme, resolvedTheme } = useTheme();
+  const ctx = useTheme();
   const [mounted, setMounted] = useState(false);
 
   useEffect(() => {
     setMounted(true);
   }, []);
 
-  if (!mounted) {
-    return (
-      <div className="h-9 w-24 animate-pulse rounded-md bg-muted" aria-hidden />
-    );
+  if (!mounted || !ctx || typeof ctx.setTheme !== "function") {
+    return placeholder;
   }
+
+  const { theme, setTheme, resolvedTheme } = ctx;
 
   return (
     <DropdownMenu>
