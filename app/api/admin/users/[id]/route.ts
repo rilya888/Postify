@@ -4,7 +4,7 @@ import { prisma } from "@/lib/db/prisma";
 import { createErrorResponse, createSuccessResponse } from "@/lib/utils/api-error";
 import { PlanType } from "@prisma/client";
 import { z } from "zod";
-import { PLAN_LIMITS, getAudioLimits } from "@/lib/constants/plans";
+import { getAudioLimits } from "@/lib/constants/plans";
 import { addMonths } from "@/lib/utils/date";
 
 const patchBodySchema = z.object({

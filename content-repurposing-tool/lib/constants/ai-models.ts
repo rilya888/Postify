@@ -52,6 +52,7 @@ export const TEMPERATURE_BY_PLATFORM: Record<Platform, number> = {
 
 /** Default generate model per plan (text tier; text_audio uses same until Stage 4) */
 const GENERATE_MODEL_BY_PLAN: Record<Plan, string> = {
+  trial: "gpt-4o-mini",
   free: "gpt-4o-mini",
   pro: "gpt-4o-mini",
   enterprise: "gpt-4o",

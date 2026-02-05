@@ -2,7 +2,6 @@ import { NextRequest } from "next/server";
 import { auth } from "@/lib/auth/config";
 import { prisma } from "@/lib/db/prisma";
 import { getEffectivePlan, canUseAudio, getAudioLimits } from "@/lib/constants/plans";
-import type { Plan } from "@/lib/constants/plans";
 import { checkAudioQuota, incrementAudioMinutesUsed } from "@/lib/services/quota";
 import { checkTranscribeRateLimit } from "@/lib/utils/rate-limit";
 import { transcribeAudioFile, normalizeTranscript } from "@/lib/services/transcription";

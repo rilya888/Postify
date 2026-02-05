@@ -3,7 +3,6 @@ import { prisma } from "@/lib/db/prisma";
 import { getOrCreateContentPack } from "@/lib/services/content-pack";
 import { getActiveBrandVoice } from "@/lib/services/brand-voice";
 import { PLAN_LIMITS, getEffectivePlan } from "@/lib/constants/plans";
-import type { Plan } from "@/lib/constants/plans";
 import { checkContentPackRateLimit } from "@/lib/utils/rate-limit";
 
 /**

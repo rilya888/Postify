@@ -5,7 +5,6 @@ import {
   getPlanType,
   getAudioLimits,
 } from "@/lib/constants/plans";
-import type { Plan } from "@/lib/constants/plans";
 import { Logger } from "@/lib/utils/logger";
 import { addMonths } from "@/lib/utils/date";
 

@@ -3,7 +3,6 @@ import { auth } from "@/lib/auth/config";
 import { checkAudioQuota } from "@/lib/services/quota";
 import { prisma } from "@/lib/db/prisma";
 import { PLAN_LIMITS, getEffectivePlan, getAudioLimits } from "@/lib/constants/plans";
-import type { Plan } from "@/lib/constants/plans";
 
 const TRIAL_DURATION_MS = 3 * 24 * 60 * 60 * 1000;
 
