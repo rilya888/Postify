@@ -1,5 +1,4 @@
 import { Metadata } from "next";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { AdminStatsCards } from "@/components/admin/admin-stats-cards";
 
 export const metadata: Metadata = {

@@ -2,9 +2,6 @@ import { Metadata } from "next";
 import { auth } from "@/lib/auth/config";
 import { requireAdmin } from "@/lib/auth/require-admin";
 import { prisma } from "@/lib/db/prisma";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
-import Link from "next/link";
 import { AdminUsersList } from "@/components/admin/admin-users-list";
 
 export const metadata: Metadata = {
