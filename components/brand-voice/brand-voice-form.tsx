@@ -40,9 +40,11 @@ interface BrandVoiceFormProps {
   userId: string;
   initialData?: BrandVoice;
   onSuccess?: () => void;
+  /** When true, submit via fetch to /api/brand-voices (for use in client-only contexts) */
+  submitViaApi?: boolean;
 }
 
-export function BrandVoiceForm({ userId, initialData, onSuccess }: BrandVoiceFormProps) {
+export function BrandVoiceForm({ userId, initialData, onSuccess, submitViaApi }: BrandVoiceFormProps) {
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   const form = useForm<BrandVoiceFormValues>({
@@ -64,17 +66,60 @@ export function BrandVoiceForm({ userId, initialData, onSuccess }: BrandVoiceFor
     },
   });
 
+  const toStrArray = (v: string | string[] | undefined, sep: ',' | '\n' = ','): string[] => {
+    if (Array.isArray(v)) return v;
+    if (typeof v === 'string') return sep === ',' ? v.split(',').map(s => s.trim()).filter(Boolean) : v.split('\n').map(s => s.trim()).filter(Boolean);
+    return [];
+  };
+
+  const buildBody = (values: BrandVoiceFormValues) => ({
+    name: values.name,
+    description: values.description || undefined,
+    tone: values.tone,
+    style: values.style,
+    vocabulary: toStrArray(values.vocabulary as string | string[] | undefined, ','),
+    avoidVocabulary: toStrArray(values.avoidVocabulary as string | string[] | undefined, ','),
+    sentenceStructure: values.sentenceStructure,
+    personality: values.personality,
+    examples: toStrArray(values.examples as string | string[] | undefined, '\n'),
+  });
+
   const onSubmit: (values: BrandVoiceFormValues) => Promise<void> = async (values) => {
     setIsSubmitting(true);
     try {
-      if (initialData) {
-        // Update existing brand voice
-        await updateBrandVoice(initialData.id, userId, values);
-        toast.success('Brand voice updated successfully');
+      if (submitViaApi) {
+        const body = buildBody(values);
+        if (initialData) {
+          const res = await fetch(`/api/brand-voices?id=${encodeURIComponent(initialData.id)}`, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ ...body, isActive: values.isActive ?? initialData.isActive }),
+          });
+          if (!res.ok) {
+            const json = await res.json().catch(() => ({}));
+            throw new Error(json.error ?? 'Failed to update');
+          }
+          toast.success('Brand voice updated successfully');
+        } else {
+          const res = await fetch('/api/brand-voices', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(body),
+          });
+          if (!res.ok) {
+            const json = await res.json().catch(() => ({}));
+            throw new Error(json.error ?? 'Failed to create');
+          }
+          toast.success('Brand voice created successfully');
+        }
       } else {
-        // Create new brand voice
-        await createBrandVoice(userId, values);
-        toast.success('Brand voice created successfully');
+        if (initialData) {
+          await updateBrandVoice(initialData.id, userId, values);
+          toast.success('Brand voice updated successfully');
+        } else {
+          await createBrandVoice(userId, values);
+          toast.success('Brand voice created successfully');
+        }
       }
 
       if (onSuccess) {
@@ -82,7 +127,7 @@ export function BrandVoiceForm({ userId, initialData, onSuccess }: BrandVoiceFor
       }
     } catch (error) {
       console.error('Error saving brand voice:', error);
-      toast.error('Failed to save brand voice');
+      toast.error(error instanceof Error ? error.message : 'Failed to save brand voice');
     } finally {
       setIsSubmitting(false);
     }

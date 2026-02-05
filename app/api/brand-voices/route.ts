@@ -108,18 +108,20 @@ export async function PUT(request: NextRequest) {
       return new Response('Brand voice not found or access denied', { status: 404 });
     }
 
-    const updatedVoice = await updateBrandVoice(id, userId, {
-      name: data.name,
-      description: data.description,
-      tone: data.tone,
-      style: data.style,
-      vocabulary: data.vocabulary,
-      avoidVocabulary: data.avoidVocabulary,
-      sentenceStructure: data.sentenceStructure,
-      personality: data.personality,
-      examples: data.examples,
-      isActive: data.isActive,
-    });
+    // Build partial update: only include defined fields
+    const updatePayload: Record<string, unknown> = {};
+    if (data.name !== undefined) updatePayload.name = data.name;
+    if (data.description !== undefined) updatePayload.description = data.description;
+    if (data.tone !== undefined) updatePayload.tone = data.tone;
+    if (data.style !== undefined) updatePayload.style = data.style;
+    if (data.vocabulary !== undefined) updatePayload.vocabulary = data.vocabulary;
+    if (data.avoidVocabulary !== undefined) updatePayload.avoidVocabulary = data.avoidVocabulary;
+    if (data.sentenceStructure !== undefined) updatePayload.sentenceStructure = data.sentenceStructure;
+    if (data.personality !== undefined) updatePayload.personality = data.personality;
+    if (data.examples !== undefined) updatePayload.examples = data.examples;
+    if (data.isActive !== undefined) updatePayload.isActive = data.isActive;
+
+    const updatedVoice = await updateBrandVoice(id, userId, updatePayload as Parameters<typeof updateBrandVoice>[2]);
 
     return new Response(JSON.stringify(updatedVoice), {
       status: 200,
