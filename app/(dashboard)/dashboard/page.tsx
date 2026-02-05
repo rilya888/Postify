@@ -6,6 +6,8 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import Link from "next/link";
 import { DashboardActions } from "@/components/dashboard/dashboard-actions";
+import { SubscriptionCard } from "@/components/dashboard/subscription-card";
+import { PlanBadge } from "@/components/subscription/plan-badge";
 
 export const metadata: Metadata = {
   title: "Dashboard",
@@ -48,10 +50,13 @@ export default async function DashboardPage() {
           <h1 className="text-3xl font-bold">Dashboard</h1>
           <p className="text-sm text-muted-foreground mt-1">Your content DNA, one place.</p>
         </div>
-        <DashboardActions />
+        <div className="flex items-center gap-3">
+          <PlanBadge />
+          <DashboardActions />
+        </div>
       </div>
 
-      <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
+      <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-4">
         <Card>
           <CardHeader className="pb-2">
             <CardTitle className="text-sm font-medium">Total Projects</CardTitle>
@@ -82,6 +87,8 @@ export default async function DashboardPage() {
             </div>
           </CardContent>
         </Card>
+
+        <SubscriptionCard />
       </div>
 
       <Card>
