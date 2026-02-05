@@ -17,7 +17,7 @@ import {
 import { Textarea } from "@/components/ui/textarea";
 import { Input } from "@/components/ui/input";
 import { toast } from "sonner";
-import { createProjectSchema, updateProjectSchema } from "@/lib/validations/project";
+import { createProjectSchemaForTextForm, updateProjectSchema } from "@/lib/validations/project";
 import PlatformSelector from "@/components/ai/platform-selector";
 import type { Platform } from "@/lib/constants/platforms";
 import { Loader2, Plus, Save, Download } from "lucide-react";
@@ -35,7 +35,7 @@ type ProjectFormProps = {
   onSubmitSuccess?: () => void;
 };
 
-type ProjectFormData = z.infer<typeof createProjectSchema>;
+type ProjectFormData = z.infer<typeof createProjectSchemaForTextForm>;
 
 /**
  * Project form component for creating and editing projects
@@ -52,7 +52,7 @@ export function ProjectForm({
   const isEditing = !!projectId;
 
   const form = useForm<ProjectFormData>({
-    resolver: zodResolver(isEditing ? updateProjectSchema : createProjectSchema),
+    resolver: zodResolver(isEditing ? updateProjectSchema : createProjectSchemaForTextForm),
     defaultValues: {
       title: initialData?.title || "",
       sourceContent: initialData?.sourceContent || "",

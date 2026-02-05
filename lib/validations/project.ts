@@ -1,9 +1,33 @@
 import { z } from "zod";
 
 /**
- * Validation schema for project creation
+ * Validation schema for project creation (API).
+ * sourceContent is optional: empty/missing allowed for "audio-first" flow; when provided, min 10 chars.
  */
 export const createProjectSchema = z.object({
+  title: z.string()
+    .min(1, "Title is required")
+    .max(200, "Title must be less than 200 characters"),
+  sourceContent: z
+    .string()
+    .max(10000, "Content must be less than 10,000 characters")
+    .optional()
+    .transform((v) => v ?? ""),
+  platforms: z.array(z.enum(["linkedin", "twitter", "email", "instagram", "facebook", "tiktok", "youtube"]))
+    .min(1, "Select at least one platform")
+    .max(7, "Maximum 7 platforms allowed"),
+}).refine(
+  (data) => !data.sourceContent || data.sourceContent.length >= 10,
+  { message: "Content must be at least 10 characters when provided", path: ["sourceContent"] }
+);
+
+export type CreateProjectInput = z.infer<typeof createProjectSchema>;
+
+/**
+ * Schema for the "text" create form: sourceContent required (min 10 chars).
+ * Use in ProjectForm when creating a text project so empty field is rejected.
+ */
+export const createProjectSchemaForTextForm = z.object({
   title: z.string()
     .min(1, "Title is required")
     .max(200, "Title must be less than 200 characters"),
@@ -15,7 +39,7 @@ export const createProjectSchema = z.object({
     .max(7, "Maximum 7 platforms allowed"),
 });
 
-export type CreateProjectInput = z.infer<typeof createProjectSchema>;
+export type CreateProjectFormData = z.infer<typeof createProjectSchemaForTextForm>;
 
 /**
  * Validation schema for project updates

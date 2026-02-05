@@ -1,7 +1,7 @@
 import { Metadata } from "next";
 import { auth } from "@/lib/auth/config";
 import { redirect } from "next/navigation";
-import { ProjectForm } from "@/components/projects/project-form";
+import { NewProjectFlow } from "@/components/projects/new-project-flow";
 
 export const metadata: Metadata = {
   title: "New Project",
@@ -23,12 +23,12 @@ export default async function NewProjectPage() {
       <div>
         <h1 className="text-3xl font-bold">Create New Project</h1>
         <p className="text-muted-foreground">
-          Enter your source content and select platforms to repurpose it
+          Add your source content as text or audio and select platforms to repurpose it
         </p>
       </div>
 
       <div className="max-w-3xl">
-        <ProjectForm />
+        <NewProjectFlow />
       </div>
     </div>
   );

@@ -198,7 +198,7 @@ export async function POST(request: Request) {
       data: {
         userId: session.user.id,
         title: validatedData.title,
-        sourceContent: validatedData.sourceContent,
+        sourceContent: validatedData.sourceContent ?? "",
         platforms: validatedData.platforms,
       },
     });
