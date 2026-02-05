@@ -11,6 +11,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { User, Dna } from "lucide-react";
 import { APP_NAME } from "@/lib/constants/app";
+import { PlanBadge } from "@/components/subscription/plan-badge";
 
 /**
  * Header component with navigation and user menu
@@ -31,7 +32,9 @@ export function Header() {
           {status === "loading" ? (
             <div className="h-8 w-8 animate-pulse rounded-full bg-muted" />
           ) : session ? (
-            <DropdownMenu>
+            <>
+              <PlanBadge />
+              <DropdownMenu>
               <DropdownMenuTrigger asChild>
                 <Button variant="ghost" size="icon" className="rounded-full">
                   <User className="h-5 w-5" />
@@ -45,6 +48,11 @@ export function Header() {
                 <DropdownMenuItem asChild>
                   <Link href="/settings">Settings</Link>
                 </DropdownMenuItem>
+                {(session.user as { role?: string })?.role === "admin" && (
+                  <DropdownMenuItem asChild>
+                    <Link href="/admin">Admin</Link>
+                  </DropdownMenuItem>
+                )}
                 <DropdownMenuItem
                   onClick={() => signOut({ callbackUrl: "/" })}
                 >
@@ -52,6 +60,7 @@ export function Header() {
                 </DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>
+            </>
           ) : (
             <>
               <Button variant="ghost" asChild>

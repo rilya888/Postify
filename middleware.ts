@@ -55,8 +55,13 @@ export default auth((req) => {
     return new Response("Rate limit exceeded", { status: 429 });
   }
 
-  // Protect dashboard routes
-  if (pathname.startsWith("/dashboard") || pathname.startsWith("/projects") || pathname.startsWith("/settings")) {
+  // Protect dashboard and admin routes (role check is in admin layout)
+  if (
+    pathname.startsWith("/dashboard") ||
+    pathname.startsWith("/projects") ||
+    pathname.startsWith("/settings") ||
+    pathname.startsWith("/admin")
+  ) {
     if (!isLoggedIn) {
       const url = new URL("/login", req.url);
       url.searchParams.set("callbackUrl", pathname);

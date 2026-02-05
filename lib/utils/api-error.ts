@@ -40,6 +40,16 @@ export function createErrorResponse(
     );
   }
 
+  // Handle ApiError-shaped object (e.g. { error: string, code?: string } for 403)
+  if (
+    typeof error === "object" &&
+    error !== null &&
+    "error" in error &&
+    typeof (error as ApiError).error === "string"
+  ) {
+    return NextResponse.json(error as ApiError, { status });
+  }
+
   // Handle unknown errors
   return NextResponse.json(
     {

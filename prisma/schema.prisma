@@ -19,6 +19,7 @@ model User {
   passwordHash  String?   // Nullable for future OAuth providers
   emailVerified DateTime? // For future email verification
   image         String?   // For future profile pictures
+  role          String    @default("user") // "user" | "admin" for admin panel access
   createdAt     DateTime  @default(now())
   updatedAt     DateTime  @updatedAt
 
@@ -29,6 +30,7 @@ model User {
 
   // Indexes for performance
   @@index([email])
+  @@index([role])
   @@map("users")
 }
 

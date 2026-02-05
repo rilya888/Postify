@@ -51,11 +51,16 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
           throw new Error("Invalid email or password");
         }
 
-        // Return user object (will be stored in JWT token)
+        // Resolve admin role: DB role "admin" or email in ADMIN_EMAILS (fallback before first admin is set in DB)
+        const dbRole = (user as { role?: string }).role;
+        const adminEmails = (process.env.ADMIN_EMAILS ?? "").split(",").map((e) => e.trim().toLowerCase()).filter(Boolean);
+        const role = dbRole === "admin" || adminEmails.includes(user.email.toLowerCase()) ? "admin" : "user";
+
         return {
           id: user.id,
           email: user.email,
           name: user.name ?? undefined,
+          role,
         };
       },
     }),
@@ -75,6 +80,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
         token.id = user.id;
         token.email = user.email;
         token.name = user.name;
+        token.role = (user as { role?: string }).role;
       }
       return token;
     },
@@ -84,6 +90,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
         session.user.id = token.id as string;
         session.user.email = token.email as string;
         session.user.name = token.name as string;
+        session.user.role = (token.role as string) ?? "user";
       }
       return session;
     },
