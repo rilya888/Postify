@@ -58,7 +58,7 @@ export async function PATCH(
   { params }: { params: Promise<{ id: string }> }
 ) {
   const session = await auth();
-  if (!isAdmin(session)) {
+  if (!isAdmin(session) || !session) {
     return createErrorResponse({ error: "Forbidden", code: "FORBIDDEN" }, 403);
   }
 
@@ -75,13 +75,13 @@ export async function PATCH(
   const { plan, subscriptionStatus, role, resetAudioMinutes } = parsed.data;
 
   // Prevent admin from removing their own admin role or last admin
-  if (role === "user" && targetUserId === session.user?.id) {
+  if (role === "user" && targetUserId === session.user.id) {
     return createErrorResponse(
       { error: "Cannot remove your own admin role", code: "FORBIDDEN" },
       403
     );
   }
-  if (role === "user" && targetUserId !== session.user?.id) {
+  if (role === "user" && targetUserId !== session.user.id) {
     const adminCount = await prisma.user.count({ where: { role: "admin" } });
     const targetIsAdmin = await prisma.user.findUnique({
       where: { id: targetUserId },
