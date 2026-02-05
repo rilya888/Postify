@@ -14,16 +14,16 @@ export const dynamic = "force-dynamic";
 export default async function AdminUsersPage({
   searchParams,
 }: {
-  searchParams: Promise<{ page?: string; search?: string }>;
+  searchParams: Promise<{ page?: string; search?: string; role?: string; plan?: string }>;
 }) {
   const session = await auth();
   requireAdmin(session);
 
-  const { page = "1", search } = await searchParams;
+  const { page = "1", search, role, plan } = await searchParams;
   const limit = 20;
   const offset = (parseInt(page, 10) - 1) * limit;
 
-  const where = search
+  const searchWhere = search
     ? {
         OR: [
           { email: { contains: search, mode: "insensitive" as const } },
@@ -31,6 +31,20 @@ export default async function AdminUsersPage({
         ],
       }
     : undefined;
+
+  const roleWhere = role && (role === "user" || role === "admin") ? { role } : undefined;
+  const planWhere =
+    plan && (plan === "free" || plan === "pro" || plan === "enterprise")
+      ? plan === "free"
+        ? { OR: [{ subscription: { is: null } }, { subscription: { plan: "free" } }] }
+        : { subscription: { plan } }
+      : undefined;
+
+  const conditions: object[] = [];
+  if (searchWhere) conditions.push(searchWhere);
+  if (roleWhere) conditions.push(roleWhere);
+  if (planWhere) conditions.push(planWhere);
+  const where = conditions.length > 0 ? { AND: conditions } : undefined;
 
   const [users, count] = await Promise.all([
     prisma.user.findMany({
@@ -64,6 +78,8 @@ export default async function AdminUsersPage({
         currentPage={parseInt(page, 10)}
         totalPages={totalPages}
         search={search ?? ""}
+        roleFilter={role ?? ""}
+        planFilter={plan ?? ""}
       />
     </div>
   );

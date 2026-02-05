@@ -3,7 +3,7 @@
 import { useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { LayoutDashboard, Users, Database, Shield, Menu } from "lucide-react";
+import { LayoutDashboard, Users, Database, Shield, Menu, CreditCard, FolderOpen, FileText } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
@@ -12,6 +12,9 @@ import { APP_NAME } from "@/lib/constants/app";
 const navItems = [
   { href: "/admin/dashboard", label: "Dashboard", icon: LayoutDashboard },
   { href: "/admin/users", label: "Users", icon: Users },
+  { href: "/admin/subscriptions", label: "Subscriptions", icon: CreditCard },
+  { href: "/admin/projects", label: "Projects", icon: FolderOpen },
+  { href: "/admin/transcripts", label: "Transcripts", icon: FileText },
   { href: "/admin/cache", label: "Cache", icon: Database },
 ];
 

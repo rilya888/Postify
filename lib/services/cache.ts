@@ -159,6 +159,19 @@ export async function cleanExpiredCache(): Promise<number> {
 }
 
 /**
+ * Delete all cache entries. Admin only.
+ */
+export async function cleanAllCache(): Promise<number> {
+  try {
+    const result = await prisma.cache.deleteMany({});
+    return result.count;
+  } catch (error) {
+    console.error("Error cleaning all cache:", error);
+    return 0;
+  }
+}
+
+/**
  * Get cache statistics
  */
 export async function getCacheStats(): Promise<{ total: number; expired: number; sizeEstimate: number }> {

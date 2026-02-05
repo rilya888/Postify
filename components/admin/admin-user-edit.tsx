@@ -25,10 +25,16 @@ type Props = {
       plan: string;
       status: string;
       audioMinutesUsedThisPeriod: number;
+      audioMinutesLimit?: number | null;
     } | null;
   };
   isSelf: boolean;
 };
+
+const AUDIO_PLANS = ["pro", "enterprise"];
+function hasAudioPlan(sub: Props["user"]["subscription"]) {
+  return sub && AUDIO_PLANS.includes(sub.plan);
+}
 
 export function AdminUserEdit({ user, isSelf }: Props) {
   const router = useRouter();
@@ -37,7 +43,7 @@ export function AdminUserEdit({ user, isSelf }: Props) {
   const [role, setRole] = useState(user.role);
   const [saving, setSaving] = useState(false);
 
-  const handleSave = async () => {
+  const handleSave = async (resetAudioMinutes = false) => {
     setSaving(true);
     try {
       const res = await fetch(`/api/admin/users/${user.id}`, {
@@ -47,7 +53,7 @@ export function AdminUserEdit({ user, isSelf }: Props) {
           plan,
           subscriptionStatus: status,
           role: isSelf ? undefined : role,
-          resetAudioMinutes: false,
+          resetAudioMinutes,
         }),
       });
       if (!res.ok) {
@@ -69,7 +75,7 @@ export function AdminUserEdit({ user, isSelf }: Props) {
         <CardTitle>Edit user</CardTitle>
       </CardHeader>
       <CardContent className="space-y-4">
-        <div className="flex items-center gap-2">
+        <div className="flex flex-wrap items-center gap-2">
           <Badge variant={user.role === "admin" ? "default" : "secondary"}>{user.role}</Badge>
           {user.subscription && (
             <Badge variant="outline">
@@ -78,7 +84,8 @@ export function AdminUserEdit({ user, isSelf }: Props) {
           )}
           {user.subscription?.audioMinutesUsedThisPeriod != null && (
             <span className="text-sm text-muted-foreground">
-              Audio used: {user.subscription.audioMinutesUsedThisPeriod} min
+              Audio: {user.subscription.audioMinutesUsedThisPeriod}
+              {user.subscription.audioMinutesLimit != null ? ` / ${user.subscription.audioMinutesLimit}` : ""} min
             </span>
           )}
         </div>
@@ -124,9 +131,40 @@ export function AdminUserEdit({ user, isSelf }: Props) {
             </div>
           )}
         </div>
-        <Button onClick={handleSave} disabled={saving}>
-          {saving ? "Saving..." : "Save changes"}
-        </Button>
+        <div className="flex flex-wrap items-center gap-2">
+          <Button onClick={() => handleSave(false)} disabled={saving}>
+            {saving ? "Saving..." : "Save changes"}
+          </Button>
+          {hasAudioPlan(user.subscription) && (
+            <Button
+              type="button"
+              variant="secondary"
+              disabled={saving}
+              onClick={async () => {
+                setSaving(true);
+                try {
+                  const res = await fetch(`/api/admin/users/${user.id}`, {
+                    method: "PATCH",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ resetAudioMinutes: true }),
+                  });
+                  if (!res.ok) {
+                    const data = await res.json().catch(() => ({}));
+                    throw new Error(data.error ?? "Failed");
+                  }
+                  toast.success("Audio minutes reset");
+                  router.refresh();
+                } catch (e) {
+                  toast.error(e instanceof Error ? e.message : "Failed to reset");
+                } finally {
+                  setSaving(false);
+                }
+              }}
+            >
+              Reset audio minutes
+            </Button>
+          )}
+        </div>
       </CardContent>
     </Card>
   );
