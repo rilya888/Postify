@@ -12,6 +12,8 @@ export const metadata: Metadata = {
   description: "View and edit user",
 };
 
+export const dynamic = "force-dynamic";
+
 export default async function AdminUserPage({
   params,
 }: {

@@ -9,6 +9,8 @@ export const metadata: Metadata = {
   description: "Manage users",
 };
 
+export const dynamic = "force-dynamic";
+
 export default async function AdminUsersPage({
   searchParams,
 }: {
