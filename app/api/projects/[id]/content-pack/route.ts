@@ -4,6 +4,7 @@ import { getOrCreateContentPack } from "@/lib/services/content-pack";
 import { getActiveBrandVoice } from "@/lib/services/brand-voice";
 import { PLAN_LIMITS } from "@/lib/constants/plans";
 import type { Plan } from "@/lib/constants/plans";
+import { checkContentPackRateLimit } from "@/lib/utils/rate-limit";
 
 /**
  * POST /api/projects/[id]/content-pack
@@ -38,6 +39,15 @@ export async function POST(
       return Response.json(
         { error: "Source content exceeds plan limit" },
         { status: 400 }
+      );
+    }
+
+    const contentPackRateLimit = checkContentPackRateLimit(userId, plan);
+    if (!contentPackRateLimit.allowed) {
+      const retryAfter = contentPackRateLimit.retryAfterSeconds ?? 60;
+      return Response.json(
+        { error: "Too many content pack requests", details: "Rate limit exceeded. Try again later." },
+        { status: 429, headers: { "Retry-After": String(retryAfter) } }
       );
     }
 

@@ -4,6 +4,7 @@ import { prisma } from "@/lib/db/prisma";
 import { canUseAudio, getAudioLimits } from "@/lib/constants/plans";
 import type { Plan } from "@/lib/constants/plans";
 import { checkAudioQuota, incrementAudioMinutesUsed } from "@/lib/services/quota";
+import { checkTranscribeRateLimit } from "@/lib/utils/rate-limit";
 import { transcribeAudioFile, normalizeTranscript } from "@/lib/services/transcription";
 import { WHISPER_COST_PER_MINUTE } from "@/lib/constants/ai-models";
 import fs from "fs/promises";
@@ -53,6 +54,15 @@ export async function POST(request: NextRequest) {
     const audioQuota = await checkAudioQuota(userId);
     if (!audioQuota.allowed) {
       return Response.json({ error: "Audio quota not available" }, { status: 400 });
+    }
+
+    const transcribeRateLimit = checkTranscribeRateLimit(userId, plan);
+    if (!transcribeRateLimit.allowed) {
+      const retryAfter = transcribeRateLimit.retryAfterSeconds ?? 3600;
+      return Response.json(
+        { error: "Too many transcription requests", details: "Rate limit exceeded. Try again later." },
+        { status: 429, headers: { "Retry-After": String(retryAfter) } }
+      );
     }
 
     const formData = await request.formData();

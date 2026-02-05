@@ -4,6 +4,9 @@
  * Note: In serverless, this is per-instance; for cross-instance limits use Redis or similar.
  */
 
+import { RATE_LIMITS } from "@/lib/constants/rate-limits";
+import type { Plan } from "@/lib/constants/plans";
+
 const WINDOW_MS = 60 * 1000; // 1 minute
 const MAX_REQUESTS_PER_WINDOW = 10; // 10 generate requests per minute per user
 const OUTPUT_UPDATE_WINDOW_MS = 60 * 1000; // 1 minute
@@ -11,11 +14,16 @@ const MAX_OUTPUT_UPDATES_PER_WINDOW = 30; // 30 output updates per minute per us
 const PROJECTS_WINDOW_MS = 60 * 1000; // 1 minute
 const MAX_PROJECTS_REQUESTS_PER_WINDOW = 60; // 60 project API requests per minute per user
 
+const TRANSCRIBE_WINDOW_MS = 3600 * 1000; // 1 hour
+const CONTENT_PACK_WINDOW_MS = 60 * 1000; // 1 minute
+
 type Entry = { count: number; resetAt: number };
 
 const store = new Map<string, Entry>();
 const outputUpdateStore = new Map<string, Entry>();
 const projectsStore = new Map<string, Entry>();
+const transcribeStore = new Map<string, Entry>();
+const contentPackStore = new Map<string, Entry>();
 
 function getOrCreateEntry(userId: string, map: Map<string, Entry>, windowMs: number): Entry {
   const now = Date.now();
@@ -80,6 +88,50 @@ export function checkProjectsRateLimit(userId: string): { allowed: boolean; retr
   }
   entry.count += 1;
   if (entry.count > MAX_PROJECTS_REQUESTS_PER_WINDOW) {
+    const retryAfterSeconds = Math.ceil((entry.resetAt - now) / 1000);
+    return { allowed: false, retryAfterSeconds };
+  }
+  return { allowed: true };
+}
+
+/**
+ * Check transcribe rate limit (per plan: free 2/hour, pro 10/hour, enterprise 50/hour).
+ */
+export function checkTranscribeRateLimit(
+  userId: string,
+  plan: Plan
+): { allowed: boolean; retryAfterSeconds?: number } {
+  const limits = RATE_LIMITS[plan] ?? RATE_LIMITS.free;
+  const entry = getOrCreateEntry(userId, transcribeStore, TRANSCRIBE_WINDOW_MS);
+  const now = Date.now();
+  if (now >= entry.resetAt) {
+    entry.count = 0;
+    entry.resetAt = now + TRANSCRIBE_WINDOW_MS;
+  }
+  entry.count += 1;
+  if (entry.count > limits.transcribe.points) {
+    const retryAfterSeconds = Math.ceil((entry.resetAt - now) / 1000);
+    return { allowed: false, retryAfterSeconds };
+  }
+  return { allowed: true };
+}
+
+/**
+ * Check content-pack rate limit (per plan: free 10/min, pro 50/min, enterprise 200/min).
+ */
+export function checkContentPackRateLimit(
+  userId: string,
+  plan: Plan
+): { allowed: boolean; retryAfterSeconds?: number } {
+  const limits = RATE_LIMITS[plan] ?? RATE_LIMITS.free;
+  const entry = getOrCreateEntry(userId, contentPackStore, CONTENT_PACK_WINDOW_MS);
+  const now = Date.now();
+  if (now >= entry.resetAt) {
+    entry.count = 0;
+    entry.resetAt = now + CONTENT_PACK_WINDOW_MS;
+  }
+  entry.count += 1;
+  if (entry.count > limits.contentPack.points) {
     const retryAfterSeconds = Math.ceil((entry.resetAt - now) / 1000);
     return { allowed: false, retryAfterSeconds };
   }

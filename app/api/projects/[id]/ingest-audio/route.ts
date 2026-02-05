@@ -5,6 +5,7 @@ import { Logger } from "@/lib/utils/logger";
 import { canUseAudio, getAudioLimits } from "@/lib/constants/plans";
 import type { Plan } from "@/lib/constants/plans";
 import { checkAudioQuota, incrementAudioMinutesUsed } from "@/lib/services/quota";
+import { checkTranscribeRateLimit } from "@/lib/utils/rate-limit";
 import {
   transcribeAudioFile,
   normalizeTranscript as normalizeTranscriptText,
@@ -76,6 +77,15 @@ export async function POST(
       return Response.json(
         { error: "Audio quota not available for your plan" },
         { status: 400 }
+      );
+    }
+
+    const transcribeRateLimit = checkTranscribeRateLimit(userId, plan);
+    if (!transcribeRateLimit.allowed) {
+      const retryAfter = transcribeRateLimit.retryAfterSeconds ?? 3600;
+      return Response.json(
+        { error: "Too many transcription requests", details: "Rate limit exceeded. Try again later." },
+        { status: 429, headers: { "Retry-After": String(retryAfter) } }
       );
     }
 

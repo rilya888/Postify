@@ -2,6 +2,7 @@ import { auth } from "@/lib/auth/config";
 import { isAdmin } from "@/lib/auth/require-admin";
 import { prisma } from "@/lib/db/prisma";
 import { createErrorResponse, createSuccessResponse } from "@/lib/utils/api-error";
+import { PlanType } from "@prisma/client";
 import { z } from "zod";
 
 const patchBodySchema = z.object({
@@ -109,7 +110,10 @@ export async function PATCH(
   }
 
   const subUpdates: Record<string, unknown> = {};
-  if (plan !== undefined) subUpdates.plan = plan;
+  if (plan !== undefined) {
+    subUpdates.plan = plan;
+    subUpdates.planType = plan === "free" ? PlanType.TEXT : PlanType.TEXT_AUDIO;
+  }
   if (subscriptionStatus !== undefined) subUpdates.status = subscriptionStatus;
   if (currentPeriodEnd !== undefined) subUpdates.currentPeriodEnd = currentPeriodEnd === null ? null : new Date(currentPeriodEnd);
   if (resetAudioMinutes === true) subUpdates.audioMinutesUsedThisPeriod = 0;
@@ -119,14 +123,22 @@ export async function PATCH(
       where: { userId: targetUserId },
       create: {
         userId: targetUserId,
+        planType: PlanType.TEXT,
         ...(subUpdates as {
           plan?: string;
+          planType?: PlanType;
           status?: string;
           audioMinutesUsedThisPeriod?: number;
           currentPeriodEnd?: Date | null;
         }),
       },
-      update: subUpdates,
+      update: subUpdates as {
+        plan?: string;
+        planType?: PlanType;
+        status?: string;
+        audioMinutesUsedThisPeriod?: number;
+        currentPeriodEnd?: Date | null;
+      },
     });
   }
 

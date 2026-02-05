@@ -155,12 +155,21 @@ model OutputVersion {
   @@map("output_versions")
 }
 
+// Plan type enum: text-only vs text+audio (Stage 3 RECOMMENDATIONS)
+enum PlanType {
+  TEXT
+  TEXT_AUDIO
+  TEXT_AUDIO_VIDEO
+  CUSTOM
+}
+
 // Subscription model - stores user subscription data
 // Used in: Future monetization features (Post-MVP), Stage 3 plan types (text / text_audio)
 model Subscription {
   id                String    @id @default(cuid())
   userId            String    @unique
   plan              String    @default("free") // "free" | "pro" | "enterprise"
+  planType          PlanType  @default(TEXT)   // Explicit: TEXT | TEXT_AUDIO | ...
   status            String    @default("active") // "active" | "canceled" | "past_due"
   currentPeriodEnd  DateTime?
   stripeCustomerId  String?   // For future Stripe integration
@@ -168,6 +177,7 @@ model Subscription {
   // Audio usage for text_audio plan (Stage 3): reset when currentPeriodEnd advances
   audioMinutesUsedThisPeriod Int     @default(0)
   audioMinutesLimit          Int?    // From plan; null for text-only
+  audioMinutesResetAt       DateTime? // Next reset date for quota
   createdAt         DateTime  @default(now())
   updatedAt         DateTime  @updatedAt
 
