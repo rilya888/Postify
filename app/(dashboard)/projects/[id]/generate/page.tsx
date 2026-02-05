@@ -23,6 +23,13 @@ import PlatformSelector from "@/components/ai/platform-selector";
 import { GeneratedContentPreview } from "@/components/ai/generated-content-preview";
 import type { BulkGenerationResult } from "@/types/ai";
 import { PLATFORMS, type Platform } from "@/lib/constants/platforms";
+import {
+  DOCUMENT_INPUT_ACCEPT,
+  MAX_DOCUMENT_FILE_SIZE_BYTES,
+  SOURCE_CONTENT_MAX_LENGTH,
+} from "@/lib/constants/documents";
+import { truncateAtWordBoundary } from "@/lib/utils/truncate-text";
+import type { ParseDocumentResponse } from "@/types/documents";
 
 interface Output {
   id: string;
@@ -245,12 +252,61 @@ export default function GeneratePage() {
     }
   };
 
-  const handleUploadTxt = async (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleUploadDocument = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file || !projectId) return;
-    setIsUploadingTxt(true);
+    if (file.size > MAX_DOCUMENT_FILE_SIZE_BYTES) {
+      toast.error("Файл слишком большой");
+      e.target.value = "";
+      return;
+    }
+    const ext = file.name.includes(".")
+      ? file.name.slice(file.name.lastIndexOf(".")).toLowerCase()
+      : "";
+    const isTxt = ext === ".txt" || file.type === "text/plain";
+
+    let text: string;
+    if (isTxt) {
+      try {
+        const raw = await file.text();
+        const { text: truncated, truncated: wasTruncated } = truncateAtWordBoundary(
+          raw,
+          SOURCE_CONTENT_MAX_LENGTH
+        );
+        text = truncated;
+        if (wasTruncated) toast.warning("Текст обрезан до 10 000 символов");
+      } catch (err) {
+        toast.error(err instanceof Error ? err.message : "Upload failed");
+        e.target.value = "";
+        return;
+      }
+    } else {
+      setIsUploadingTxt(true);
+      try {
+        const formData = new FormData();
+        formData.set("file", file);
+        const res = await fetch("/api/documents/parse", {
+          method: "POST",
+          body: formData,
+        });
+        const data = (await res.json()) as ParseDocumentResponse & { error?: string; details?: string };
+        if (!res.ok) {
+          toast.error(data.details ?? data.error ?? "Update failed");
+          e.target.value = "";
+          return;
+        }
+        text = data.text;
+        if (data.truncated) toast.warning("Текст обрезан до 10 000 символов");
+      } catch (err) {
+        toast.error(err instanceof Error ? err.message : "Upload failed");
+        e.target.value = "";
+        return;
+      } finally {
+        setIsUploadingTxt(false);
+      }
+    }
+
     try {
-      const text = await file.text();
       const res = await fetch(`/api/projects/${projectId}`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
@@ -264,11 +320,11 @@ export default function GeneratePage() {
       toast.success("Source content updated from file.");
       const updated = await loadProject();
       if (updated) setProject(updated);
-      if (txtInputRef.current) txtInputRef.current.value = "";
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : "Upload failed");
+      toast.error(err instanceof Error ? err.message : "Update failed");
     } finally {
-      setIsUploadingTxt(false);
+      e.target.value = "";
+      if (txtInputRef.current) txtInputRef.current.value = "";
     }
   };
 
@@ -437,32 +493,32 @@ export default function GeneratePage() {
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-3">
-          {planFeatures?.planType === "text" && (
-            <div>
-              <input
-                ref={txtInputRef}
-                type="file"
-                accept=".txt,text/plain"
-                className="hidden"
-                onChange={handleUploadTxt}
-                disabled={isUploadingTxt}
-              />
-              <Button
-                type="button"
-                variant="outline"
-                size="sm"
-                onClick={() => txtInputRef.current?.click()}
-                disabled={isUploadingTxt}
-              >
-                {isUploadingTxt ? (
-                  <Loader2Icon className="mr-2 h-4 w-4 animate-spin" />
-                ) : (
-                  <UploadIcon className="mr-2 h-4 w-4" />
-                )}
-                Загрузить .txt
-              </Button>
-            </div>
-          )}
+          <div>
+            <input
+              ref={txtInputRef}
+              type="file"
+              accept={DOCUMENT_INPUT_ACCEPT}
+              className="hidden"
+              aria-label="Upload document file"
+              onChange={handleUploadDocument}
+              disabled={isUploadingTxt}
+            />
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              onClick={() => txtInputRef.current?.click()}
+              disabled={isUploadingTxt}
+              aria-label="Upload file (.txt, .pdf, .doc, .docx, .rtf)"
+            >
+              {isUploadingTxt ? (
+                <Loader2Icon className="mr-2 h-4 w-4 animate-spin" />
+              ) : (
+                <UploadIcon className="mr-2 h-4 w-4" />
+              )}
+              Загрузить файл (.txt, .pdf, .doc, .docx, .rtf)
+            </Button>
+          </div>
           <div className="bg-muted rounded-lg p-4 max-h-60 overflow-y-auto">
             <p className="whitespace-pre-line">{project.sourceContent}</p>
           </div>

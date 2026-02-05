@@ -16,6 +16,8 @@ const MAX_PROJECTS_REQUESTS_PER_WINDOW = 60; // 60 project API requests per minu
 
 const TRANSCRIBE_WINDOW_MS = 3600 * 1000; // 1 hour
 const CONTENT_PACK_WINDOW_MS = 60 * 1000; // 1 minute
+const DOCUMENT_PARSE_WINDOW_MS = 60 * 1000; // 1 minute
+const MAX_DOCUMENT_PARSE_PER_WINDOW = 30; // 30 document parse requests per minute per user
 
 type Entry = { count: number; resetAt: number };
 
@@ -24,6 +26,7 @@ const outputUpdateStore = new Map<string, Entry>();
 const projectsStore = new Map<string, Entry>();
 const transcribeStore = new Map<string, Entry>();
 const contentPackStore = new Map<string, Entry>();
+const documentParseStore = new Map<string, Entry>();
 
 function getOrCreateEntry(userId: string, map: Map<string, Entry>, windowMs: number): Entry {
   const now = Date.now();
@@ -132,6 +135,25 @@ export function checkContentPackRateLimit(
   }
   entry.count += 1;
   if (entry.count > limits.contentPack.points) {
+    const retryAfterSeconds = Math.ceil((entry.resetAt - now) / 1000);
+    return { allowed: false, retryAfterSeconds };
+  }
+  return { allowed: true };
+}
+
+/**
+ * Check document parse rate limit (POST /api/documents/parse).
+ * 30 requests per minute per user to prevent abuse.
+ */
+export function checkDocumentParseRateLimit(userId: string): { allowed: boolean; retryAfterSeconds?: number } {
+  const entry = getOrCreateEntry(userId, documentParseStore, DOCUMENT_PARSE_WINDOW_MS);
+  const now = Date.now();
+  if (now >= entry.resetAt) {
+    entry.count = 0;
+    entry.resetAt = now + DOCUMENT_PARSE_WINDOW_MS;
+  }
+  entry.count += 1;
+  if (entry.count > MAX_DOCUMENT_PARSE_PER_WINDOW) {
     const retryAfterSeconds = Math.ceil((entry.resetAt - now) / 1000);
     return { allowed: false, retryAfterSeconds };
   }

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -20,7 +20,14 @@ import { toast } from "sonner";
 import { createProjectSchemaForTextForm, updateProjectSchema } from "@/lib/validations/project";
 import PlatformSelector from "@/components/ai/platform-selector";
 import type { Platform } from "@/lib/constants/platforms";
-import { Loader2, Plus, Save, Download } from "lucide-react";
+import {
+  DOCUMENT_INPUT_ACCEPT,
+  MAX_DOCUMENT_FILE_SIZE_BYTES,
+  SOURCE_CONTENT_MAX_LENGTH,
+} from "@/lib/constants/documents";
+import { truncateAtWordBoundary } from "@/lib/utils/truncate-text";
+import { Loader2, Plus, Save, Download, Upload } from "lucide-react";
+import type { ParseDocumentResponse } from "@/types/documents";
 import { ProgressBar } from "@/components/ui/progress-bar";
 import { useAutoSaveDraft } from "@/lib/hooks/useAutoSaveDraft";
 import { NotificationService } from "@/lib/services/notifications";
@@ -48,6 +55,8 @@ export function ProjectForm({
   const router = useRouter();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [saveProgress, setSaveProgress] = useState(0);
+  const [isUploadingFile, setIsUploadingFile] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const isEditing = !!projectId;
 
@@ -137,6 +146,63 @@ export function ProjectForm({
     }
   }
 
+  async function handleFileSelect(event: React.ChangeEvent<HTMLInputElement>) {
+    const file = event.target.files?.[0];
+    if (!file) return;
+    if (file.size > MAX_DOCUMENT_FILE_SIZE_BYTES) {
+      toast.error("Файл слишком большой");
+      event.target.value = "";
+      return;
+    }
+    const ext = file.name.includes(".")
+      ? file.name.slice(file.name.lastIndexOf(".")).toLowerCase()
+      : "";
+    const isTxt = ext === ".txt" || file.type === "text/plain";
+
+    if (isTxt) {
+      try {
+        const text = await file.text();
+        const { text: truncated, truncated: wasTruncated } = truncateAtWordBoundary(
+          text,
+          SOURCE_CONTENT_MAX_LENGTH
+        );
+        form.setValue("sourceContent", truncated);
+        if (wasTruncated) {
+          toast.warning("Текст обрезан до 10 000 символов");
+        }
+      } catch {
+        toast.error("Не удалось загрузить файл");
+      }
+      event.target.value = "";
+      return;
+    }
+
+    setIsUploadingFile(true);
+    try {
+      const formData = new FormData();
+      formData.set("file", file);
+      const res = await fetch("/api/documents/parse", {
+        method: "POST",
+        body: formData,
+      });
+      const data = (await res.json()) as ParseDocumentResponse & { error?: string; details?: string };
+      if (!res.ok) {
+        toast.error(data.details ?? data.error ?? "Не удалось загрузить файл");
+        event.target.value = "";
+        return;
+      }
+      form.setValue("sourceContent", data.text);
+      if (data.truncated) {
+        toast.warning("Текст обрезан до 10 000 символов");
+      }
+    } catch {
+      toast.error("Не удалось загрузить файл");
+    } finally {
+      setIsUploadingFile(false);
+      event.target.value = "";
+    }
+  }
+
   return (
     <Form {...form}>
       <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
@@ -164,6 +230,32 @@ export function ProjectForm({
           render={({ field }) => (
             <FormItem>
               <FormLabel>Source Content *</FormLabel>
+              <div className="flex flex-wrap items-center gap-2 pb-2">
+                <input
+                  ref={fileInputRef}
+                  type="file"
+                  accept={DOCUMENT_INPUT_ACCEPT}
+                  className="sr-only"
+                  aria-label="Upload document file"
+                  onChange={handleFileSelect}
+                  disabled={isSubmitting || isUploadingFile}
+                />
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={() => fileInputRef.current?.click()}
+                  disabled={isSubmitting || isUploadingFile}
+                  aria-label="Upload file (.txt, .pdf, .doc, .docx, .rtf)"
+                >
+                  {isUploadingFile ? (
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  ) : (
+                    <Upload className="mr-2 h-4 w-4" />
+                  )}
+                  Загрузить файл (.txt, .pdf, .doc, .docx, .rtf)
+                </Button>
+              </div>
               <FormControl>
                 <Textarea
                   placeholder="Paste your original content here..."
