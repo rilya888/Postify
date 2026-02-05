@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect, useRef, useCallback } from "react";
 import { useParams, useRouter } from "next/navigation";
+import { useTranslations } from "next-intl";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
@@ -55,6 +56,11 @@ export default function GeneratePage() {
   const params = useParams<{ id: string }>();
   const router = useRouter();
   const projectId = params.id;
+  const t = useTranslations("projects");
+  const tDocs = useTranslations("documents");
+  const tSub = useTranslations("subscription");
+  const tGen = useTranslations("generatePage");
+  const tErr = useTranslations("errors");
   
   const [project, setProject] = useState<Project | null>(null);
   const [selectedPlatforms, setSelectedPlatforms] = useState<Platform[]>([]);
@@ -86,16 +92,16 @@ export default function GeneratePage() {
         return null;
       }
       if (res.status === 404) {
-        setError("Project not found");
+        setError(tErr("projectNotFound"));
         return null;
       }
       const body = await res.json().catch(() => ({}));
-      setError(body?.error ?? "Failed to load project");
+      setError(body?.error ?? tErr("failedToLoadProject"));
       return null;
     }
     const data = await res.json();
     return data.project as Project | null;
-  }, [projectId, router]);
+  }, [projectId, router, tErr]);
 
   // Load project data
   useEffect(() => {
@@ -117,14 +123,14 @@ export default function GeneratePage() {
       } catch (err) {
         if (!cancelled) {
           console.error("Error loading project:", err);
-          setError("Failed to load project");
+          setError(tErr("failedToLoadProject"));
         }
       } finally {
         if (!cancelled) setIsLoading(false);
       }
     })();
     return () => { cancelled = true; };
-  }, [loadProject]);
+  }, [loadProject, tErr]);
 
   // Load plan features (text vs text_audio)
   useEffect(() => {
@@ -157,7 +163,7 @@ export default function GeneratePage() {
   const handleGenerate = async () => {
     if (!project) return;
     if (selectedPlatforms.length === 0) {
-      toast.error("Please select at least one platform");
+      toast.error(t("toasts.selectPlatform"));
       return;
     }
     abortControllerRef.current = new AbortController();
@@ -185,7 +191,7 @@ export default function GeneratePage() {
       setProgress(100);
       if (!res.ok) {
         const body = await res.json().catch(() => ({}));
-        const message = body?.details ?? body?.error ?? "Generation failed";
+        const message = body?.details ?? body?.error ?? t("toasts.generationFailed");
         setError(message);
         toast.error(message);
         return;
@@ -194,9 +200,9 @@ export default function GeneratePage() {
       setGenerationResults(data);
       setPiiWarnings(data.piiWarnings ?? []);
       if ((data.piiWarnings?.length ?? 0) > 0) {
-        toast.warning("Source may contain personal data. Check the notice below.");
+        toast.warning(t("toasts.piiNotice"));
       }
-      toast.success("Content generation completed!");
+      toast.success(t("toasts.generationCompleted"));
       const updated = await loadProject();
       if (updated) setProject(updated);
     } catch (err) {
@@ -235,11 +241,11 @@ export default function GeneratePage() {
       });
       const body = await res.json().catch(() => ({}));
       if (!res.ok) {
-        setAudioUploadError(body.details ?? body.error ?? "Upload failed");
-        toast.error(body.details ?? body.error ?? "Upload failed");
+        setAudioUploadError(body.details ?? body.error ?? tDocs("uploadFailed"));
+        toast.error(body.details ?? body.error ?? tDocs("uploadFailed"));
         return;
       }
-      toast.success("Audio transcribed. Source content updated.");
+      toast.success(t("toasts.sourceUpdated"));
       const updated = await loadProject();
       if (updated) setProject(updated);
       if (audioInputRef.current) audioInputRef.current.value = "";
@@ -256,7 +262,7 @@ export default function GeneratePage() {
     const file = e.target.files?.[0];
     if (!file || !projectId) return;
     if (file.size > MAX_DOCUMENT_FILE_SIZE_BYTES) {
-      toast.error("Файл слишком большой");
+      toast.error(tDocs("fileTooLarge"));
       e.target.value = "";
       return;
     }
@@ -274,7 +280,7 @@ export default function GeneratePage() {
           SOURCE_CONTENT_MAX_LENGTH
         );
         text = truncated;
-        if (wasTruncated) toast.warning("Текст обрезан до 10 000 символов");
+        if (wasTruncated) toast.warning(tDocs("textTruncated"));
       } catch (err) {
         toast.error(err instanceof Error ? err.message : "Upload failed");
         e.target.value = "";
@@ -291,14 +297,14 @@ export default function GeneratePage() {
         });
         const data = (await res.json()) as ParseDocumentResponse & { error?: string; details?: string };
         if (!res.ok) {
-          toast.error(data.details ?? data.error ?? "Update failed");
+          toast.error(data.details ?? data.error ?? t("toasts.updateFailed"));
           e.target.value = "";
           return;
         }
         text = data.text;
-        if (data.truncated) toast.warning("Текст обрезан до 10 000 символов");
+        if (data.truncated) toast.warning(tDocs("textTruncated"));
       } catch (err) {
-        toast.error(err instanceof Error ? err.message : "Upload failed");
+        toast.error(err instanceof Error ? err.message : tDocs("uploadFailed"));
         e.target.value = "";
         return;
       } finally {
@@ -321,7 +327,7 @@ export default function GeneratePage() {
       const updated = await loadProject();
       if (updated) setProject(updated);
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : "Update failed");
+      toast.error(err instanceof Error ? err.message : t("toasts.updateFailed"));
     } finally {
       e.target.value = "";
       if (txtInputRef.current) txtInputRef.current.value = "";
@@ -330,7 +336,7 @@ export default function GeneratePage() {
 
   const handleRegenerate = async (platform: string) => {
     if (!project?.sourceContent?.trim()) {
-      toast.error("No source content to regenerate from");
+      toast.error(t("toasts.noSourceContent"));
       return;
     }
     try {
@@ -367,7 +373,7 @@ export default function GeneratePage() {
       const updated = await loadProject();
       if (updated) setProject(updated);
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : "Regeneration failed");
+      toast.error(err instanceof Error ? err.message : t("toasts.regenerationFailed"));
     } finally {
       setRegeneratingPlatform(null);
     }
@@ -407,9 +413,9 @@ export default function GeneratePage() {
     <div className="container mx-auto py-10 max-w-4xl">
       <div className="mb-8 flex flex-wrap items-center gap-4">
         <div>
-          <h1 className="text-3xl font-bold">Generate Content</h1>
+          <h1 className="text-3xl font-bold">{t("generate.title")}</h1>
           <p className="text-muted-foreground mt-2">
-            Decode once. Cast everywhere. Transform your content DNA into platform-specific formats.
+            {t("generate.subtitle")}
           </p>
         </div>
         {planFeatures && (
@@ -417,10 +423,10 @@ export default function GeneratePage() {
             {planFeatures.planType === "text_audio" ? (
               <>
                 <MicIcon className="inline h-4 w-4 mr-1.5 -mt-0.5" />
-                Текст + Аудио
+                {tSub("planTypeTextAudio")}
               </>
             ) : (
-              "Текст"
+              tSub("planTypeText")
             )}
           </span>
         )}
@@ -429,8 +435,7 @@ export default function GeneratePage() {
       {piiWarnings.length > 0 && (
         <Alert variant="default" className="mb-8 border-amber-500 bg-amber-50 dark:bg-amber-950/20">
           <AlertDescription>
-            <strong>Privacy notice:</strong> Your source content may contain personal data (e.g. email, phone, address).
-            Consider removing it before publishing. {piiWarnings.join(" ")}
+            {tGen("privacyNotice")} {piiWarnings.join(" ")}
           </AlertDescription>
         </Alert>
       )}
@@ -440,13 +445,16 @@ export default function GeneratePage() {
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <UploadIcon className="h-5 w-5" />
-              Загрузить аудио
+              {tDocs("uploadAudio")}
             </CardTitle>
             <CardDescription>
-              Загрузите MP3, M4A, WAV или другой аудиофайл — он будет транскрибирован и подставлен в исходный текст.
+              {tDocs("uploadAudioDescription")}
               {planFeatures.audioLimits && (
                 <span className="block mt-1">
-                  Использовано: {planFeatures.audioLimits.usedMinutes} / {planFeatures.audioLimits.limitMinutes} мин в периоде.
+                  {tSub("audioUsedShort", {
+                    used: planFeatures.audioLimits.usedMinutes,
+                    limit: planFeatures.audioLimits.limitMinutes,
+                  })}
                 </span>
               )}
             </CardDescription>
@@ -469,12 +477,12 @@ export default function GeneratePage() {
               {isUploadingAudio ? (
                 <>
                   <Loader2Icon className="mr-2 h-4 w-4 animate-spin" />
-                  Транскрипция…
+                  {tDocs("transcribing")}
                 </>
               ) : (
                 <>
                   <UploadIcon className="mr-2 h-4 w-4" />
-                  Выбрать файл
+                  {tDocs("selectFile")}
                 </>
               )}
             </Button>
@@ -487,9 +495,9 @@ export default function GeneratePage() {
       
       <Card className="mb-8">
         <CardHeader>
-          <CardTitle>Source Content</CardTitle>
+          <CardTitle>{t("generate.sourceContent")}</CardTitle>
           <CardDescription>
-            This content will be repurposed for the selected platforms
+            {t("generate.sourceContentDescription")}
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-3">
@@ -499,7 +507,7 @@ export default function GeneratePage() {
               type="file"
               accept={DOCUMENT_INPUT_ACCEPT}
               className="hidden"
-              aria-label="Upload document file"
+              aria-label={t("generate.uploadDocumentAria")}
               onChange={handleUploadDocument}
               disabled={isUploadingTxt}
             />
@@ -509,14 +517,14 @@ export default function GeneratePage() {
               size="sm"
               onClick={() => txtInputRef.current?.click()}
               disabled={isUploadingTxt}
-              aria-label="Upload file (.txt, .pdf, .doc, .docx, .rtf)"
+              aria-label={t("generate.uploadFileAria")}
             >
               {isUploadingTxt ? (
                 <Loader2Icon className="mr-2 h-4 w-4 animate-spin" />
               ) : (
                 <UploadIcon className="mr-2 h-4 w-4" />
               )}
-              Загрузить файл (.txt, .pdf, .doc, .docx, .rtf)
+              {tDocs("uploadFile")}
             </Button>
           </div>
           <div className="bg-muted rounded-lg p-4 max-h-60 overflow-y-auto">
@@ -542,7 +550,7 @@ export default function GeneratePage() {
         <CardFooter className="justify-between">
           <p className="text-sm text-muted-foreground">
             {!project?.sourceContent?.trim()
-              ? "Add source content in the project to generate."
+              ? t("generate.addSourceHint")
               : `Selected: ${selectedPlatforms.length} of ${Object.keys(PLATFORMS).length} platforms`}
           </p>
           <Button 
@@ -557,7 +565,7 @@ export default function GeneratePage() {
             ) : (
               <>
                 <PlayIcon className="mr-2 h-4 w-4" />
-                Generate Content
+                {t("generate.generateButton")}
               </>
             )}
           </Button>

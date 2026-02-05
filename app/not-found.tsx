@@ -1,14 +1,16 @@
 import Link from "next/link";
+import { getTranslations } from "next-intl/server";
 import { Button } from "@/components/ui/button";
 import { Header } from "@/components/layout/header";
 import { Footer } from "@/components/layout/footer";
-import { APP_NAME } from "@/lib/constants/app";
 
 /**
- * 404 Not Found page
- * Displayed when user navigates to non-existent route
+ * 404 Not Found page.
+ * Displayed when user navigates to a non-existent route.
  */
-export default function NotFound() {
+export default async function NotFound() {
+  const t = await getTranslations("errors");
+  const tCommon = await getTranslations("common");
   return (
     <div className="flex min-h-screen flex-col">
       <Header />
@@ -18,17 +20,17 @@ export default function NotFound() {
             404
           </h1>
           <p className="text-lg text-muted-foreground">
-            Page not found
+            {t("pageNotFound")}
           </p>
           <p className="text-sm text-muted-foreground">
-            The page you&apos;re looking for doesn&apos;t exist or has been moved.
+            {t("pageNotFoundDescription")}
           </p>
           <div className="flex gap-4">
             <Button asChild>
-              <Link href="/">Back to {APP_NAME}</Link>
+              <Link href="/">{t("backToApp", { appName: tCommon("appName") })}</Link>
             </Button>
             <Button asChild variant="outline">
-              <Link href="/dashboard">Go to Dashboard</Link>
+              <Link href="/dashboard">{t("goToDashboard")}</Link>
             </Button>
           </div>
         </div>

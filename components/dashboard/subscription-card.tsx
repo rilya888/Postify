@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import { useTranslations } from "next-intl";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { MicIcon } from "lucide-react";
@@ -16,17 +17,11 @@ type Features = {
   maxAudioFileSizeMb: number | null;
 };
 
-const PLAN_LABELS: Record<string, string> = {
-  trial: "Пробный",
-  free: "Free",
-  pro: "Pro",
-  enterprise: "Enterprise",
-};
-
 /**
  * Compact subscription card for dashboard: plan name, type, and key limits.
  */
 export function SubscriptionCard() {
+  const t = useTranslations("subscription");
   const [features, setFeatures] = useState<Features | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(false);
@@ -52,11 +47,18 @@ export function SubscriptionCard() {
     };
   }, []);
 
+  const planLabels: Record<string, string> = {
+    trial: t("planTrial"),
+    free: t("planFree"),
+    pro: t("planPro"),
+    enterprise: t("planEnterprise"),
+  };
+
   if (loading) {
     return (
       <Card>
         <CardHeader className="pb-2">
-          <CardTitle className="text-sm font-medium">Подписка</CardTitle>
+          <CardTitle className="text-sm font-medium">{t("title")}</CardTitle>
         </CardHeader>
         <CardContent>
           <Skeleton className="h-16 w-full" />
@@ -69,23 +71,23 @@ export function SubscriptionCard() {
     return (
       <Card>
         <CardHeader className="pb-2">
-          <CardTitle className="text-sm font-medium">Подписка</CardTitle>
+          <CardTitle className="text-sm font-medium">{t("title")}</CardTitle>
         </CardHeader>
         <CardContent>
           <p className="text-sm text-muted-foreground">
-            Не удалось загрузить данные подписки.
+            {t("loadFailed")}
           </p>
         </CardContent>
       </Card>
     );
   }
 
-  const planLabel = PLAN_LABELS[features.plan] ?? features.plan;
+  const planLabel = planLabels[features.plan] ?? features.plan;
 
   return (
     <Card>
       <CardHeader className="pb-2">
-        <CardTitle className="text-sm font-medium">Подписка</CardTitle>
+        <CardTitle className="text-sm font-medium">{t("title")}</CardTitle>
       </CardHeader>
       <CardContent className="space-y-2">
         <div className="flex flex-wrap items-center gap-2">
@@ -94,19 +96,21 @@ export function SubscriptionCard() {
             {features.planType === "text_audio" ? (
               <>
                 <MicIcon className="inline h-3 w-3 mr-1 -mt-0.5" aria-hidden />
-                Текст + Аудио
+                {t("planTypeTextAudio")}
               </>
             ) : (
-              "Текст"
+              t("planTypeText")
             )}
           </span>
         </div>
         <ul className="text-xs text-muted-foreground space-y-0.5">
-          <li>Макс. проектов: {features.maxProjects}</li>
+          <li>{t("maxProjectsLabel", { count: features.maxProjects })}</li>
           {features.audioLimits && (
             <li>
-              Аудио: {features.audioLimits.usedMinutes} /{" "}
-              {features.audioLimits.limitMinutes} мин
+              {t("audioUsed", {
+                used: features.audioLimits.usedMinutes,
+                limit: features.audioLimits.limitMinutes,
+              })}
             </li>
           )}
         </ul>
@@ -114,7 +118,7 @@ export function SubscriptionCard() {
           href="/settings"
           className="text-xs text-primary hover:underline"
         >
-          Настройки подписки →
+          {t("settingsLink")}
         </Link>
       </CardContent>
     </Card>

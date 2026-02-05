@@ -1,36 +1,42 @@
-import { Metadata } from "next";
+import type { Metadata } from "next";
 import Link from "next/link";
+import { getTranslations } from "next-intl/server";
 import { SignupForm } from "@/components/auth/signup-form";
 
-export const metadata: Metadata = {
-  title: "Sign Up",
-  description: "Create a new account",
-};
+export async function generateMetadata(): Promise<Metadata> {
+  const t = await getTranslations("auth");
+  return {
+    title: t("signUpTitle"),
+    description: t("signUpDescription"),
+  };
+}
 
 /**
- * Sign up page
- * Redirect after sign-up is handled client-side in SignupForm
+ * Sign up page.
+ * Redirect after sign-up is handled client-side in SignupForm.
  */
-export default function SignupPage() {
+export default async function SignupPage() {
+  const t = await getTranslations("auth");
+  const tCommon = await getTranslations("common");
   return (
     <div className="container flex h-screen w-screen flex-col items-center justify-center">
       <div className="mx-auto flex w-full flex-col justify-center space-y-6 sm:w-[350px]">
         <div className="flex flex-col space-y-2 text-center">
           <h1 className="text-2xl font-semibold tracking-tight">
-            Create an account
+            {t("createAccount")}
           </h1>
           <p className="text-sm text-muted-foreground">
-            Get started with HelixCast — from one source, infinite reach
+            {t("getStarted", { appName: tCommon("appName") })}
           </p>
         </div>
         <SignupForm />
         <p className="px-8 text-center text-sm text-muted-foreground">
-          Already have an account?{" "}
+          {t("haveAccount")}{" "}
           <Link
             href="/login"
             className="hover:text-primary underline underline-offset-4"
           >
-            Sign in
+            {t("signInLink")}
           </Link>
         </p>
       </div>

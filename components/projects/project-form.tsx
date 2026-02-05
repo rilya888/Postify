@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
+import { useTranslations } from "next-intl";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
@@ -53,6 +54,7 @@ export function ProjectForm({
   onSubmitSuccess 
 }: ProjectFormProps) {
   const router = useRouter();
+  const t = useTranslations("documents");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [saveProgress, setSaveProgress] = useState(0);
   const [isUploadingFile, setIsUploadingFile] = useState(false);
@@ -150,7 +152,7 @@ export function ProjectForm({
     const file = event.target.files?.[0];
     if (!file) return;
     if (file.size > MAX_DOCUMENT_FILE_SIZE_BYTES) {
-      toast.error("Файл слишком большой");
+      toast.error(t("fileTooLarge"));
       event.target.value = "";
       return;
     }
@@ -187,16 +189,16 @@ export function ProjectForm({
       });
       const data = (await res.json()) as ParseDocumentResponse & { error?: string; details?: string };
       if (!res.ok) {
-        toast.error(data.details ?? data.error ?? "Не удалось загрузить файл");
+        toast.error(data.details ?? data.error ?? t("loadFailed"));
         event.target.value = "";
         return;
       }
       form.setValue("sourceContent", data.text);
       if (data.truncated) {
-        toast.warning("Текст обрезан до 10 000 символов");
+        toast.warning(t("textTruncated"));
       }
     } catch {
-      toast.error("Не удалось загрузить файл");
+      toast.error(t("loadFailed"));
     } finally {
       setIsUploadingFile(false);
       event.target.value = "";
@@ -253,7 +255,7 @@ export function ProjectForm({
                   ) : (
                     <Upload className="mr-2 h-4 w-4" />
                   )}
-                  Загрузить файл (.txt, .pdf, .doc, .docx, .rtf)
+                  {t("uploadFile")}
                 </Button>
               </div>
               <FormControl>

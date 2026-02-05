@@ -3,24 +3,25 @@
 import { useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { useTranslations } from "next-intl";
 import { Plus, Home, FileText, Settings, Menu, Dna } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
-import { APP_NAME } from "@/lib/constants/app";
 
 /**
- * Sidebar navigation for dashboard
- * Provides quick access to main sections
+ * Sidebar navigation for dashboard.
+ * Provides quick access to main sections.
  */
 export function Sidebar() {
   const pathname = usePathname();
   const [isSheetOpen, setIsSheetOpen] = useState(false);
+  const t = useTranslations("common");
 
   const navItems = [
-    { href: "/dashboard", label: "Dashboard", icon: Home },
-    { href: "/projects", label: "Projects", icon: FileText },
-    { href: "/settings", label: "Settings", icon: Settings },
+    { href: "/dashboard", label: t("dashboard"), icon: Home },
+    { href: "/projects", label: t("projects"), icon: FileText },
+    { href: "/settings", label: t("settings"), icon: Settings },
   ];
 
   const brandBlock = (
@@ -29,7 +30,7 @@ export function Sidebar() {
       className="mb-4 flex items-center gap-2 text-sm font-semibold text-foreground hover:text-primary transition-colors"
     >
       <Dna className="h-4 w-4 text-primary" aria-hidden />
-      {APP_NAME}
+      {t("appName")}
     </Link>
   );
 
@@ -76,7 +77,7 @@ export function Sidebar() {
           <Button asChild className="mb-4" onClick={() => setIsSheetOpen(false)}>
             <Link href="/projects/new">
               <Plus className="mr-2 h-4 w-4" />
-              New Project
+              {t("newProject")}
             </Link>
           </Button>
           

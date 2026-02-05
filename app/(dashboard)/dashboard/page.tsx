@@ -1,6 +1,7 @@
-import { Metadata } from "next";
+import type { Metadata } from "next";
 import { auth } from "@/lib/auth/config";
 import { redirect } from "next/navigation";
+import { getTranslations } from "next-intl/server";
 import { prisma } from "@/lib/db/prisma";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -9,22 +10,25 @@ import { DashboardActions } from "@/components/dashboard/dashboard-actions";
 import { SubscriptionCard } from "@/components/dashboard/subscription-card";
 import { PlanBadge } from "@/components/subscription/plan-badge";
 
-export const metadata: Metadata = {
-  title: "Dashboard",
-  description: "Your content repurposing dashboard",
-};
+export async function generateMetadata(): Promise<Metadata> {
+  const t = await getTranslations("dashboard");
+  return {
+    title: t("metadataTitle"),
+    description: t("metadataDescription"),
+  };
+}
 
 /**
- * Dashboard page showing user statistics and recent activity
+ * Dashboard page showing user statistics and recent activity.
  */
 export default async function DashboardPage() {
   const session = await auth();
+  const t = await getTranslations("dashboard");
 
   if (!session) {
     redirect("/login");
   }
 
-  // Fetch user stats
   const [projectsCount, recentProjects] = await Promise.all([
     prisma.project.count({
       where: { userId: session.user.id },
@@ -47,8 +51,8 @@ export default async function DashboardPage() {
     <div className="space-y-6">
       <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
         <div>
-          <h1 className="text-3xl font-bold">Dashboard</h1>
-          <p className="text-sm text-muted-foreground mt-1">Your content DNA, one place.</p>
+          <h1 className="text-3xl font-bold">{t("title")}</h1>
+          <p className="text-sm text-muted-foreground mt-1">{t("description")}</p>
         </div>
         <div className="flex items-center gap-3">
           <PlanBadge />
@@ -59,7 +63,7 @@ export default async function DashboardPage() {
       <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-4">
         <Card>
           <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium">Total Projects</CardTitle>
+            <CardTitle className="text-sm font-medium">{t("totalProjects")}</CardTitle>
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">{projectsCount}</div>
@@ -68,7 +72,7 @@ export default async function DashboardPage() {
         
         <Card>
           <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium">Active Projects</CardTitle>
+            <CardTitle className="text-sm font-medium">{t("activeProjects")}</CardTitle>
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">
@@ -79,7 +83,7 @@ export default async function DashboardPage() {
         
         <Card>
           <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium">Generated Outputs</CardTitle>
+            <CardTitle className="text-sm font-medium">{t("generatedOutputs")}</CardTitle>
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">
@@ -93,7 +97,7 @@ export default async function DashboardPage() {
 
       <Card>
         <CardHeader>
-          <CardTitle>Recent Projects</CardTitle>
+          <CardTitle>{t("recentProjects")}</CardTitle>
         </CardHeader>
         <CardContent>
           <div className="space-y-4">
@@ -120,7 +124,7 @@ export default async function DashboardPage() {
                 </Link>
               ))
             ) : (
-              <p className="text-muted-foreground">No projects yet. Create your first project!</p>
+              <p className="text-muted-foreground">{t("noProjectsYet")}</p>
             )}
           </div>
         </CardContent>

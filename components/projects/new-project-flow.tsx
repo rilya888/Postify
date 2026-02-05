@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
+import { useTranslations } from "next-intl";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
@@ -39,6 +40,9 @@ type PlanFeatures = {
 
 export function NewProjectFlow() {
   const router = useRouter();
+  const t = useTranslations("subscription");
+  const tGen = useTranslations("generatePage");
+  const tDocs = useTranslations("documents");
   const [sourceType, setSourceType] = useState<"text" | "audio">("text");
   const [planFeatures, setPlanFeatures] = useState<PlanFeatures | null>(null);
   const [audioStep, setAudioStep] = useState<"idle" | "creating" | "transcribing">("idle");
@@ -155,16 +159,16 @@ export function NewProjectFlow() {
         <TabsList className="grid w-full max-w-md grid-cols-2">
           <TabsTrigger value="text" className="flex items-center gap-2">
             <FileText className="h-4 w-4" />
-            Текст
+            {t("planTypeText")}
           </TabsTrigger>
           <TabsTrigger
             value="audio"
             disabled={!canUseAudio}
             className="flex items-center gap-2"
-            title={!canUseAudio ? "Доступно в плане Текст + Аудио" : undefined}
+            title={!canUseAudio ? tGen("audioPlanTooltip") : undefined}
           >
             <Mic className="h-4 w-4" />
-            Аудио
+            {tGen("audioTab")}
           </TabsTrigger>
         </TabsList>
 
@@ -175,7 +179,7 @@ export function NewProjectFlow() {
         <TabsContent value="audio" className="mt-6">
           {!canUseAudio ? (
             <p className="text-sm text-muted-foreground">
-              Загрузка аудио доступна в плане «Текст + Аудио». Выберите «Текст» или обновите подписку.
+              {tGen("audioPlanDescription")}
             </p>
           ) : (
             <Form {...audioForm}>
@@ -250,28 +254,30 @@ export function NewProjectFlow() {
                         {audioStep === "creating" ? (
                           <>
                             <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                            Создание проекта…
+                            {tGen("creatingProject")}
                           </>
                         ) : audioStep === "transcribing" ? (
                           <>
                             <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                            Транскрипция аудио…
+                            {tGen("transcribingAudio")}
                           </>
                         ) : (
                           <>
                             <UploadIcon className="mr-2 h-4 w-4" />
-                            Выбрать файл
+                            {tDocs("selectFile")}
                           </>
                         )}
                       </Button>
                       {planFeatures?.audioLimits && (
                         <p className="text-xs text-muted-foreground">
-                          Использовано: {planFeatures.audioLimits.usedMinutes} /{" "}
-                          {planFeatures.audioLimits.limitMinutes} мин в периоде.
+                          {t("audioUsedShort", {
+                            used: planFeatures.audioLimits.usedMinutes,
+                            limit: planFeatures.audioLimits.limitMinutes,
+                          })}
                         </p>
                       )}
                       <p className="text-xs text-muted-foreground">
-                        MP3, M4A, WAV, WebM, OGG или FLAC.
+                        {tDocs("audioFormats")}
                       </p>
                     </div>
                   </FormControl>

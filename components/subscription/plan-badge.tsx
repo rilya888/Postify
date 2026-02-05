@@ -1,15 +1,9 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import { useTranslations } from "next-intl";
 import { MicIcon } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
-
-const PLAN_LABELS: Record<string, string> = {
-  trial: "Пробный",
-  free: "Free",
-  pro: "Pro",
-  enterprise: "Enterprise",
-};
 
 type PlanFeatures = {
   plan: string;
@@ -19,10 +13,11 @@ type PlanFeatures = {
 };
 
 /**
- * Reusable plan badge: shows plan name (Free/Pro/Enterprise) and type (Текст / Текст + Аудио) from /api/subscription/features.
+ * Reusable plan badge: shows plan name and type from /api/subscription/features.
  * Handles loading (skeleton) and error (no badge); aria-label for accessibility.
  */
 export function PlanBadge() {
+  const t = useTranslations("subscription");
   const [features, setFeatures] = useState<PlanFeatures | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(false);
@@ -68,10 +63,16 @@ export function PlanBadge() {
     return null;
   }
 
-  const planLabel = PLAN_LABELS[features.plan] ?? features.plan;
+  const planLabels: Record<string, string> = {
+    trial: t("planTrial"),
+    free: t("planFree"),
+    pro: t("planPro"),
+    enterprise: t("planEnterprise"),
+  };
+  const planLabel = planLabels[features.plan] ?? features.plan;
   const typeLabel =
-    features.planType === "text_audio" ? "Текст + Аудио" : "Текст";
-  const label = `Подписка: ${planLabel}, тариф: ${typeLabel}`;
+    features.planType === "text_audio" ? t("planTypeTextAudio") : t("planTypeText");
+  const label = t("subscriptionLabel", { plan: planLabel, type: typeLabel });
 
   return (
     <span
@@ -84,10 +85,10 @@ export function PlanBadge() {
       {features.planType === "text_audio" ? (
         <>
           <MicIcon className="inline h-4 w-4 mr-1.5 -mt-0.5" aria-hidden />
-          Текст + Аудио
+          {t("planTypeTextAudio")}
         </>
       ) : (
-        "Текст"
+        t("planTypeText")
       )}
     </span>
   );
