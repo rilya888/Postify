@@ -5,6 +5,7 @@ import { MicIcon } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
 
 const PLAN_LABELS: Record<string, string> = {
+  trial: "Пробный",
   free: "Free",
   pro: "Pro",
   enterprise: "Enterprise",

@@ -1,26 +1,31 @@
 import { prisma } from "@/lib/db/prisma";
 import {
   PLAN_LIMITS,
-  getPlanTypeFromSubscription,
+  getEffectivePlan,
+  getPlanType,
   getAudioLimits,
 } from "@/lib/constants/plans";
 import type { Plan } from "@/lib/constants/plans";
 import { Logger } from "@/lib/utils/logger";
 import { addMonths } from "@/lib/utils/date";
 
+const TRIAL_DURATION_MS = 3 * 24 * 60 * 60 * 1000;
+
 /**
- * Quota service for checking user limits (Stage 3: plan type text / text_audio).
+ * Quota service: uses effective plan (trial from User.createdAt, or subscription plan).
  */
 export async function checkProjectQuota(userId: string) {
   Logger.info("Checking project quota", { userId });
 
-  const subscription = await prisma.subscription.findUnique({
-    where: { userId },
-  });
+  const [user, subscription] = await Promise.all([
+    prisma.user.findUnique({ where: { id: userId }, select: { createdAt: true } }),
+    prisma.subscription.findUnique({ where: { userId } }),
+  ]);
 
-  const plan = (subscription?.plan || "free") as Plan;
-  const limit = PLAN_LIMITS[plan].maxProjects;
-  const planType = getPlanTypeFromSubscription(subscription);
+  const effectivePlan = getEffectivePlan(subscription, user?.createdAt ?? null);
+  const limits = PLAN_LIMITS[effectivePlan];
+  const limit = limits.maxProjects;
+  const planType = getPlanType(effectivePlan);
 
   const projectCount = await prisma.project.count({
     where: { userId },
@@ -30,7 +35,7 @@ export async function checkProjectQuota(userId: string) {
     canCreate: projectCount < limit,
     current: projectCount,
     limit,
-    plan,
+    plan: effectivePlan,
     planType,
     canUseAudio: planType === "text_audio",
   };
@@ -63,9 +68,8 @@ export async function resetAudioQuotaIfPeriodEnded(userId: string): Promise<void
 }
 
 /**
- * Check audio transcription quota for text_audio plan (Stage 3/4).
- * Returns used minutes this period and limit; caller should reject if adding duration would exceed limit.
- * Resets quota when period has ended (audioMinutesResetAt in the past).
+ * Check audio transcription quota for trial/enterprise (text_audio) plans.
+ * For trial without Subscription: returns allowed with limit from PLAN_LIMITS.trial, used 0.
  */
 export async function checkAudioQuota(userId: string): Promise<{
   allowed: boolean;
@@ -74,13 +78,14 @@ export async function checkAudioQuota(userId: string): Promise<{
   limitMinutes: number | null;
   canAddMinutes: (additionalMinutes: number) => boolean;
 }> {
-  const subscription = await prisma.subscription.findUnique({
-    where: { userId },
-  });
+  const [user, subscription] = await Promise.all([
+    prisma.user.findUnique({ where: { id: userId }, select: { createdAt: true } }),
+    prisma.subscription.findUnique({ where: { userId } }),
+  ]);
 
-  const planType = getPlanTypeFromSubscription(subscription);
-  const plan = (subscription?.plan || "free") as Plan;
-  const audioLimits = getAudioLimits(plan);
+  const effectivePlan = getEffectivePlan(subscription, user?.createdAt ?? null);
+  const planType = getPlanType(effectivePlan);
+  const audioLimits = getAudioLimits(effectivePlan);
 
   if (planType === "text" || !audioLimits) {
     return {
@@ -89,6 +94,17 @@ export async function checkAudioQuota(userId: string): Promise<{
       usedMinutes: 0,
       limitMinutes: null,
       canAddMinutes: () => false,
+    };
+  }
+
+  // Trial without subscription: allow with plan limits, used = 0
+  if (effectivePlan === "trial" && !subscription) {
+    return {
+      allowed: true,
+      planType,
+      usedMinutes: 0,
+      limitMinutes: audioLimits.audioMinutesPerMonth,
+      canAddMinutes: (additionalMinutes: number) => additionalMinutes <= audioLimits.audioMinutesPerMonth,
     };
   }
 
@@ -110,30 +126,71 @@ export async function checkAudioQuota(userId: string): Promise<{
 }
 
 /**
- * Increment audio minutes used this period after successful transcription (Stage 4).
- * Resets quota when period has ended, then increments.
+ * Ensure subscription exists for trial user so we can track audio usage.
+ * Call before incrementing when effective plan is trial and subscription is null.
+ */
+async function ensureTrialSubscriptionForAudio(userId: string, userCreatedAt: Date): Promise<void> {
+  const trialEnd = new Date(userCreatedAt.getTime() + TRIAL_DURATION_MS);
+  const limits = PLAN_LIMITS.trial;
+  await prisma.subscription.upsert({
+    where: { userId: userId },
+    create: {
+      userId,
+      plan: "free",
+      planType: "TEXT",
+      status: "active",
+      audioMinutesLimit: limits.audioMinutesPerMonth!,
+      audioMinutesResetAt: trialEnd,
+      audioMinutesUsedThisPeriod: 0,
+    },
+    update: {},
+  });
+}
+
+/**
+ * Increment audio minutes used this period after successful transcription.
+ * For trial users without subscription, creates subscription with trial limits first.
  */
 export async function incrementAudioMinutesUsed(
   userId: string,
   minutesUsed: number
 ): Promise<void> {
+  const [user, subscription] = await Promise.all([
+    prisma.user.findUnique({ where: { id: userId }, select: { createdAt: true } }),
+    prisma.subscription.findUnique({ where: { userId } }),
+  ]);
+
+  const effectivePlan = getEffectivePlan(subscription, user?.createdAt ?? null);
+  const audioLimits = getAudioLimits(effectivePlan);
+
+  if (!audioLimits) return;
+
+  // Trial without subscription: create one with trial limits, then set used
+  if (effectivePlan === "trial" && !subscription && user?.createdAt) {
+    await ensureTrialSubscriptionForAudio(userId, user.createdAt);
+    await prisma.subscription.update({
+      where: { userId },
+      data: {
+        audioMinutesUsedThisPeriod: minutesUsed,
+        updatedAt: new Date(),
+      },
+    });
+    return;
+  }
+
   await resetAudioQuotaIfPeriodEnded(userId);
 
-  const subscription = await prisma.subscription.findUnique({
+  const subAfterReset = await prisma.subscription.findUnique({
     where: { userId },
   });
 
-  if (!subscription || subscription.audioMinutesLimit == null) {
-    return;
-  }
+  if (!subAfterReset || subAfterReset.audioMinutesLimit == null) return;
 
   const now = new Date();
-  const resetAt = subscription.audioMinutesResetAt ?? subscription.currentPeriodEnd;
-  if (resetAt != null && now > resetAt) {
-    return;
-  }
+  const resetAt = subAfterReset.audioMinutesResetAt ?? subAfterReset.currentPeriodEnd;
+  if (resetAt != null && now > resetAt) return;
 
-  const used = subscription.audioMinutesUsedThisPeriod ?? 0;
+  const used = subAfterReset.audioMinutesUsedThisPeriod ?? 0;
 
   await prisma.subscription.update({
     where: { userId },

@@ -2,13 +2,15 @@ import { NextResponse } from "next/server";
 import { auth } from "@/lib/auth/config";
 import { checkAudioQuota } from "@/lib/services/quota";
 import { prisma } from "@/lib/db/prisma";
-import { PLAN_LIMITS, getAudioLimits } from "@/lib/constants/plans";
+import { PLAN_LIMITS, getEffectivePlan, getAudioLimits } from "@/lib/constants/plans";
 import type { Plan } from "@/lib/constants/plans";
+
+const TRIAL_DURATION_MS = 3 * 24 * 60 * 60 * 1000;
 
 /**
  * GET /api/subscription/features
- * Returns plan features for the current user (Stage 3: text vs text_audio).
- * UI uses this to show PlanBadge, SubscriptionBlock, and "Upload audio" on generate page.
+ * Returns plan features for the current user (effective plan: trial / free / pro / enterprise).
+ * UI uses this for PlanBadge, SubscriptionBlock, and "Upload audio" on generate page.
  */
 export async function GET() {
   const session = await auth();
@@ -16,14 +18,25 @@ export async function GET() {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
-  const subscription = await prisma.subscription.findUnique({
-    where: { userId: session.user.id },
-  });
-  const rawPlan = subscription?.plan ?? "free";
-  const plan = rawPlan in PLAN_LIMITS ? (rawPlan as Plan) : "free";
+  const [user, subscription] = await Promise.all([
+    prisma.user.findUnique({
+      where: { id: session.user.id },
+      select: { createdAt: true },
+    }),
+    prisma.subscription.findUnique({
+      where: { userId: session.user.id },
+    }),
+  ]);
+
+  const plan = getEffectivePlan(subscription, user?.createdAt ?? null);
   const limits = PLAN_LIMITS[plan];
   const audio = await checkAudioQuota(session.user.id);
   const audioLimitsFromPlan = getAudioLimits(plan);
+
+  const trialEndAt =
+    plan === "trial" && user?.createdAt
+      ? new Date(new Date(user.createdAt).getTime() + TRIAL_DURATION_MS).toISOString()
+      : null;
 
   return NextResponse.json({
     plan,
@@ -36,5 +49,7 @@ export async function GET() {
         ? { usedMinutes: audio.usedMinutes, limitMinutes: audio.limitMinutes }
         : null,
     maxAudioFileSizeMb: audioLimitsFromPlan?.maxAudioFileSizeMb ?? null,
+    isTrial: plan === "trial",
+    trialEndAt,
   });
 }

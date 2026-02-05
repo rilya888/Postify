@@ -1,5 +1,5 @@
 /**
- * Plan type for feature gating: text-only vs text + audio (Stage 3).
+ * Plan type for feature gating: text-only vs text + audio.
  * Used in UI and logic (lowercase).
  */
 export type PlanType = "text" | "text_audio";
@@ -7,7 +7,54 @@ export type PlanType = "text" | "text_audio";
 /** PlanType value as stored in DB (Subscription.planType enum) */
 export type PlanTypeDB = "TEXT" | "TEXT_AUDIO" | "TEXT_AUDIO_VIDEO" | "CUSTOM";
 
-/** Subscription plan identifier (DB value) */
+/**
+ * Plan limits for different subscription tiers.
+ * Keys: trial (computed, not stored), free, pro, enterprise.
+ */
+export const PLAN_LIMITS = {
+  /** Trial: 3 days from registration, 3 projects, text + audio */
+  trial: {
+    maxProjects: 3,
+    maxOutputsPerProject: 5,
+    maxCharactersPerContent: 5000,
+    maxVariationsPerGeneration: 5,
+    planType: "text_audio" as PlanType,
+    audioMinutesPerMonth: 60,
+    maxAudioFileSizeMb: 50,
+  },
+  /** Free: after trial or no trial; text only, no new projects */
+  free: {
+    maxProjects: 0,
+    maxOutputsPerProject: 1,
+    maxCharactersPerContent: 10000,
+    maxVariationsPerGeneration: 3,
+    planType: "text" as PlanType,
+    audioMinutesPerMonth: null as number | null,
+    maxAudioFileSizeMb: null as number | null,
+  },
+  /** Pro: paid, text only, no audio */
+  pro: {
+    maxProjects: 50,
+    maxOutputsPerProject: 5,
+    maxCharactersPerContent: 5000,
+    maxVariationsPerGeneration: 5,
+    planType: "text" as PlanType,
+    audioMinutesPerMonth: null as number | null,
+    maxAudioFileSizeMb: null as number | null,
+  },
+  /** Enterprise: paid, text + audio, 2x projects and per-project limits vs Pro */
+  enterprise: {
+    maxProjects: 100,
+    maxOutputsPerProject: 10,
+    maxCharactersPerContent: 10000,
+    maxVariationsPerGeneration: 10,
+    planType: "text_audio" as PlanType,
+    audioMinutesPerMonth: 600,
+    maxAudioFileSizeMb: 500,
+  },
+} as const;
+
+/** Subscription plan identifier (effective or DB value) */
 export type Plan = keyof typeof PLAN_LIMITS;
 
 /** Map DB planType to UI/logic planType */
@@ -17,6 +64,14 @@ export const PLAN_TYPE_FROM_DB: Record<PlanTypeDB, PlanType> = {
   TEXT_AUDIO_VIDEO: "text_audio",
   CUSTOM: "text_audio",
 };
+
+/** Valid plan values stored in DB (Subscription.plan) */
+const DB_PLANS = ["free", "pro", "enterprise"] as const;
+export type PlanDB = (typeof DB_PLANS)[number];
+
+export function isPlanDB(plan: string | null | undefined): plan is PlanDB {
+  return plan != null && DB_PLANS.includes(plan as PlanDB);
+}
 
 /** Get planType for checks from subscription (prefer DB planType, fallback to plan) */
 export function getPlanTypeFromSubscription(
@@ -29,41 +84,30 @@ export function getPlanTypeFromSubscription(
   return getPlanType(plan);
 }
 
+/** Trial duration in milliseconds (3 days) */
+const TRIAL_DURATION_MS = 3 * 24 * 60 * 60 * 1000;
+
 /**
- * Plan limits for different subscription tiers.
- * For text_audio plans (pro, enterprise): audio limits apply when upload/transcription is used (Stage 4).
+ * Resolve effective plan from subscription and user registration date.
+ * Trial: no paid plan and user created within last 3 days.
+ * DB stores only "free" | "pro" | "enterprise"; "trial" is computed.
  */
-export const PLAN_LIMITS = {
-  free: {
-    maxProjects: 3,
-    maxOutputsPerProject: 1,
-    maxCharactersPerContent: 10000,
-    maxVariationsPerGeneration: 3,
-    /** Plan type: text = no audio upload; text_audio = allow audio + transcription */
-    planType: "text" as PlanType,
-    /** Not applicable for text-only */
-    audioMinutesPerMonth: null as number | null,
-    maxAudioFileSizeMb: null as number | null,
-  },
-  pro: {
-    maxProjects: 50,
-    maxOutputsPerProject: 5,
-    maxCharactersPerContent: 5000,
-    maxVariationsPerGeneration: 5,
-    planType: "text_audio" as PlanType,
-    audioMinutesPerMonth: 120,
-    maxAudioFileSizeMb: 100,
-  },
-  enterprise: {
-    maxProjects: 500,
-    maxOutputsPerProject: 10,
-    maxCharactersPerContent: 10000,
-    maxVariationsPerGeneration: 10,
-    planType: "text_audio" as PlanType,
-    audioMinutesPerMonth: 600,
-    maxAudioFileSizeMb: 500,
-  },
-} as const;
+export function getEffectivePlan(
+  subscription: { plan?: string | null } | null,
+  userCreatedAt: Date | string | null
+): Plan {
+  const plan = subscription?.plan;
+  if (plan === "pro" || plan === "enterprise") {
+    return plan;
+  }
+  if (userCreatedAt != null) {
+    const createdMs = typeof userCreatedAt === "string" ? new Date(userCreatedAt).getTime() : userCreatedAt.getTime();
+    if (createdMs + TRIAL_DURATION_MS > Date.now()) {
+      return "trial";
+    }
+  }
+  return "free";
+}
 
 /** Map subscription plan to plan type (for feature checks) */
 export function getPlanType(plan: Plan): PlanType {

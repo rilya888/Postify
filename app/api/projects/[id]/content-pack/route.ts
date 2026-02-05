@@ -2,7 +2,7 @@ import { auth } from "@/lib/auth/config";
 import { prisma } from "@/lib/db/prisma";
 import { getOrCreateContentPack } from "@/lib/services/content-pack";
 import { getActiveBrandVoice } from "@/lib/services/brand-voice";
-import { PLAN_LIMITS } from "@/lib/constants/plans";
+import { PLAN_LIMITS, getEffectivePlan } from "@/lib/constants/plans";
 import type { Plan } from "@/lib/constants/plans";
 import { checkContentPackRateLimit } from "@/lib/utils/rate-limit";
 
@@ -30,10 +30,11 @@ export async function POST(
       return Response.json({ error: "Project not found or access denied" }, { status: 404 });
     }
 
-    const subscription = await prisma.subscription.findUnique({
-      where: { userId },
-    });
-    const plan = (subscription?.plan ?? "free") as Plan;
+    const [user, subscription] = await Promise.all([
+      prisma.user.findUnique({ where: { id: userId }, select: { createdAt: true } }),
+      prisma.subscription.findUnique({ where: { userId } }),
+    ]);
+    const plan = getEffectivePlan(subscription, user?.createdAt ?? null);
     const maxChars = PLAN_LIMITS[plan]?.maxCharactersPerContent ?? PLAN_LIMITS.free.maxCharactersPerContent;
     if (project.sourceContent.length > maxChars) {
       return Response.json(

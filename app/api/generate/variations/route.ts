@@ -4,7 +4,8 @@ import { generateContentVariations } from "@/lib/services/ai";
 import { prisma } from "@/lib/db/prisma";
 import { Logger } from "@/lib/utils/logger";
 import { checkGenerateRateLimit } from "@/lib/utils/rate-limit";
-import { PLAN_LIMITS } from "@/lib/constants/plans";
+import { PLAN_LIMITS, getEffectivePlan } from "@/lib/constants/plans";
+import type { Plan } from "@/lib/constants/plans";
 import { getAllPlatformIds } from "@/lib/constants/platforms";
 
 export async function POST(request: NextRequest) {
@@ -66,10 +67,11 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const subscription = await prisma.subscription.findUnique({
-      where: { userId },
-    });
-    const plan = (subscription?.plan ?? "free") as keyof typeof PLAN_LIMITS;
+    const [user, subscription] = await Promise.all([
+      prisma.user.findUnique({ where: { id: userId }, select: { createdAt: true } }),
+      prisma.subscription.findUnique({ where: { userId } }),
+    ]);
+    const plan = getEffectivePlan(subscription, user?.createdAt ?? null) as Plan;
     const maxChars = PLAN_LIMITS[plan]?.maxCharactersPerContent ?? PLAN_LIMITS.free.maxCharactersPerContent;
     if (sourceContent.length > maxChars) {
       return new Response(

@@ -2,7 +2,7 @@ import { NextRequest } from "next/server";
 import { auth } from "@/lib/auth/config";
 import { prisma } from "@/lib/db/prisma";
 import { Logger } from "@/lib/utils/logger";
-import { canUseAudio, getAudioLimits } from "@/lib/constants/plans";
+import { getEffectivePlan, canUseAudio, getAudioLimits } from "@/lib/constants/plans";
 import type { Plan } from "@/lib/constants/plans";
 import { checkAudioQuota, incrementAudioMinutesUsed } from "@/lib/services/quota";
 import { checkTranscribeRateLimit } from "@/lib/utils/rate-limit";
@@ -50,15 +50,16 @@ export async function POST(
       return Response.json({ error: "Project not found or access denied" }, { status: 404 });
     }
 
-    const subscription = await prisma.subscription.findUnique({
-      where: { userId },
-    });
-    const plan = (subscription?.plan ?? "free") as Plan;
+    const [user, subscription] = await Promise.all([
+      prisma.user.findUnique({ where: { id: userId }, select: { createdAt: true } }),
+      prisma.subscription.findUnique({ where: { userId } }),
+    ]);
+    const plan = getEffectivePlan(subscription, user?.createdAt ?? null);
     if (!canUseAudio(plan)) {
       return Response.json(
         {
           error: "Audio upload not available",
-          details: "Your plan does not include audio. Upgrade to Text + Audio plan.",
+          details: "Your plan does not include audio. Upgrade to Enterprise.",
         },
         { status: 400 }
       );

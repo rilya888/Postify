@@ -4,6 +4,8 @@ import { prisma } from "@/lib/db/prisma";
 import { createErrorResponse, createSuccessResponse } from "@/lib/utils/api-error";
 import { PlanType } from "@prisma/client";
 import { z } from "zod";
+import { PLAN_LIMITS, getAudioLimits } from "@/lib/constants/plans";
+import { addMonths } from "@/lib/utils/date";
 
 const patchBodySchema = z.object({
   plan: z.enum(["free", "pro", "enterprise"]).optional(),
@@ -112,7 +114,16 @@ export async function PATCH(
   const subUpdates: Record<string, unknown> = {};
   if (plan !== undefined) {
     subUpdates.plan = plan;
-    subUpdates.planType = plan === "free" ? PlanType.TEXT : PlanType.TEXT_AUDIO;
+    subUpdates.planType =
+      plan === "pro" ? PlanType.TEXT : plan === "enterprise" ? PlanType.TEXT_AUDIO : PlanType.TEXT;
+    const audioLimits = plan === "enterprise" ? getAudioLimits("enterprise") : null;
+    if (audioLimits) {
+      subUpdates.audioMinutesLimit = audioLimits.audioMinutesPerMonth;
+      subUpdates.audioMinutesResetAt = addMonths(new Date(), 1);
+    } else if (plan === "free" || plan === "pro") {
+      subUpdates.audioMinutesLimit = null;
+      subUpdates.audioMinutesResetAt = null;
+    }
   }
   if (subscriptionStatus !== undefined) subUpdates.status = subscriptionStatus;
   if (currentPeriodEnd !== undefined) subUpdates.currentPeriodEnd = currentPeriodEnd === null ? null : new Date(currentPeriodEnd);
@@ -129,6 +140,8 @@ export async function PATCH(
           planType?: PlanType;
           status?: string;
           audioMinutesUsedThisPeriod?: number;
+          audioMinutesLimit?: number | null;
+          audioMinutesResetAt?: Date | null;
           currentPeriodEnd?: Date | null;
         }),
       },
@@ -137,6 +150,8 @@ export async function PATCH(
         planType?: PlanType;
         status?: string;
         audioMinutesUsedThisPeriod?: number;
+        audioMinutesLimit?: number | null;
+        audioMinutesResetAt?: Date | null;
         currentPeriodEnd?: Date | null;
       },
     });

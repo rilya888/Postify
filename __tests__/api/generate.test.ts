@@ -8,6 +8,7 @@ const mockAuth = vi.fn();
 const mockGenerateForPlatforms = vi.fn();
 const mockCheckGenerateRateLimit = vi.fn();
 const mockProjectFindUnique = vi.fn();
+const mockUserFindUnique = vi.fn();
 const mockSubscriptionFindUnique = vi.fn();
 
 vi.mock("@/lib/auth/config", () => ({
@@ -24,6 +25,9 @@ vi.mock("@/lib/utils/rate-limit", () => ({
 
 vi.mock("@/lib/db/prisma", () => ({
   prisma: {
+    user: {
+      findUnique: (...args: unknown[]) => mockUserFindUnique(...args),
+    },
     project: {
       findUnique: (...args: unknown[]) => mockProjectFindUnique(...args),
     },
@@ -49,6 +53,7 @@ describe("POST /api/generate", () => {
     vi.clearAllMocks();
     mockAuth.mockResolvedValue({ user: { id: "user-1" } });
     mockCheckGenerateRateLimit.mockReturnValue({ allowed: true });
+    mockUserFindUnique.mockResolvedValue({ createdAt: new Date(Date.now() - 86400000) });
     mockProjectFindUnique.mockResolvedValue({ id: "proj-1", userId: "user-1" });
     mockSubscriptionFindUnique.mockResolvedValue(null);
     mockGenerateForPlatforms.mockResolvedValue({
@@ -146,7 +151,7 @@ describe("POST /api/generate", () => {
       undefined,
       undefined,
       expect.stringMatching(/^[0-9a-f-]{36}$/i),
-      "free"
+      "trial"
     );
     const json = await res.json();
     expect(json.successful).toHaveLength(1);

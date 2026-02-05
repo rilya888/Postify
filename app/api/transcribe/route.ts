@@ -1,7 +1,7 @@
 import { NextRequest } from "next/server";
 import { auth } from "@/lib/auth/config";
 import { prisma } from "@/lib/db/prisma";
-import { canUseAudio, getAudioLimits } from "@/lib/constants/plans";
+import { getEffectivePlan, canUseAudio, getAudioLimits } from "@/lib/constants/plans";
 import type { Plan } from "@/lib/constants/plans";
 import { checkAudioQuota, incrementAudioMinutesUsed } from "@/lib/services/quota";
 import { checkTranscribeRateLimit } from "@/lib/utils/rate-limit";
@@ -35,13 +35,14 @@ export async function POST(request: NextRequest) {
     }
     const userId = session.user.id;
 
-    const subscription = await prisma.subscription.findUnique({
-      where: { userId },
-    });
-    const plan = (subscription?.plan ?? "free") as Plan;
+    const [user, subscription] = await Promise.all([
+      prisma.user.findUnique({ where: { id: userId }, select: { createdAt: true } }),
+      prisma.subscription.findUnique({ where: { userId } }),
+    ]);
+    const plan = getEffectivePlan(subscription, user?.createdAt ?? null);
     if (!canUseAudio(plan)) {
       return Response.json(
-        { error: "Audio not available on your plan. Upgrade to Text + Audio." },
+        { error: "Audio not available on your plan. Upgrade to Enterprise." },
         { status: 400 }
       );
     }

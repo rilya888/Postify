@@ -13,9 +13,12 @@ type Features = {
   maxCharactersPerContent: number;
   audioLimits: { usedMinutes: number; limitMinutes: number } | null;
   maxAudioFileSizeMb: number | null;
+  isTrial?: boolean;
+  trialEndAt?: string | null;
 };
 
 const PLAN_LABELS: Record<string, string> = {
+  trial: "Пробный",
   free: "Free",
   pro: "Pro",
   enterprise: "Enterprise",
@@ -101,6 +104,11 @@ export function SubscriptionBlock() {
               "Текст"
             )}
           </span>
+          {features.isTrial && features.trialEndAt && (
+            <span className="text-sm text-muted-foreground">
+              Триал до {new Date(features.trialEndAt).toLocaleDateString()}
+            </span>
+          )}
         </div>
         <ul className="text-sm text-muted-foreground space-y-1">
           <li>Макс. проектов: {features.maxProjects ?? "—"}</li>

@@ -1,12 +1,16 @@
 /**
- * Rate limits per plan (RECOMMENDATIONS plan).
- * transcribe: points per duration (e.g. 2 per hour for free).
+ * Rate limits per plan (trial, free, pro, enterprise).
+ * transcribe: points per duration (e.g. per hour).
  * contentPack: points per minute.
  */
 
 import type { Plan } from "@/lib/constants/plans";
 
-export const RATE_LIMITS = {
+export const RATE_LIMITS: Record<Plan, { transcribe: { points: number; durationSeconds: number }; contentPack: { points: number; durationSeconds: number } }> = {
+  trial: {
+    transcribe: { points: 10, durationSeconds: 3600 },
+    contentPack: { points: 50, durationSeconds: 60 },
+  },
   free: {
     transcribe: { points: 2, durationSeconds: 3600 },
     contentPack: { points: 10, durationSeconds: 60 },
@@ -19,4 +23,4 @@ export const RATE_LIMITS = {
     transcribe: { points: 50, durationSeconds: 3600 },
     contentPack: { points: 200, durationSeconds: 60 },
   },
-} as const satisfies Record<Plan, { transcribe: { points: number; durationSeconds: number }; contentPack: { points: number; durationSeconds: number } }>;
+};
