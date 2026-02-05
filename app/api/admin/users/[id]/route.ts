@@ -7,6 +7,7 @@ import { z } from "zod";
 const patchBodySchema = z.object({
   plan: z.enum(["free", "pro", "enterprise"]).optional(),
   subscriptionStatus: z.enum(["active", "canceled", "past_due"]).optional(),
+  currentPeriodEnd: z.string().datetime().optional().nullable(), // ISO date or null to clear
   role: z.enum(["user", "admin"]).optional(),
   resetAudioMinutes: z.boolean().optional(),
 });
@@ -72,7 +73,7 @@ export async function PATCH(
     );
   }
 
-  const { plan, subscriptionStatus, role, resetAudioMinutes } = parsed.data;
+  const { plan, subscriptionStatus, currentPeriodEnd, role, resetAudioMinutes } = parsed.data;
 
   // Prevent admin from removing their own admin role or last admin
   if (role === "user" && targetUserId === session.user.id) {
@@ -110,6 +111,7 @@ export async function PATCH(
   const subUpdates: Record<string, unknown> = {};
   if (plan !== undefined) subUpdates.plan = plan;
   if (subscriptionStatus !== undefined) subUpdates.status = subscriptionStatus;
+  if (currentPeriodEnd !== undefined) subUpdates.currentPeriodEnd = currentPeriodEnd === null ? null : new Date(currentPeriodEnd);
   if (resetAudioMinutes === true) subUpdates.audioMinutesUsedThisPeriod = 0;
 
   if (Object.keys(subUpdates).length > 0) {
@@ -117,7 +119,12 @@ export async function PATCH(
       where: { userId: targetUserId },
       create: {
         userId: targetUserId,
-        ...(subUpdates as { plan?: string; status?: string; audioMinutesUsedThisPeriod?: number }),
+        ...(subUpdates as {
+          plan?: string;
+          status?: string;
+          audioMinutesUsedThisPeriod?: number;
+          currentPeriodEnd?: Date | null;
+        }),
       },
       update: subUpdates,
     });

@@ -12,6 +12,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
+import { Input } from "@/components/ui/input";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 
@@ -26,10 +27,17 @@ type Props = {
       status: string;
       audioMinutesUsedThisPeriod: number;
       audioMinutesLimit?: number | null;
+      currentPeriodEnd?: Date | null;
     } | null;
   };
   isSelf: boolean;
 };
+
+function toDateInputValue(d: Date | null | undefined): string {
+  if (!d) return "";
+  const date = typeof d === "string" ? new Date(d) : d;
+  return date.toISOString().slice(0, 10);
+}
 
 const AUDIO_PLANS = ["pro", "enterprise"];
 function hasAudioPlan(sub: Props["user"]["subscription"]) {
@@ -40,18 +48,21 @@ export function AdminUserEdit({ user, isSelf }: Props) {
   const router = useRouter();
   const [plan, setPlan] = useState(user.subscription?.plan ?? "free");
   const [status, setStatus] = useState(user.subscription?.status ?? "active");
+  const [periodEnd, setPeriodEnd] = useState(toDateInputValue(user.subscription?.currentPeriodEnd));
   const [role, setRole] = useState(user.role);
   const [saving, setSaving] = useState(false);
 
   const handleSave = async (resetAudioMinutes = false) => {
     setSaving(true);
     try {
+      const currentPeriodEnd = periodEnd ? `${periodEnd}T23:59:59.000Z` : null;
       const res = await fetch(`/api/admin/users/${user.id}`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           plan,
           subscriptionStatus: status,
+          currentPeriodEnd,
           role: isSelf ? undefined : role,
           resetAudioMinutes,
         }),
@@ -72,7 +83,8 @@ export function AdminUserEdit({ user, isSelf }: Props) {
   return (
     <Card>
       <CardHeader>
-        <CardTitle>Edit user</CardTitle>
+        <CardTitle>User & subscription</CardTitle>
+        <p className="text-sm text-muted-foreground">Change plan, status, and period end for this user.</p>
       </CardHeader>
       <CardContent className="space-y-4">
         <div className="flex flex-wrap items-center gap-2">
@@ -115,6 +127,17 @@ export function AdminUserEdit({ user, isSelf }: Props) {
                 <SelectItem value="past_due">past_due</SelectItem>
               </SelectContent>
             </Select>
+          </div>
+          <div className="sm:col-span-2">
+            <Label htmlFor="period-end">Period end (optional)</Label>
+            <Input
+              id="period-end"
+              type="date"
+              value={periodEnd}
+              onChange={(e) => setPeriodEnd(e.target.value)}
+              className="max-w-[200px] mt-1"
+            />
+            <p className="text-xs text-muted-foreground mt-1">Leave empty to clear. Used for subscription period / trial end.</p>
           </div>
           {!isSelf && (
             <div>

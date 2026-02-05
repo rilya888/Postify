@@ -76,6 +76,7 @@ export default async function AdminUserPage({
                 status: user.subscription.status,
                 audioMinutesUsedThisPeriod: user.subscription.audioMinutesUsedThisPeriod,
                 audioMinutesLimit: user.subscription.audioMinutesLimit,
+                currentPeriodEnd: user.subscription.currentPeriodEnd,
               }
             : null,
         }}
