@@ -37,7 +37,12 @@ export function SubscriptionBlock() {
         return res.json();
       })
       .then((data) => {
-        if (!cancelled) setFeatures(data);
+        if (cancelled) return;
+        if (data?.error || typeof data?.maxCharactersPerContent !== "number") {
+          setError(true);
+          return;
+        }
+        setFeatures(data);
       })
       .catch(() => {
         if (!cancelled) setError(true);
@@ -98,8 +103,8 @@ export function SubscriptionBlock() {
           </span>
         </div>
         <ul className="text-sm text-muted-foreground space-y-1">
-          <li>Макс. проектов: {features.maxProjects}</li>
-          <li>Макс. символов контента: {features.maxCharactersPerContent.toLocaleString()}</li>
+          <li>Макс. проектов: {features.maxProjects ?? "—"}</li>
+          <li>Макс. символов контента: {typeof features.maxCharactersPerContent === "number" ? features.maxCharactersPerContent.toLocaleString() : "—"}</li>
           {features.audioLimits && (
             <>
               <li>Аудио: {features.audioLimits.usedMinutes} / {features.audioLimits.limitMinutes} мин в периоде</li>
