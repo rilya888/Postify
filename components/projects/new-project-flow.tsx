@@ -261,7 +261,9 @@ export function NewProjectFlow() {
                               if (next.includes(p) && !(p in byPlatform)) {
                                 audioForm.setValue("postsPerPlatformByPlatform", { ...byPlatform, [p]: 1 });
                               } else if (!next.includes(p)) {
-                                const { [p]: _, ...rest } = byPlatform;
+                                const rest = Object.fromEntries(
+                                  Object.entries(byPlatform).filter(([k]) => k !== p)
+                                );
                                 audioForm.setValue("postsPerPlatformByPlatform", rest);
                               }
                             }}

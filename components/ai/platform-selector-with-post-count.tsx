@@ -12,7 +12,6 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { PLATFORMS } from "@/lib/constants/platforms";
-import type { Platform } from "@/lib/constants/platforms";
 
 export type PostCount = 1 | 2 | 3;
 

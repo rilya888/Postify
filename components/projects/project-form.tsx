@@ -373,7 +373,9 @@ export function ProjectForm({
                       if (next.includes(p) && !(p in byPlatform)) {
                         form.setValue("postsPerPlatformByPlatform", { ...byPlatform, [p]: 1 });
                       } else if (!next.includes(p)) {
-                        const { [p]: _, ...rest } = byPlatform;
+                        const rest = Object.fromEntries(
+                          Object.entries(byPlatform).filter(([k]) => k !== p)
+                        );
                         form.setValue("postsPerPlatformByPlatform", rest);
                       }
                     }}
