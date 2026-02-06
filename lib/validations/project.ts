@@ -62,7 +62,7 @@ export const createProjectSchema = z
       const byPlatform = data.postsPerPlatformByPlatform;
       if (!byPlatform || typeof byPlatform !== "object" || Array.isArray(byPlatform)) return true;
       const platformsSet = new Set(data.platforms ?? []);
-      return Object.keys(byPlatform).every((key) => platformsSet.has(key));
+      return Object.keys(byPlatform).every((key) => platformsSet.has(key as z.infer<typeof platformEnum>));
     },
     { message: "postsPerPlatformByPlatform keys must be in selected platforms", path: ["postsPerPlatformByPlatform"] }
   );
@@ -94,7 +94,7 @@ export const createProjectSchemaForTextForm = z
       const byPlatform = data.postsPerPlatformByPlatform;
       if (!byPlatform || typeof byPlatform !== "object" || Array.isArray(byPlatform)) return true;
       const platformsSet = new Set(data.platforms ?? []);
-      return Object.keys(byPlatform).every((key) => platformsSet.has(key));
+      return Object.keys(byPlatform).every((key) => platformsSet.has(key as z.infer<typeof platformEnum>));
     },
     { message: "postsPerPlatformByPlatform keys must be in selected platforms", path: ["postsPerPlatformByPlatform"] }
   );
@@ -139,7 +139,7 @@ export const updateProjectSchema = z
       const platforms = data.platforms ?? [];
       if (platforms.length === 0) return true;
       const platformsSet = new Set(platforms);
-      return Object.keys(byPlatform).every((key) => platformsSet.has(key));
+      return Object.keys(byPlatform).every((key) => platformsSet.has(key as z.infer<typeof platformEnum>));
     },
     { message: "postsPerPlatformByPlatform keys must be in selected platforms", path: ["postsPerPlatformByPlatform"] }
   );
