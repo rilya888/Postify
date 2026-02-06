@@ -201,13 +201,13 @@ export async function POST(request: NextRequest) {
     ) {
       const startIdx = regenerateFromIndex.seriesIndex;
       const platform = regenerateFromIndex.platform as Platform;
-      const countForPlatform = getPostCountForPlatform(project, platform);
+      const countForPlatform = getPostCountForPlatform(project as ProjectWithPostsConfig, platform);
       slotsOverride = Array.from({ length: Math.max(0, countForPlatform - startIdx + 1) }, (_, i) => ({
         platform,
         seriesIndex: startIdx + i,
       }));
     } else {
-      slotsOverride = buildSlotsFromProject(project, targetPlatforms);
+      slotsOverride = buildSlotsFromProject(project as ProjectWithPostsConfig, targetPlatforms);
     }
 
     const hasSeries = slotsOverride.length > targetPlatforms.length;
