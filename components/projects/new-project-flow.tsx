@@ -48,7 +48,7 @@ const audioFormSchema = z
       const byPlatform = data.postsPerPlatformByPlatform;
       if (!byPlatform || typeof byPlatform !== "object" || Array.isArray(byPlatform)) return true;
       const platformsSet = new Set(data.platforms ?? []);
-      return Object.keys(byPlatform).every((k) => platformsSet.has(k));
+      return Object.keys(byPlatform).every((k) => platformsSet.has(k as Platform));
     },
     { message: "Post count keys must be in selected platforms", path: ["postsPerPlatformByPlatform"] }
   );
