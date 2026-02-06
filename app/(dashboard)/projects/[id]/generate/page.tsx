@@ -31,12 +31,14 @@ import {
 } from "@/lib/constants/documents";
 import { truncateAtWordBoundary } from "@/lib/utils/truncate-text";
 import type { ParseDocumentResponse } from "@/types/documents";
+import { SeriesPostsView } from "@/components/series/series-posts-view";
 
 interface Output {
   id: string;
   platform: string;
   content: string;
   isEdited: boolean;
+  seriesIndex?: number;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -47,6 +49,7 @@ interface Project {
   title: string;
   sourceContent: string;
   platforms: string[];
+  postsPerPlatform?: number | null;
   createdAt: Date;
   updatedAt: Date;
   outputs: Output[];
@@ -67,6 +70,8 @@ export default function GeneratePage() {
   const [isLoading, setIsLoading] = useState(true);
   const [isGenerating, setIsGenerating] = useState(false);
   const [regeneratingPlatform, setRegeneratingPlatform] = useState<string | null>(null);
+  const [regeneratingOutputId, setRegeneratingOutputId] = useState<string | null>(null);
+  const [regeneratingSeriesPlatform, setRegeneratingSeriesPlatform] = useState<string | null>(null);
   const [progress, setProgress] = useState(0);
   const [generationResults, setGenerationResults] = useState<BulkGenerationResult | null>(null);
   const [piiWarnings, setPiiWarnings] = useState<string[]>([]);
@@ -177,14 +182,18 @@ export default function GeneratePage() {
       const interval = setInterval(() => {
         setProgress(prev => (prev >= 90 ? prev : prev + 10));
       }, 500);
+      const body: Record<string, unknown> = {
+        projectId: project.id,
+        platforms: selectedPlatforms,
+        sourceContent: project.sourceContent,
+      };
+      if ((project.postsPerPlatform ?? 1) > 1) {
+        body.postsPerPlatform = project.postsPerPlatform;
+      }
       const res = await fetch("/api/generate", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          projectId: project.id,
-          platforms: selectedPlatforms,
-          sourceContent: project.sourceContent,
-        }),
+        body: JSON.stringify(body),
         signal,
       });
       clearInterval(interval);
@@ -349,6 +358,7 @@ export default function GeneratePage() {
           projectId: project.id,
           platforms: [platform],
           sourceContent: project.sourceContent,
+          ...((project.postsPerPlatform ?? 1) > 1 ? { postsPerPlatform: project.postsPerPlatform } : {}),
         }),
       });
       if (!res.ok) {
@@ -376,6 +386,125 @@ export default function GeneratePage() {
       toast.error(err instanceof Error ? err.message : t("toasts.regenerationFailed"));
     } finally {
       setRegeneratingPlatform(null);
+    }
+  };
+
+  const handleRegenerateByOutputId = async (outputId: string) => {
+    if (!project?.sourceContent?.trim()) {
+      toast.error(t("toasts.noSourceContent"));
+      return;
+    }
+    try {
+      setRegeneratingOutputId(outputId);
+      setError(null);
+      const res = await fetch("/api/generate", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          projectId: project.id,
+          outputId,
+          sourceContent: project.sourceContent,
+        }),
+      });
+      if (!res.ok) {
+        const body = await res.json().catch(() => ({}));
+        toast.error(body?.details ?? body?.error ?? t("toasts.regenerationFailed"));
+        return;
+      }
+      const results = (await res.json()) as BulkGenerationResult;
+      if (results.successful.length > 0) {
+        const r = results.successful[0];
+        setGenerationResults(prev => ({
+          ...(prev ?? { successful: [], failed: [], totalRequested: 0 }),
+          successful: [
+            ...(prev?.successful.filter(s => !(s.platform === r.platform && (s as { seriesIndex?: number }).seriesIndex === r.seriesIndex)) ?? []),
+            r,
+          ],
+          failed: prev?.failed ?? [],
+          totalRequested: (prev?.totalRequested ?? 0) + 1,
+        }));
+        toast.success(t("toasts.generationCompleted"));
+      }
+      const updated = await loadProject();
+      if (updated) setProject(updated);
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : t("toasts.regenerationFailed"));
+    } finally {
+      setRegeneratingOutputId(null);
+    }
+  };
+
+  const handleRegenerateSeries = async (platform: string) => {
+    if (!project?.sourceContent?.trim()) {
+      toast.error(t("toasts.noSourceContent"));
+      return;
+    }
+    try {
+      setRegeneratingSeriesPlatform(platform);
+      setError(null);
+      const body: Record<string, unknown> = {
+        projectId: project.id,
+        platforms: [platform],
+        sourceContent: project.sourceContent,
+        regenerateSeriesForPlatform: platform,
+      };
+      if ((project.postsPerPlatform ?? 1) > 1) body.postsPerPlatform = project.postsPerPlatform;
+      const res = await fetch("/api/generate", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(body),
+      });
+      if (!res.ok) {
+        const resBody = await res.json().catch(() => ({}));
+        toast.error(resBody?.details ?? resBody?.error ?? t("toasts.regenerationFailed"));
+        return;
+      }
+      const results = (await res.json()) as BulkGenerationResult;
+      setGenerationResults(results);
+      toast.success(t("toasts.generationCompleted"));
+      const updated = await loadProject();
+      if (updated) setProject(updated);
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : t("toasts.regenerationFailed"));
+    } finally {
+      setRegeneratingSeriesPlatform(null);
+    }
+  };
+
+  const handleRegenerateFrom = async (platform: string, seriesIndex: number) => {
+    if (!project?.sourceContent?.trim()) {
+      toast.error(t("toasts.noSourceContent"));
+      return;
+    }
+    try {
+      setRegeneratingSeriesPlatform(platform);
+      setError(null);
+      const body: Record<string, unknown> = {
+        projectId: project.id,
+        platforms: [platform],
+        sourceContent: project.sourceContent,
+        regenerateFromIndex: { platform, seriesIndex },
+        postsPerPlatform: project.postsPerPlatform ?? 1,
+      };
+      const res = await fetch("/api/generate", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(body),
+      });
+      if (!res.ok) {
+        const resBody = await res.json().catch(() => ({}));
+        toast.error(resBody?.details ?? resBody?.error ?? t("toasts.regenerationFailed"));
+        return;
+      }
+      const results = (await res.json()) as BulkGenerationResult;
+      setGenerationResults(results);
+      toast.success(t("toasts.generationCompleted"));
+      const updated = await loadProject();
+      if (updated) setProject(updated);
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : t("toasts.regenerationFailed"));
+    } finally {
+      setRegeneratingSeriesPlatform(null);
     }
   };
   
@@ -540,7 +669,12 @@ export default function GeneratePage() {
             Choose the platforms you want to generate content for
           </CardDescription>
         </CardHeader>
-        <CardContent>
+        <CardContent className="space-y-3">
+          {(project.postsPerPlatform ?? 1) > 1 && (
+            <p className="text-sm text-muted-foreground">
+              {tGen("willGenerateSeries", { n: project.postsPerPlatform ?? 1 })}
+            </p>
+          )}
           <PlatformSelector 
             selectedPlatforms={selectedPlatforms} 
             onPlatformToggle={handlePlatformToggle} 
@@ -636,34 +770,176 @@ export default function GeneratePage() {
               </div>
             </div>
             
-            {generationResults.successful.length > 0 && (
-              <div className="mt-6">
-                <h3 className="text-lg font-medium mb-4">Generated Content</h3>
-                
-                <Tabs defaultValue={generationResults.successful[0]?.platform} className="w-full">
-                  <TabsList className="grid w-full grid-cols-3 max-sm:grid-cols-1">
-                    {generationResults.successful.map((result) => (
-                      <TabsTrigger key={result.platform} value={result.platform}>
-                        {PLATFORMS[result.platform as keyof typeof PLATFORMS]?.name || result.platform}
-                      </TabsTrigger>
+            {generationResults.successful.length > 0 && (() => {
+              const withSeries = generationResults.successful.some(
+                (r) => (r as { seriesIndex?: number }).seriesIndex != null
+              );
+              if (withSeries) {
+                const byPlatform = new Map<string, typeof generationResults.successful>();
+                for (const r of generationResults.successful) {
+                  const list = byPlatform.get(r.platform) ?? [];
+                  list.push(r);
+                  byPlatform.set(r.platform, list);
+                }
+                return (
+                  <div className="mt-6">
+                    <h3 className="text-lg font-medium mb-4">Generated Content</h3>
+                    <div className="space-y-6">
+                      {Array.from(byPlatform.entries()).map(([platform, results]) => {
+                        const sorted = [...results].sort(
+                          (a, b) => ((a as { seriesIndex?: number }).seriesIndex ?? 1) - ((b as { seriesIndex?: number }).seriesIndex ?? 1)
+                        );
+                        return (
+                          <Card key={platform}>
+                            <CardContent className="pt-6 space-y-4">
+                              {sorted.map((result) => (
+                                <GeneratedContentPreview
+                                  key={(result as { outputId?: string }).outputId ?? result.platform + ((result as { seriesIndex?: number }).seriesIndex ?? 1)}
+                                  content={result.content}
+                                  platform={result.platform}
+                                  variant="success"
+                                  editHref={(result as { outputId?: string }).outputId
+                                    ? `/projects/${projectId}/outputs/${(result as { outputId: string }).outputId}/edit`
+                                    : undefined}
+                                  actions={
+                                    (result as { outputId?: string }).outputId ? (
+                                      <Button
+                                        variant="outline"
+                                        size="sm"
+                                        disabled={regeneratingOutputId === (result as { outputId: string }).outputId}
+                                        onClick={() => handleRegenerateByOutputId((result as { outputId: string }).outputId)}
+                                      >
+                                        {regeneratingOutputId === (result as { outputId: string }).outputId ? (
+                                          <Loader2Icon className="h-4 w-4 mr-2 animate-spin" />
+                                        ) : (
+                                          <RotateCcwIcon className="h-4 w-4 mr-2" />
+                                        )}
+                                        Regenerate
+                                      </Button>
+                                    ) : (
+                                      <Button
+                                        variant="outline"
+                                        size="sm"
+                                        disabled={regeneratingPlatform === result.platform}
+                                        onClick={() => handleRegenerate(result.platform)}
+                                      >
+                                        {regeneratingPlatform === result.platform ? (
+                                          <Loader2Icon className="h-4 w-4 mr-2 animate-spin" />
+                                        ) : (
+                                          <RotateCcwIcon className="h-4 w-4 mr-2" />
+                                        )}
+                                        Regenerate
+                                      </Button>
+                                    )
+                                  }
+                                />
+                              ))}
+                            </CardContent>
+                          </Card>
+                        );
+                      })}
+                    </div>
+                  </div>
+                );
+              }
+              return (
+                <div className="mt-6">
+                  <h3 className="text-lg font-medium mb-4">Generated Content</h3>
+                  <Tabs defaultValue={generationResults.successful[0]?.platform} className="w-full">
+                    <TabsList className="grid w-full grid-cols-3 max-sm:grid-cols-1">
+                      {generationResults.successful.map((result, i) => (
+                        <TabsTrigger key={`${result.platform}-${i}`} value={`${result.platform}-${i}`}>
+                          {PLATFORMS[result.platform as keyof typeof PLATFORMS]?.name || result.platform}
+                        </TabsTrigger>
+                      ))}
+                    </TabsList>
+                    {generationResults.successful.map((result, i) => (
+                      <TabsContent key={`${result.platform}-${i}`} value={`${result.platform}-${i}`} className="mt-4">
+                        <GeneratedContentPreview
+                          content={result.content}
+                          platform={result.platform}
+                          variant="success"
+                          editHref={(result as { outputId?: string }).outputId
+                            ? `/projects/${projectId}/outputs/${(result as { outputId: string }).outputId}/edit`
+                            : `/projects/${projectId}/edit?platform=${result.platform}`}
+                          actions={
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              disabled={regeneratingPlatform === result.platform}
+                              onClick={() => handleRegenerate(result.platform)}
+                            >
+                              {regeneratingPlatform === result.platform ? (
+                                <Loader2Icon className="h-4 w-4 mr-2 animate-spin" />
+                              ) : (
+                                <RotateCcwIcon className="h-4 w-4 mr-2" />
+                              )}
+                              Regenerate
+                            </Button>
+                          }
+                        />
+                      </TabsContent>
                     ))}
-                  </TabsList>
-
-                  {generationResults.successful.map((result) => (
-                    <TabsContent key={result.platform} value={result.platform} className="mt-4">
+                  </Tabs>
+                </div>
+              );
+            })()}
+          </CardContent>
+        </Card>
+      )}
+      
+      {project.outputs && project.outputs.length > 0 && (() => {
+        const postsPerPlatform = project.postsPerPlatform ?? 1;
+        const byPlatform = new Map<string, Output[]>();
+        for (const o of project.outputs) {
+          const list = byPlatform.get(o.platform) ?? [];
+          list.push(o);
+          byPlatform.set(o.platform, list);
+        }
+        return (
+          <div className="space-y-6">
+            <h2 className="text-xl font-semibold">Previously Generated Content</h2>
+            <p className="text-sm text-muted-foreground">
+              Content that was previously generated for this project
+            </p>
+            {Array.from(byPlatform.entries()).map(([platform, posts]) => {
+              const seriesTotal = postsPerPlatform > 1 ? postsPerPlatform : 1;
+              const sortedPosts = [...posts].sort((a, b) => (a.seriesIndex ?? 1) - (b.seriesIndex ?? 1));
+              if (seriesTotal > 1) {
+                return (
+                  <SeriesPostsView
+                    key={platform}
+                    platform={platform}
+                    posts={sortedPosts}
+                    seriesTotal={seriesTotal}
+                    projectId={projectId}
+                    regeneratingOutputId={regeneratingOutputId}
+                    regeneratingSeries={regeneratingSeriesPlatform === platform}
+                    onRegeneratePost={handleRegenerateByOutputId}
+                    onRegenerateSeries={handleRegenerateSeries}
+                    onRegenerateFrom={handleRegenerateFrom}
+                  />
+                );
+              }
+              return (
+                <Card key={platform}>
+                  <CardContent className="pt-6">
+                    {sortedPosts.map((output) => (
                       <GeneratedContentPreview
-                        content={result.content}
-                        platform={result.platform}
-                        variant="success"
-                        editHref={`/projects/${projectId}/edit?platform=${result.platform}`}
+                        key={output.id}
+                        content={output.content}
+                        platform={output.platform}
+                        isEdited={output.isEdited}
+                        maxHeight="10rem"
+                        editHref={`/projects/${projectId}/outputs/${output.id}/edit`}
                         actions={
                           <Button
                             variant="outline"
                             size="sm"
-                            disabled={regeneratingPlatform === result.platform}
-                            onClick={() => handleRegenerate(result.platform)}
+                            disabled={regeneratingOutputId === output.id}
+                            onClick={() => handleRegenerateByOutputId(output.id)}
                           >
-                            {regeneratingPlatform === result.platform ? (
+                            {regeneratingOutputId === output.id ? (
                               <Loader2Icon className="h-4 w-4 mr-2 animate-spin" />
                             ) : (
                               <RotateCcwIcon className="h-4 w-4 mr-2" />
@@ -672,39 +948,14 @@ export default function GeneratePage() {
                           </Button>
                         }
                       />
-                    </TabsContent>
-                  ))}
-                </Tabs>
-              </div>
-            )}
-          </CardContent>
-        </Card>
-      )}
-      
-      {project.outputs && project.outputs.length > 0 && (
-        <Card>
-          <CardHeader>
-            <CardTitle>Previously Generated Content</CardTitle>
-            <CardDescription>
-              Content that was previously generated for this project
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-4">
-              {project.outputs.map((output) => (
-                <GeneratedContentPreview
-                  key={output.id}
-                  content={output.content}
-                  platform={output.platform}
-                  isEdited={output.isEdited}
-                  maxHeight="10rem"
-                  editHref={`/projects/${projectId}/edit?outputId=${output.id}`}
-                />
-              ))}
-            </div>
-          </CardContent>
-        </Card>
-      )}
+                    ))}
+                  </CardContent>
+                </Card>
+              );
+            })}
+          </div>
+        );
+      })()}
     </div>
   );
 }

@@ -36,6 +36,7 @@ export default async function EditProjectPage({
     title: project.title,
     sourceContent: project.sourceContent,
     platforms: project.platforms as ("linkedin" | "twitter" | "email")[],
+    postsPerPlatform: (project.postsPerPlatform ?? 1) as 1 | 2 | 3,
   };
 
   return (

@@ -159,6 +159,25 @@
     "textTab": "Text",
     "audioTab": "Audio",
     "audioPlanTooltip": "Available on Text + Audio plan",
-    "audioPlanDescription": "Audio upload is available on the Text + Audio plan. Choose Text or upgrade your subscription."
+    "audioPlanDescription": "Audio upload is available on the Text + Audio plan. Choose Text or upgrade your subscription.",
+    "postsPerPlatform": "Posts per platform",
+    "postsPerPlatformDescription": "Generate 1 to 3 linked posts per platform (series). Each post reveals more.",
+    "post1": "Post 1",
+    "post2": "Post 2",
+    "post3": "Post 3",
+    "seriesTeaser": "Teaser",
+    "seriesContext": "Context",
+    "seriesConclusion": "Conclusion",
+    "seriesPostCount": "{count} post series",
+    "postNofM": "Post {n} of {m}",
+    "regenerateSeries": "Regenerate series",
+    "regenerateFrom": "Regenerate from…",
+    "regenerateFromPost1": "Regenerate from Post 1",
+    "regenerateFromPost2": "Regenerate from Post 2",
+    "regenerateOnlyPost3": "Regenerate only Post 3",
+    "willGenerateSeries": "Will generate {n} linked posts per platform.",
+    "deleteExtraPostsTitle": "Delete extra posts?",
+    "deleteExtraPostsDescription": "Reducing to {n} posts per platform will delete {count} existing post(s). This cannot be undone.",
+    "deleteAndUpdate": "Delete and update"
   }
 }

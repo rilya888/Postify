@@ -37,13 +37,14 @@ model User {
 // Project model - stores user's content repurposing projects
 // Used in: Dashboard (Stage 2), AI Generation (Stage 3), Editor (Stage 4)
 model Project {
-  id            String    @id @default(cuid())
-  userId        String
-  title         String
-  sourceContent String    @db.Text // Original content to repurpose
-  platforms     String[] // Array of target platforms: ["linkedin", "twitter", "email"]
-  createdAt     DateTime  @default(now())
-  updatedAt     DateTime  @updatedAt
+  id               String    @id @default(cuid())
+  userId           String
+  title            String
+  sourceContent    String    @db.Text // Original content to repurpose
+  platforms        String[]  // Array of target platforms: ["linkedin", "twitter", "email"]
+  postsPerPlatform Int?      // Enterprise: 1..3 posts per platform (series); null/1 = single post
+  createdAt        DateTime  @default(now())
+  updatedAt        DateTime  @updatedAt
 
   // Relations
   user          User      @relation(fields: [userId], references: [id], onDelete: Cascade)
@@ -114,12 +115,13 @@ model ContentPack {
   @@map("content_packs")
 }
 
-// Output model - stores generated content for each platform
+// Output model - stores generated content for each platform (and series index when series enabled)
 // Used in: AI Generation (Stage 3), Editor (Stage 4), Preview (Stage 4)
 model Output {
   id                 String    @id @default(cuid())
   projectId          String
   platform           String    // Platform identifier: "linkedin" | "twitter" | "email"
+  seriesIndex        Int       @default(1) // 1-based post index in series on this platform
   content            String    @db.Text // Generated/edited content
   isEdited           Boolean   @default(false) // Track if user edited the content
   originalContent    String?   @db.Text // Store original content for comparison/reverting
@@ -133,8 +135,8 @@ model Output {
 
   // Indexes for performance
   @@index([projectId])
-  @@index([projectId, platform]) // For querying specific platform output
-  @@unique([projectId, platform]) // Unique constraint for upsert operations
+  @@index([projectId, platform])
+  @@unique([projectId, platform, seriesIndex]) // One output per (project, platform, series index)
   @@map("outputs")
 }
 

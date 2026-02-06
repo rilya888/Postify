@@ -17,6 +17,23 @@ import {
 } from "@/components/ui/form";
 import { Textarea } from "@/components/ui/textarea";
 import { Input } from "@/components/ui/input";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { toast } from "sonner";
 import { createProjectSchemaForTextForm, updateProjectSchema } from "@/lib/validations/project";
 import PlatformSelector from "@/components/ai/platform-selector";
@@ -38,6 +55,7 @@ type ProjectFormProps = {
     title: string;
     sourceContent: string;
     platforms: ("linkedin" | "twitter" | "email")[];
+    postsPerPlatform?: 1 | 2 | 3;
   };
   projectId?: string;
   onSubmitSuccess?: () => void;
@@ -55,12 +73,44 @@ export function ProjectForm({
 }: ProjectFormProps) {
   const router = useRouter();
   const t = useTranslations("documents");
+  const tGen = useTranslations("generatePage");
+  const tCommon = useTranslations("common");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [saveProgress, setSaveProgress] = useState(0);
   const [isUploadingFile, setIsUploadingFile] = useState(false);
+  const [planFeatures, setPlanFeatures] = useState<{
+    canUseSeries: boolean;
+    maxPostsPerPlatform: number;
+  } | null>(null);
+  const [extraPostsDialog, setExtraPostsDialog] = useState<{
+    open: boolean;
+    pendingData: ProjectFormData;
+    newPostsPerPlatform: number;
+    extraPostsCount: number;
+  } | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const isEditing = !!projectId;
+
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      try {
+        const res = await fetch("/api/subscription/features");
+        if (!res.ok || cancelled) return;
+        const data = await res.json();
+        setPlanFeatures({
+          canUseSeries: data.canUseSeries === true,
+          maxPostsPerPlatform: typeof data.maxPostsPerPlatform === "number" ? data.maxPostsPerPlatform : 1,
+        });
+      } catch {
+        // ignore
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   const form = useForm<ProjectFormData>({
     resolver: zodResolver(isEditing ? updateProjectSchema : createProjectSchemaForTextForm),
@@ -68,6 +118,7 @@ export function ProjectForm({
       title: initialData?.title || "",
       sourceContent: initialData?.sourceContent || "",
       platforms: (initialData?.platforms as ("linkedin" | "twitter" | "email")[]) || [],
+      postsPerPlatform: initialData?.postsPerPlatform ?? 1,
     },
   });
 
@@ -84,50 +135,67 @@ export function ProjectForm({
       setFormData({
         title: value.title || "",
         sourceContent: value.sourceContent || "",
-        platforms: (value.platforms || []).filter(Boolean) as Platform[]
+        platforms: (value.platforms || []).filter(Boolean) as Platform[],
+        postsPerPlatform: value.postsPerPlatform ?? 1,
       });
     });
     return () => subscription.unsubscribe();
   }, [form]);
 
-  async function onSubmit(data: ProjectFormData) {
+  async function submitPayload(payload: ProjectFormData, confirmDeleteExtraPosts?: boolean) {
+    const url = isEditing ? `/api/projects/${projectId}` : "/api/projects";
+    const method = isEditing ? "PATCH" : "POST";
+    const body = confirmDeleteExtraPosts
+      ? { ...payload, confirmDeleteExtraPosts: true }
+      : payload;
+    const response = await fetch(url, {
+      method,
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(body),
+    });
+    const result = await response.json();
+    return { ok: response.ok, result };
+  }
+
+  async function onSubmit(data: ProjectFormData, confirmDeleteExtraPosts?: boolean) {
     setIsSubmitting(true);
-    setSaveProgress(10); // Start progress
+    setSaveProgress(10);
 
     try {
-      setSaveProgress(40); // Preparing request
-      const url = isEditing 
-        ? `/api/projects/${projectId}`
-        : "/api/projects";
-      
-      const method = isEditing ? "PATCH" : "POST";
-      
-      setSaveProgress(60); // Sending request
-      const response = await fetch(url, {
-        method,
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify(data),
-      });
+      setSaveProgress(40);
+      setSaveProgress(60);
+      const { ok, result } = await submitPayload(data, confirmDeleteExtraPosts);
+      setSaveProgress(80);
 
-      setSaveProgress(80); // Processing response
-      const result = await response.json();
-
-      if (!response.ok) {
-        throw new Error(result.error || "Failed to save project");
+      if (!ok) {
+        if (
+          isEditing &&
+          result.code === "EXTRA_POSTS_EXIST" &&
+          typeof result.extraPostsCount === "number" &&
+          typeof data.postsPerPlatform === "number"
+        ) {
+          setExtraPostsDialog({
+            open: true,
+            pendingData: data,
+            newPostsPerPlatform: data.postsPerPlatform,
+            extraPostsCount: result.extraPostsCount,
+          });
+          setSaveProgress(0);
+          setIsSubmitting(false);
+          return;
+        }
+        throw new Error(result.message ?? result.error ?? "Failed to save project");
       }
 
-      setSaveProgress(100); // Completed
-      setTimeout(() => setSaveProgress(0), 500); // Reset progress
-
-      // Clear draft after successful save
-      localStorage.removeItem(`project-draft-${projectId || 'new'}`);
+      setSaveProgress(100);
+      setTimeout(() => setSaveProgress(0), 500);
+      localStorage.removeItem(`project-draft-${projectId || "new"}`);
+      setExtraPostsDialog(null);
 
       NotificationService.success(
         isEditing ? "Project updated" : "Project created",
-        isEditing 
-          ? "Your project has been updated successfully" 
+        isEditing
+          ? "Your project has been updated successfully"
           : "Your project has been created successfully"
       );
 
@@ -138,7 +206,7 @@ export function ProjectForm({
         router.refresh();
       }
     } catch (error) {
-      setSaveProgress(0); // Error - reset progress
+      setSaveProgress(0);
       NotificationService.error(
         "Error",
         error instanceof Error ? error.message : "An unexpected error occurred"
@@ -146,6 +214,12 @@ export function ProjectForm({
     } finally {
       setIsSubmitting(false);
     }
+  }
+
+  async function onConfirmDeleteExtraPosts() {
+    if (!extraPostsDialog?.pendingData) return;
+    setExtraPostsDialog((prev) => (prev ? { ...prev, open: false } : null));
+    await onSubmit(extraPostsDialog.pendingData, true);
   }
 
   async function handleFileSelect(event: React.ChangeEvent<HTMLInputElement>) {
@@ -207,7 +281,7 @@ export function ProjectForm({
 
   return (
     <Form {...form}>
-      <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
+      <form onSubmit={form.handleSubmit((data) => onSubmit(data))} className="space-y-6">
         <FormField
           control={form.control}
           name="title"
@@ -296,6 +370,39 @@ export function ProjectForm({
           )}
         />
 
+        {planFeatures?.canUseSeries && (
+          <FormField
+            control={form.control}
+            name="postsPerPlatform"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>{tGen("postsPerPlatform")}</FormLabel>
+                <FormControl>
+                  <Select
+                    value={String(field.value ?? 1)}
+                    onValueChange={(v) => field.onChange(Number(v) as 1 | 2 | 3)}
+                    disabled={isSubmitting}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder={tGen("postsPerPlatform")} />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {[1, 2, 3]
+                        .filter((n) => n <= (planFeatures?.maxPostsPerPlatform ?? 1))
+                        .map((n) => (
+                          <SelectItem key={n} value={String(n)}>
+                            {n === 1 ? "1 post" : `${n} posts (series)`}
+                          </SelectItem>
+                        ))}
+                    </SelectContent>
+                  </Select>
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+        )}
+
         {saveProgress > 0 && (
           <ProgressBar 
             value={saveProgress} 
@@ -341,6 +448,31 @@ export function ProjectForm({
           )}
         </div>
       </form>
+
+      <AlertDialog
+        open={extraPostsDialog?.open ?? false}
+        onOpenChange={(open) => {
+          if (!open) setExtraPostsDialog(null);
+        }}
+      >
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>{tGen("deleteExtraPostsTitle")}</AlertDialogTitle>
+            <AlertDialogDescription>
+              {tGen("deleteExtraPostsDescription", {
+                n: extraPostsDialog?.newPostsPerPlatform ?? 0,
+                count: extraPostsDialog?.extraPostsCount ?? 0,
+              })}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>{tCommon("cancel")}</AlertDialogCancel>
+            <AlertDialogAction onClick={onConfirmDeleteExtraPosts}>
+              {tGen("deleteAndUpdate")}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </Form>
   );
 }

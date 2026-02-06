@@ -1,13 +1,16 @@
 /**
- * Integration-style tests for POST /api/generate (with mocks for auth, prisma, rate-limit, ai service)
+ * Integration-style tests for POST /api/generate (with mocks for auth, prisma, rate-limit, ai service).
+ * Covers bulk generate, series (postsPerPlatform), and regeneration by outputId.
  */
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { NextRequest } from "next/server";
 
 const mockAuth = vi.fn();
 const mockGenerateForPlatforms = vi.fn();
+const mockRegenerateForPlatform = vi.fn();
 const mockCheckGenerateRateLimit = vi.fn();
 const mockProjectFindUnique = vi.fn();
+const mockOutputFindUnique = vi.fn();
 const mockUserFindUnique = vi.fn();
 const mockSubscriptionFindUnique = vi.fn();
 
@@ -17,6 +20,7 @@ vi.mock("@/lib/auth/config", () => ({
 
 vi.mock("@/lib/services/ai", () => ({
   generateForPlatforms: (...args: unknown[]) => mockGenerateForPlatforms(...args),
+  regenerateForPlatform: (...args: unknown[]) => mockRegenerateForPlatform(...args),
 }));
 
 vi.mock("@/lib/utils/rate-limit", () => ({
@@ -30,6 +34,9 @@ vi.mock("@/lib/db/prisma", () => ({
     },
     project: {
       findUnique: (...args: unknown[]) => mockProjectFindUnique(...args),
+    },
+    output: {
+      findUnique: (...args: unknown[]) => mockOutputFindUnique(...args),
     },
     subscription: {
       findUnique: (...args: unknown[]) => mockSubscriptionFindUnique(...args),
@@ -54,12 +61,25 @@ describe("POST /api/generate", () => {
     mockAuth.mockResolvedValue({ user: { id: "user-1" } });
     mockCheckGenerateRateLimit.mockReturnValue({ allowed: true });
     mockUserFindUnique.mockResolvedValue({ createdAt: new Date(Date.now() - 86400000) });
-    mockProjectFindUnique.mockResolvedValue({ id: "proj-1", userId: "user-1" });
+    mockProjectFindUnique.mockResolvedValue({
+      id: "proj-1",
+      userId: "user-1",
+      sourceContent: "Hello world",
+      postsPerPlatform: null,
+      outputs: [],
+    });
     mockSubscriptionFindUnique.mockResolvedValue(null);
+    mockOutputFindUnique.mockResolvedValue(null);
     mockGenerateForPlatforms.mockResolvedValue({
       successful: [{ platform: "linkedin", content: "x", success: true, metadata: {} }],
       failed: [],
       totalRequested: 1,
+    });
+    mockRegenerateForPlatform.mockResolvedValue({
+      platform: "linkedin",
+      content: "regenerated",
+      success: true,
+      metadata: {},
     });
   });
 
@@ -151,10 +171,151 @@ describe("POST /api/generate", () => {
       undefined,
       undefined,
       expect.stringMatching(/^[0-9a-f-]{36}$/i),
-      "trial"
+      "trial",
+      1,
+      undefined
     );
     const json = await res.json();
     expect(json.successful).toHaveLength(1);
     expect(json.totalRequested).toBe(1);
+    expect(mockRegenerateForPlatform).not.toHaveBeenCalled();
+  });
+
+  it("calls generateForPlatforms with postsPerPlatform when project has series (enterprise)", async () => {
+    mockProjectFindUnique.mockResolvedValueOnce({
+      id: "proj-1",
+      userId: "user-1",
+      sourceContent: "Hello world",
+      postsPerPlatform: 2,
+      outputs: [],
+    });
+    mockSubscriptionFindUnique.mockResolvedValueOnce({ plan: "enterprise" });
+
+    const req = createRequest({
+      projectId: "proj-1",
+      platforms: ["linkedin"],
+      sourceContent: "Hello world",
+    });
+    const res = await POST(req);
+
+    expect(res.status).toBe(200);
+    expect(mockGenerateForPlatforms).toHaveBeenCalledWith(
+      "proj-1",
+      "user-1",
+      "Hello world",
+      ["linkedin"],
+      undefined,
+      undefined,
+      expect.stringMatching(/^[0-9a-f-]{36}$/i),
+      "enterprise",
+      2,
+      undefined
+    );
+    const json = await res.json();
+    expect(json.successful).toBeDefined();
+  });
+
+  it("returns 403 when postsPerPlatform > 1 and plan is not enterprise", async () => {
+    mockProjectFindUnique.mockResolvedValueOnce({
+      id: "proj-1",
+      userId: "user-1",
+      sourceContent: "Hello world",
+      postsPerPlatform: 2,
+      outputs: [],
+    });
+    mockSubscriptionFindUnique.mockResolvedValueOnce(null);
+
+    const req = createRequest({
+      projectId: "proj-1",
+      platforms: ["linkedin"],
+      sourceContent: "Hello world",
+    });
+    const res = await POST(req);
+
+    expect(res.status).toBe(403);
+    const json = await res.json();
+    expect(json.code).toBe("PLAN_REQUIRED");
+    expect(json.error).toContain("Enterprise");
+    expect(mockGenerateForPlatforms).not.toHaveBeenCalled();
+  });
+
+  describe("regeneration by outputId", () => {
+    it("returns 200 and calls regenerateForPlatform when outputId is provided", async () => {
+      mockOutputFindUnique.mockResolvedValueOnce({
+        id: "out-1",
+        projectId: "proj-1",
+        platform: "linkedin",
+        seriesIndex: 1,
+        project: {
+          userId: "user-1",
+          sourceContent: "Source for regenerate",
+        },
+      });
+
+      const req = createRequest({
+        projectId: "proj-1",
+        outputId: "out-1",
+        sourceContent: "Source for regenerate",
+      });
+      const res = await POST(req);
+
+      expect(res.status).toBe(200);
+      expect(mockRegenerateForPlatform).toHaveBeenCalledWith(
+        "proj-1",
+        "user-1",
+        "Source for regenerate",
+        "linkedin",
+        undefined,
+        undefined,
+        "trial",
+        1
+      );
+      expect(mockGenerateForPlatforms).not.toHaveBeenCalled();
+      const json = await res.json();
+      expect(json.successful).toHaveLength(1);
+      expect(json.totalRequested).toBe(1);
+    });
+
+    it("returns 404 when outputId is provided but output not found", async () => {
+      mockOutputFindUnique.mockResolvedValueOnce(null);
+
+      const req = createRequest({
+        projectId: "proj-1",
+        outputId: "out-missing",
+        sourceContent: "Hello",
+      });
+      const res = await POST(req);
+
+      expect(res.status).toBe(404);
+      const json = await res.json();
+      expect(json.error).toContain("not found");
+      expect(mockRegenerateForPlatform).not.toHaveBeenCalled();
+      expect(mockGenerateForPlatforms).not.toHaveBeenCalled();
+    });
+
+    it("returns 400 when outputId is provided but project sourceContent is empty", async () => {
+      mockOutputFindUnique.mockResolvedValueOnce({
+        id: "out-1",
+        projectId: "proj-1",
+        platform: "linkedin",
+        seriesIndex: 1,
+        project: {
+          userId: "user-1",
+          sourceContent: "   ",
+        },
+      });
+
+      const req = createRequest({
+        projectId: "proj-1",
+        outputId: "out-1",
+        sourceContent: "   ",
+      });
+      const res = await POST(req);
+
+      expect(res.status).toBe(400);
+      const json = await res.json();
+      expect(json.error).toContain("source content");
+      expect(mockRegenerateForPlatform).not.toHaveBeenCalled();
+    });
   });
 });

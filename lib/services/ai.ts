@@ -8,6 +8,7 @@ import {
   getPlatformUserTemplateFromPack,
   formatPrompt,
 } from "@/lib/ai/prompt-templates";
+import { getSeriesContext } from "@/lib/ai/series-context";
 import {
   getOrCreateContentPack,
   formatContentPackForPrompt,
@@ -73,6 +74,8 @@ Follow these brand voice characteristics while adapting for the platform.
  * Generate content for multiple platforms.
  * Uses short system prompt + user message (task + sourceContent + brandVoice). Deterministic cache key, no Date.now().
  */
+export type GenerationSlot = { platform: Platform; seriesIndex: number };
+
 export async function generateForPlatforms(
   projectId: string,
   userId: string,
@@ -81,7 +84,9 @@ export async function generateForPlatforms(
   options?: GenerationOptions,
   brandVoiceId?: string,
   requestId?: string,
-  plan: Plan = "free"
+  plan: Plan = "free",
+  postsPerPlatform: number = 1,
+  slotsOverride?: GenerationSlot[]
 ): Promise<BulkGenerationResult> {
   const operationId = `generateForPlatforms_${projectId}_${requestId ?? "no-req"}`;
   const genConfig = getModelConfig(plan).generate;
@@ -91,6 +96,7 @@ export async function generateForPlatforms(
     userId,
     projectId,
     platforms: platforms.length,
+    postsPerPlatform,
     model,
   });
 
@@ -104,6 +110,13 @@ export async function generateForPlatforms(
     if (!project) {
       throw new Error("Project not found or access denied");
     }
+    const seriesTotal = postsPerPlatform;
+    const slots: GenerationSlot[] =
+      slotsOverride ??
+      platforms.flatMap((p) =>
+        Array.from({ length: seriesTotal }, (_, i) => ({ platform: p, seriesIndex: i + 1 }))
+      );
+    slots.sort((a, b) => a.seriesIndex - b.seriesIndex || a.platform.localeCompare(b.platform));
 
     let brandVoice: { id: string; updatedAt: Date; tone: string; style: string; personality: string; sentenceStructure: string; vocabulary: string[]; avoidVocabulary: string[]; examples: string[] } | null = null;
     if (brandVoiceId) {
@@ -157,47 +170,70 @@ export async function generateForPlatforms(
     const formattedPack = usePack && pack ? formatContentPackForPrompt(pack) : "";
     const inputHashForCache = usePack ? generateCacheKey(formattedPack) : generateCacheKey(sourceContent);
 
-    async function generateOnePlatform(platform: Platform): Promise<GenerationResult> {
-      const platformOperationId = `${operationId}_platform_${platform}`;
+    async function generateOneSlot(slot: GenerationSlot): Promise<GenerationResult> {
+      const { platform, seriesIndex } = slot;
+      const platformOperationId = `${operationId}_slot_${platform}_${seriesIndex}`;
       PerformanceMonitor.startMeasurement(platformOperationId, {
         userId,
         projectId,
         platform,
+        seriesIndex,
       });
 
-      try {
-        const systemPrompt = getPlatformSystemPrompt(platform);
-        const userTemplate = usePack
-          ? getPlatformUserTemplateFromPack(platform)
-          : getPlatformUserTemplate(platform);
-        const userMessage = usePack
-          ? formatPrompt(userTemplate, { contentPack: formattedPack, brandVoice: brandVoiceStr })
-          : formatPrompt(userTemplate, { sourceContent, brandVoice: brandVoiceStr });
-
-        const cacheKey = buildGenerationCacheKey({
-          userId,
-          projectId,
-          step: usePack ? "generate_from_pack" : "generate",
-          model,
-          platform,
-          inputHash: inputHashForCache,
-          optionsHash,
-          brandVoiceId: brandVoice?.id ?? null,
-          brandVoiceUpdatedAt: brandVoice?.updatedAt ? brandVoice.updatedAt.toISOString() : null,
+      let previousPostsSummary = "";
+      if (seriesIndex > 1) {
+        const previousOutputs = await prisma.output.findMany({
+          where: { projectId, platform, seriesIndex: { lt: seriesIndex } },
+          orderBy: { seriesIndex: "asc" },
+          select: { content: true, seriesIndex: true },
         });
+        previousPostsSummary = previousOutputs
+          .map((o) => `Post ${o.seriesIndex}: ${o.content.slice(0, 220).trim()}${o.content.length > 220 ? "..." : ""}`)
+          .join("\n\n");
+      }
 
-        const temperature = options?.temperature ?? genConfig.temperatureByPlatform[platform];
-        const maxTokens = options?.maxTokens ?? genConfig.maxTokensByPlatform[platform];
+      const systemPrompt = getPlatformSystemPrompt(platform);
+      const userTemplate = usePack
+        ? getPlatformUserTemplateFromPack(platform)
+        : getPlatformUserTemplate(platform);
+      let userMessage = usePack
+        ? formatPrompt(userTemplate, { contentPack: formattedPack, brandVoice: brandVoiceStr })
+        : formatPrompt(userTemplate, { sourceContent, brandVoice: brandVoiceStr });
+      if (seriesTotal > 1) {
+        const seriesContext = getSeriesContext(seriesIndex, seriesTotal);
+        userMessage = seriesContext + "\n\n" + userMessage;
+      }
+      if (previousPostsSummary) {
+        userMessage =
+          "PREVIOUS POSTS IN THIS SERIES:\n" +
+          previousPostsSummary +
+          "\n\nYour post should build on these without repeating them.\n\n" +
+          userMessage;
+      }
+
+      const cacheKey = buildGenerationCacheKey({
+        userId,
+        projectId,
+        step: usePack ? "generate_from_pack" : "generate",
+        model,
+        platform,
+        inputHash: inputHashForCache,
+        optionsHash,
+        brandVoiceId: brandVoice?.id ?? null,
+        brandVoiceUpdatedAt: brandVoice?.updatedAt ? brandVoice.updatedAt.toISOString() : null,
+        seriesIndex,
+        seriesTotal,
+      });
+
+      const temperature = options?.temperature ?? genConfig.temperatureByPlatform[platform];
+      const maxTokens = options?.maxTokens ?? genConfig.maxTokensByPlatform[platform];
+
+      try {
         const startMs = Date.now();
         const generationResult = await generateContentWithGracefulDegradation(
           userMessage,
           systemPrompt,
-          {
-            ...options,
-            model,
-            temperature,
-            maxTokens,
-          },
+          { ...options, model, temperature, maxTokens },
           3,
           cacheKey,
           CACHE_TTL.OUTPUTS_SECONDS
@@ -222,9 +258,9 @@ export async function generateForPlatforms(
           seed: null as number | null,
         };
 
-        await prisma.output.upsert({
+        const output = await prisma.output.upsert({
           where: {
-            projectId_platform: { projectId, platform },
+            projectId_platform_seriesIndex: { projectId, platform, seriesIndex },
           },
           update: {
             content: sanitizedContent,
@@ -234,6 +270,7 @@ export async function generateForPlatforms(
           create: {
             projectId,
             platform,
+            seriesIndex,
             content: sanitizedContent,
             generationMetadata: metadata as object,
           },
@@ -241,6 +278,8 @@ export async function generateForPlatforms(
 
         const result: GenerationResult = {
           platform,
+          seriesIndex,
+          outputId: output.id,
           content: generationResult.content,
           success: true,
           metadata: {
@@ -249,22 +288,20 @@ export async function generateForPlatforms(
             maxTokens,
             timestamp: new Date(),
             success: true,
-            source: generationResult.source, // Track if content came from API, cache, or template
-            brandVoiceId: brandVoice?.id, // Track which brand voice was used
+            source: generationResult.source,
+            brandVoiceId: brandVoice?.id,
           },
         };
-
         results.push(result);
         return result;
       } catch (error) {
-        Logger.error("Error generating content for platform", error as Error, {
+        Logger.error("Error generating content for platform slot", error as Error, {
           userId,
           projectId,
           platform,
+          seriesIndex,
         });
 
-        const temperature = options?.temperature ?? genConfig.temperatureByPlatform[platform];
-        const maxTokens = options?.maxTokens ?? genConfig.maxTokensByPlatform[platform];
         const errorMetadata = {
           model,
           temperature,
@@ -272,12 +309,12 @@ export async function generateForPlatforms(
           timestamp: new Date().toISOString(),
           success: false,
           errorMessage: error instanceof Error ? error.message : String(error),
-          brandVoiceId: brandVoice?.id, // Track which brand voice was used
+          brandVoiceId: brandVoice?.id,
         };
 
         await prisma.output.upsert({
           where: {
-            projectId_platform: { projectId, platform },
+            projectId_platform_seriesIndex: { projectId, platform, seriesIndex },
           },
           update: {
             content: "",
@@ -286,6 +323,7 @@ export async function generateForPlatforms(
           create: {
             projectId,
             platform,
+            seriesIndex,
             content: "",
             generationMetadata: errorMetadata as object,
           },
@@ -293,6 +331,7 @@ export async function generateForPlatforms(
 
         const result: GenerationResult = {
           platform,
+          seriesIndex,
           content: "",
           success: false,
           metadata: {
@@ -306,7 +345,6 @@ export async function generateForPlatforms(
           },
           error: error instanceof Error ? error.message : String(error),
         };
-
         results.push(result);
         return result;
       } finally {
@@ -314,14 +352,20 @@ export async function generateForPlatforms(
       }
     }
 
-    await runWithConcurrency(platforms, GENERATION_CONCURRENCY, generateOnePlatform);
+    // Process slots by seriesIndex so post 2/3 have previous posts in DB
+    const maxSeriesIndex = slots.length > 0 ? Math.max(...slots.map((s) => s.seriesIndex)) : 0;
+    for (let idx = 1; idx <= maxSeriesIndex; idx++) {
+      const group = slots.filter((s) => s.seriesIndex === idx);
+      await runWithConcurrency(group, GENERATION_CONCURRENCY, generateOneSlot);
+    }
 
     // Separate successful and failed results
-    const successful = results.filter(r => r.success);
-    const failed = results.filter(r => !r.success);
+    const successful = results.filter((r) => r.success);
+    const failed = results.filter((r) => !r.success);
 
     await logProjectChange(projectId, userId, "generate", {
       platforms,
+      slots: slots.length,
       successful: successful.length,
       failed: failed.length,
       brandVoiceId: brandVoice?.id,
@@ -333,13 +377,14 @@ export async function generateForPlatforms(
       projectId,
       successful: successful.length,
       failed: failed.length,
+      totalSlots: slots.length,
       brandVoiceId: brandVoice?.id,
     });
 
     return {
       successful,
       failed,
-      totalRequested: platforms.length,
+      totalRequested: slots.length,
     };
   } finally {
     // End overall performance monitoring
@@ -348,9 +393,8 @@ export async function generateForPlatforms(
 }
 
 /**
- * Regenerate content for a specific platform
+ * Regenerate content for a specific platform slot (single post or series post).
  */
-
 export async function regenerateForPlatform(
   projectId: string,
   userId: string,
@@ -358,18 +402,20 @@ export async function regenerateForPlatform(
   platform: Platform,
   options?: GenerationOptions,
   brandVoiceId?: string,
-  plan: Plan = "free"
+  plan: Plan = "free",
+  seriesIndex: number = 1
 ): Promise<GenerationResult> {
   const genConfig = getModelConfig(plan).generate;
   const model = options?.model ?? genConfig.defaultModel;
   const temperature = options?.temperature ?? genConfig.temperatureByPlatform[platform];
   const maxTokens = options?.maxTokens ?? genConfig.maxTokensByPlatform[platform];
-  const operationId = `regenerateForPlatform_${projectId}_${platform}`;
+  const operationId = `regenerateForPlatform_${projectId}_${platform}_${seriesIndex}`;
 
   PerformanceMonitor.startMeasurement(operationId, {
     userId,
     projectId,
     platform,
+    seriesIndex,
     model,
   });
 
@@ -383,6 +429,7 @@ export async function regenerateForPlatform(
     if (!project) {
       throw new Error("Project not found or access denied");
     }
+    const seriesTotal = (project as { postsPerPlatform?: number | null }).postsPerPlatform ?? 1;
 
     let brandVoice: { id: string; updatedAt: Date; tone: string; style: string; personality: string; sentenceStructure: string; vocabulary: string[]; avoidVocabulary: string[]; examples: string[] } | null = null;
     if (brandVoiceId) {
@@ -395,7 +442,7 @@ export async function regenerateForPlatform(
 
     try {
       const existingOutput = await prisma.output.findUnique({
-        where: { projectId_platform: { projectId, platform } },
+        where: { projectId_platform_seriesIndex: { projectId, platform, seriesIndex } },
       });
       if (existingOutput && existingOutput.content.trim()) {
         await prisma.outputVersion.create({
@@ -407,12 +454,35 @@ export async function regenerateForPlatform(
         });
       }
 
+      let previousPostsSummary = "";
+      if (seriesIndex > 1) {
+        const previousOutputs = await prisma.output.findMany({
+          where: { projectId, platform, seriesIndex: { lt: seriesIndex } },
+          orderBy: { seriesIndex: "asc" },
+          select: { content: true, seriesIndex: true },
+        });
+        previousPostsSummary = previousOutputs
+          .map((o) => `Post ${o.seriesIndex}: ${o.content.slice(0, 220).trim()}${o.content.length > 220 ? "..." : ""}`)
+          .join("\n\n");
+      }
+
       const systemPrompt = getPlatformSystemPrompt(platform);
       const userTemplate = getPlatformUserTemplate(platform);
-      const userMessage = formatPrompt(userTemplate, {
+      let userMessage = formatPrompt(userTemplate, {
         sourceContent,
         brandVoice: serializeBrandVoiceForPrompt(brandVoice),
       });
+      if (seriesTotal > 1) {
+        const seriesContext = getSeriesContext(seriesIndex, seriesTotal);
+        userMessage = seriesContext + "\n\n" + userMessage;
+      }
+      if (previousPostsSummary) {
+        userMessage =
+          "PREVIOUS POSTS IN THIS SERIES:\n" +
+          previousPostsSummary +
+          "\n\nYour post should build on these without repeating them.\n\n" +
+          userMessage;
+      }
 
       const cacheKey = buildGenerationCacheKey({
         userId,
@@ -424,6 +494,8 @@ export async function regenerateForPlatform(
         optionsHash: generateCacheKey(JSON.stringify(options ?? {})),
         brandVoiceId: brandVoice?.id ?? null,
         brandVoiceUpdatedAt: brandVoice?.updatedAt ? brandVoice.updatedAt.toISOString() : null,
+        seriesIndex,
+        seriesTotal,
       });
 
       const startMs = Date.now();
@@ -451,9 +523,9 @@ export async function regenerateForPlatform(
         seed: null as number | null,
       };
 
-      await prisma.output.upsert({
+      const output = await prisma.output.upsert({
         where: {
-          projectId_platform: { projectId, platform },
+          projectId_platform_seriesIndex: { projectId, platform, seriesIndex },
         },
         update: {
           content: generationResult.content,
@@ -463,6 +535,7 @@ export async function regenerateForPlatform(
         create: {
           projectId,
           platform,
+          seriesIndex,
           content: generationResult.content,
           generationMetadata: metadata as object,
         },
@@ -470,6 +543,8 @@ export async function regenerateForPlatform(
 
       const result: GenerationResult = {
         platform,
+        seriesIndex,
+        outputId: output.id,
         content: generationResult.content,
         success: true,
         metadata: {
@@ -488,6 +563,7 @@ export async function regenerateForPlatform(
         userId,
         projectId,
         platform,
+        seriesIndex,
         brandVoiceId: brandVoice?.id,
       });
 
@@ -497,10 +573,12 @@ export async function regenerateForPlatform(
         userId,
         projectId,
         platform,
+        seriesIndex,
       });
 
       const result: GenerationResult = {
         platform,
+        seriesIndex,
         content: "",
         success: false,
         metadata: {

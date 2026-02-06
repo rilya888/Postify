@@ -9,6 +9,7 @@ export type Project = {
   title: string;
   sourceContent: string;
   platforms: Platform[];
+  postsPerPlatform?: number | null; // Enterprise: 1..3 posts per platform (series)
   createdAt: Date;
   updatedAt: Date;
 };
@@ -20,6 +21,7 @@ export type CreateProjectInput = {
   title: string;
   sourceContent: string;
   platforms: Platform[];
+  postsPerPlatform?: 1 | 2 | 3;
 };
 
 /**
@@ -29,6 +31,8 @@ export type UpdateProjectInput = Partial<{
   title: string;
   sourceContent: string;
   platforms: Platform[];
+  postsPerPlatform: 1 | 2 | 3;
+  confirmDeleteExtraPosts?: boolean;
 }>;
 
 /**
@@ -38,6 +42,7 @@ export type ProjectWithOutputs = Project & {
   outputs: {
     id: string;
     platform: Platform;
+    seriesIndex?: number; // 1-based; treat missing as 1 for backward compatibility
     content: string;
     isEdited: boolean;
     createdAt: Date;

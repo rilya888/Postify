@@ -19,6 +19,7 @@ const GENERATION_KEY_PREFIX = "gen_";
 /**
  * Build deterministic cache key for generation (no Date.now()).
  * Key = gen_${projectId}_ + sha256(...) so project cache can be invalidated.
+ * Include seriesIndex and seriesTotal so series posts do not share cache.
  */
 export function buildGenerationCacheKey(params: {
   userId: string;
@@ -30,6 +31,8 @@ export function buildGenerationCacheKey(params: {
   optionsHash: string;
   brandVoiceId: string | null;
   brandVoiceUpdatedAt: string | null;
+  seriesIndex?: number;
+  seriesTotal?: number;
 }): string {
   const parts = [
     params.userId,
@@ -41,6 +44,8 @@ export function buildGenerationCacheKey(params: {
     params.optionsHash,
     params.brandVoiceId ?? "",
     params.brandVoiceUpdatedAt ?? "",
+    String(params.seriesIndex ?? 1),
+    String(params.seriesTotal ?? 1),
   ].join("|");
   return `${GENERATION_KEY_PREFIX}${params.projectId}_${generateCacheKey(parts)}`;
 }

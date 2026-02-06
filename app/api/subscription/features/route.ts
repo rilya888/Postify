@@ -37,10 +37,15 @@ export async function GET() {
       ? new Date(new Date(user.createdAt).getTime() + TRIAL_DURATION_MS).toISOString()
       : null;
 
+  const canUseSeries = plan === "enterprise";
+  const maxPostsPerPlatform = canUseSeries ? 3 : 1;
+
   return NextResponse.json({
     plan,
     planType: audio.planType,
     canUseAudio: audio.allowed,
+    canUseSeries,
+    maxPostsPerPlatform,
     maxProjects: limits?.maxProjects ?? 0,
     maxCharactersPerContent: limits?.maxCharactersPerContent ?? 0,
     audioLimits:

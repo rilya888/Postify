@@ -7,6 +7,7 @@ import { logProjectChange } from "@/lib/services/project-history";
 import { invalidateProjectGenerationCache } from "@/lib/services/cache";
 import { checkProjectsRateLimit } from "@/lib/utils/rate-limit";
 import { Logger } from "@/lib/utils/logger";
+import { getEffectivePlan } from "@/lib/constants/plans";
 import { z } from "zod";
 
 function rateLimitResponse(rateLimit: { retryAfterSeconds?: number }) {
@@ -57,7 +58,7 @@ export async function GET(
       where: { id: params.id },
       include: {
         outputs: {
-          orderBy: { platform: "asc" },
+          orderBy: [{ platform: "asc" }, { seriesIndex: "asc" }],
         },
       },
     });
@@ -118,16 +119,57 @@ export async function PATCH(
     const body = await request.json();
     const validatedData = updateProjectSchema.parse(body);
 
-    // Check if project exists and belongs to user
-    const existingProject = await prisma.project.findUnique({
-      where: { id: params.id },
-    });
+    const [existingProject, user, subscription] = await Promise.all([
+      prisma.project.findUnique({ where: { id: params.id } }),
+      prisma.user.findUnique({ where: { id: session.user.id }, select: { createdAt: true } }),
+      prisma.subscription.findUnique({ where: { userId: session.user.id } }),
+    ]);
 
     if (!existingProject || existingProject.userId !== session.user.id) {
       return createErrorResponse(
         { error: "Project not found", code: "PROJECT_NOT_FOUND" },
         404
       );
+    }
+
+    const plan = getEffectivePlan(subscription, user?.createdAt ?? null);
+    const newPostsPerPlatform =
+      validatedData.postsPerPlatform != null
+        ? plan === "enterprise"
+          ? validatedData.postsPerPlatform
+          : 1
+        : existingProject.postsPerPlatform ?? 1;
+
+    if (validatedData.postsPerPlatform != null && newPostsPerPlatform < (existingProject.postsPerPlatform ?? 1)) {
+      const extraCount = await prisma.output.count({
+        where: {
+          projectId: params.id,
+          seriesIndex: { gt: newPostsPerPlatform },
+        },
+      });
+      if (extraCount > 0 && !validatedData.confirmDeleteExtraPosts) {
+        return createErrorResponse(
+          {
+            error: "Extra posts exist",
+            code: "EXTRA_POSTS_EXIST",
+            message: `Reducing to ${newPostsPerPlatform} posts per platform will delete ${extraCount} existing post(s). Confirm to proceed.`,
+            extraPostsCount: extraCount,
+            affectedSeriesIndexes: Array.from(
+              { length: extraCount },
+              (_, i) => newPostsPerPlatform + 1 + i
+            ),
+          },
+          400
+        );
+      }
+      if (validatedData.confirmDeleteExtraPosts && extraCount > 0) {
+        await prisma.output.deleteMany({
+          where: {
+            projectId: params.id,
+            seriesIndex: { gt: newPostsPerPlatform },
+          },
+        });
+      }
     }
 
     // Check for duplicate title if title is being updated
@@ -147,13 +189,23 @@ export async function PATCH(
       }
     }
 
+    const updateData: {
+      title?: string;
+      sourceContent?: string;
+      platforms?: string[];
+      postsPerPlatform?: number | null;
+    } = {
+      title: validatedData.title,
+      sourceContent: validatedData.sourceContent,
+      platforms: validatedData.platforms,
+    };
+    if (validatedData.postsPerPlatform !== undefined) {
+      updateData.postsPerPlatform = newPostsPerPlatform === 1 ? null : newPostsPerPlatform;
+    }
+
     const project = await prisma.project.update({
       where: { id: params.id },
-      data: {
-        title: validatedData.title,
-        sourceContent: validatedData.sourceContent,
-        platforms: validatedData.platforms,
-      },
+      data: updateData,
     });
 
     if (validatedData.sourceContent !== undefined) {

@@ -6,6 +6,7 @@ import { checkProjectQuota } from "@/lib/services/quota";
 import { logProjectChange } from "@/lib/services/project-history";
 import { checkProjectsRateLimit } from "@/lib/utils/rate-limit";
 import { Logger } from "@/lib/utils/logger";
+import { getEffectivePlan } from "@/lib/constants/plans";
 import { z } from "zod";
 
 /**
@@ -179,6 +180,16 @@ export async function POST(request: Request) {
     const body = await request.json();
     const validatedData = createProjectSchema.parse(body);
 
+    const [user, subscription] = await Promise.all([
+      prisma.user.findUnique({ where: { id: session.user.id }, select: { createdAt: true } }),
+      prisma.subscription.findUnique({ where: { userId: session.user.id } }),
+    ]);
+    const plan = getEffectivePlan(subscription, user?.createdAt ?? null);
+    const postsPerPlatform =
+      plan === "enterprise" && validatedData.postsPerPlatform != null
+        ? validatedData.postsPerPlatform
+        : 1;
+
     // Check for duplicate title
     const existingProject = await prisma.project.findFirst({
       where: {
@@ -200,6 +211,7 @@ export async function POST(request: Request) {
         title: validatedData.title,
         sourceContent: validatedData.sourceContent ?? "",
         platforms: validatedData.platforms,
+        postsPerPlatform: postsPerPlatform === 1 ? null : postsPerPlatform,
       },
     });
 
@@ -207,6 +219,7 @@ export async function POST(request: Request) {
     await logProjectChange(project.id, session.user.id, "create", {
       title: validatedData.title,
       platforms: validatedData.platforms,
+      postsPerPlatform: project.postsPerPlatform ?? undefined,
     });
 
     Logger.info("Created project", { userId: session.user.id, projectId: project.id });

@@ -17,6 +17,13 @@ import {
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { Loader2, FileText, Mic, UploadIcon } from "lucide-react";
 import { toast } from "sonner";
 import { ProjectForm } from "@/components/projects/project-form";
@@ -29,12 +36,15 @@ const audioFormSchema = z.object({
     .array(z.enum(["linkedin", "twitter", "email", "instagram", "facebook", "tiktok", "youtube"]))
     .min(1, "Select at least one platform")
     .max(7, "Maximum 7 platforms allowed"),
+  postsPerPlatform: z.union([z.literal(1), z.literal(2), z.literal(3)]).optional(),
 });
 
 type AudioFormData = z.infer<typeof audioFormSchema>;
 
 type PlanFeatures = {
   canUseAudio: boolean;
+  canUseSeries: boolean;
+  maxPostsPerPlatform: number;
   audioLimits?: { usedMinutes: number; limitMinutes: number } | null;
 };
 
@@ -55,6 +65,7 @@ export function NewProjectFlow() {
     defaultValues: {
       title: "",
       platforms: ["linkedin"],
+      postsPerPlatform: 1,
     },
   });
 
@@ -67,6 +78,8 @@ export function NewProjectFlow() {
         const data = await res.json();
         setPlanFeatures({
           canUseAudio: data.canUseAudio === true,
+          canUseSeries: data.canUseSeries === true,
+          maxPostsPerPlatform: typeof data.maxPostsPerPlatform === "number" ? data.maxPostsPerPlatform : 1,
           audioLimits: data.audioLimits ?? null,
         });
       } catch {
@@ -96,6 +109,9 @@ export function NewProjectFlow() {
           title: data.title,
           platforms: data.platforms,
           sourceContent: "",
+          ...(planFeatures?.canUseSeries && data.postsPerPlatform != null && data.postsPerPlatform > 1
+            ? { postsPerPlatform: data.postsPerPlatform }
+            : {}),
         }),
       });
 
@@ -229,6 +245,39 @@ export function NewProjectFlow() {
                     </FormItem>
                   )}
                 />
+
+                {planFeatures?.canUseSeries && (
+                  <FormField
+                    control={audioForm.control}
+                    name="postsPerPlatform"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>{tGen("postsPerPlatform")}</FormLabel>
+                        <FormControl>
+                          <Select
+                            value={String(field.value ?? 1)}
+                            onValueChange={(v) => field.onChange(Number(v) as 1 | 2 | 3)}
+                            disabled={audioStep !== "idle"}
+                          >
+                            <SelectTrigger>
+                              <SelectValue placeholder={tGen("postsPerPlatform")} />
+                            </SelectTrigger>
+                            <SelectContent>
+                              {[1, 2, 3]
+                                .filter((n) => n <= (planFeatures?.maxPostsPerPlatform ?? 1))
+                                .map((n) => (
+                                  <SelectItem key={n} value={String(n)}>
+                                    {n === 1 ? "1 post" : `${n} posts (series)`}
+                                  </SelectItem>
+                                ))}
+                            </SelectContent>
+                          </Select>
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                )}
 
                 <FormItem>
                   <FormLabel>Audio file *</FormLabel>

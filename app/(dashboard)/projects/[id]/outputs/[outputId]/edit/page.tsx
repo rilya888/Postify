@@ -49,7 +49,7 @@ const PreviewPanel = dynamic(
   }
 );
 import { useAutoSave } from '@/hooks/use-auto-save';
-import { Platform } from '@/lib/constants/platforms';
+import { Platform, PLATFORMS } from '@/lib/constants/platforms';
 import { PLATFORM_CHARACTER_LIMITS } from '@/lib/constants/editor';
 import { VersionHistoryPanel } from '@/components/editor/version-history-panel';
 
@@ -68,6 +68,8 @@ export default function EditOutputPage() {
   const [serverOriginalContent, setServerOriginalContent] = useState<string | null>(null);
   const [showOriginal, setShowOriginal] = useState(false);
   const [outputsList, setOutputsList] = useState<{ id: string; platform: string }[]>([]);
+  const [seriesIndex, setSeriesIndex] = useState<number | null>(null);
+  const [postsPerPlatform, setPostsPerPlatform] = useState<number | null>(null);
   const [showRestoreDialog, setShowRestoreDialog] = useState(false);
   const [pendingDraft, setPendingDraft] = useState<string | null>(null);
 
@@ -106,6 +108,7 @@ export default function EditOutputPage() {
         setContent(output.content);
         setOriginalContent(output.content);
         setPlatform(output.platform as Platform);
+        setSeriesIndex(output.seriesIndex ?? null);
         setCanRevert(!!output.originalContent);
         setServerOriginalContent(output.originalContent ?? null);
         const draftKey = projectId && outputId ? `editor-draft-${projectId}-${outputId}` : null;
@@ -120,8 +123,10 @@ export default function EditOutputPage() {
         }
         if (projectRes?.ok) {
           const projectData = await projectRes.json();
-          const list = projectData?.project?.outputs ?? projectData?.outputs ?? [];
+          const proj = projectData?.project ?? projectData;
+          const list = proj?.outputs ?? [];
           setOutputsList(list.map((o: { id: string; platform: string }) => ({ id: o.id, platform: o.platform })));
+          setPostsPerPlatform(proj?.postsPerPlatform ?? null);
         }
         setIsLoading(false);
       } catch (error) {
@@ -336,7 +341,9 @@ export default function EditOutputPage() {
           <div>
             <h1 className="text-3xl font-bold">Edit Content</h1>
             <p className="text-muted-foreground">
-              Edit the generated content for {platform}
+              {postsPerPlatform != null && postsPerPlatform > 1 && seriesIndex != null
+                ? `${PLATFORMS[platform]?.name ?? platform} — Post ${seriesIndex}`
+                : `Edit the generated content for ${platform}`}
             </p>
           </div>
           {outputsList.length > 1 && (

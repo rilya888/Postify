@@ -39,6 +39,8 @@ export type GenerationMetadata = {
  */
 export type GenerationResult = {
   platform: Platform;
+  seriesIndex?: number;
+  outputId?: string;
   content: string;
   success: boolean;
   metadata: GenerationMetadata;
