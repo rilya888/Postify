@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { Prisma } from "@prisma/client";
 import { auth } from "@/lib/auth/config";
 import { prisma } from "@/lib/db/prisma";
 import { createErrorResponse, createSuccessResponse } from "@/lib/utils/api-error";
@@ -220,20 +221,16 @@ export async function PATCH(
       }
     }
 
-    const updateData: {
-      title?: string;
-      sourceContent?: string;
-      platforms?: string[];
-      postsPerPlatform?: number | null;
-      postsPerPlatformByPlatform?: Record<string, number> | null;
-    } = {
+    const updateData: Prisma.ProjectUpdateInput = {
       title: validatedData.title,
       sourceContent: validatedData.sourceContent,
       platforms: validatedData.platforms,
     };
     if (validatedData.postsPerPlatformByPlatform !== undefined) {
       updateData.postsPerPlatformByPlatform =
-        effectiveByPlatform && Object.keys(effectiveByPlatform).length > 0 ? effectiveByPlatform : null;
+        effectiveByPlatform && Object.keys(effectiveByPlatform).length > 0
+          ? (effectiveByPlatform as Prisma.InputJsonValue)
+          : Prisma.JsonNull;
       updateData.postsPerPlatform =
         effectiveByPlatform && Object.keys(effectiveByPlatform).length > 0
           ? Math.max(...Object.values(effectiveByPlatform), 1) === 1
