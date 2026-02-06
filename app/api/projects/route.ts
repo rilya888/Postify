@@ -185,10 +185,28 @@ export async function POST(request: Request) {
       prisma.subscription.findUnique({ where: { userId: session.user.id } }),
     ]);
     const plan = getEffectivePlan(subscription, user?.createdAt ?? null);
-    const postsPerPlatform =
-      plan === "enterprise" && validatedData.postsPerPlatform != null
+
+    // Prefer postsPerPlatformByPlatform when present and non-empty; otherwise legacy postsPerPlatform
+    const byPlatform = validatedData.postsPerPlatformByPlatform;
+    const useByPlatform =
+      plan === "enterprise" &&
+      byPlatform &&
+      typeof byPlatform === "object" &&
+      !Array.isArray(byPlatform) &&
+      Object.keys(byPlatform).length > 0;
+    const platformsList = validatedData.platforms;
+    const filteredByPlatform =
+      useByPlatform && byPlatform
+        ? (Object.fromEntries(
+            platformsList.filter((p) => p in byPlatform).map((p) => [p, byPlatform[p as keyof typeof byPlatform] as number])
+          ) as Record<string, number>)
+        : undefined;
+    const hasFilteredByPlatform = filteredByPlatform && Object.keys(filteredByPlatform).length > 0;
+    const legacyPostsPerPlatform = !hasFilteredByPlatform
+      ? plan === "enterprise" && validatedData.postsPerPlatform != null
         ? validatedData.postsPerPlatform
-        : 1;
+        : 1
+      : Math.max(...Object.values(filteredByPlatform!), 1);
 
     // Check for duplicate title
     const existingProject = await prisma.project.findFirst({
@@ -211,7 +229,8 @@ export async function POST(request: Request) {
         title: validatedData.title,
         sourceContent: validatedData.sourceContent ?? "",
         platforms: validatedData.platforms,
-        postsPerPlatform: postsPerPlatform === 1 ? null : postsPerPlatform,
+        postsPerPlatform: legacyPostsPerPlatform === 1 ? null : legacyPostsPerPlatform,
+        postsPerPlatformByPlatform: hasFilteredByPlatform ? filteredByPlatform : undefined,
       },
     });
 
@@ -220,6 +239,7 @@ export async function POST(request: Request) {
       title: validatedData.title,
       platforms: validatedData.platforms,
       postsPerPlatform: project.postsPerPlatform ?? undefined,
+      postsPerPlatformByPlatform: project.postsPerPlatformByPlatform ?? undefined,
     });
 
     Logger.info("Created project", { userId: session.user.id, projectId: project.id });

@@ -50,9 +50,27 @@ interface Project {
   sourceContent: string;
   platforms: string[];
   postsPerPlatform?: number | null;
+  postsPerPlatformByPlatform?: Record<string, number> | null;
   createdAt: Date;
   updatedAt: Date;
   outputs: Output[];
+}
+
+function getPostCountForPlatform(project: Project, platform: string): number {
+  const byPlatform = project.postsPerPlatformByPlatform;
+  if (byPlatform && typeof byPlatform === "object" && platform in byPlatform) {
+    const n = byPlatform[platform];
+    return n >= 1 && n <= 3 ? n : 1;
+  }
+  return project.postsPerPlatform ?? 1;
+}
+
+function hasSeriesPerPlatform(project: Project): boolean {
+  const byPlatform = project.postsPerPlatformByPlatform;
+  if (byPlatform && typeof byPlatform === "object" && Object.keys(byPlatform).length > 0) {
+    return Object.values(byPlatform).some((n) => n > 1);
+  }
+  return (project.postsPerPlatform ?? 1) > 1;
 }
 
 export default function GeneratePage() {
@@ -187,9 +205,6 @@ export default function GeneratePage() {
         platforms: selectedPlatforms,
         sourceContent: project.sourceContent,
       };
-      if ((project.postsPerPlatform ?? 1) > 1) {
-        body.postsPerPlatform = project.postsPerPlatform;
-      }
       const res = await fetch("/api/generate", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -358,7 +373,6 @@ export default function GeneratePage() {
           projectId: project.id,
           platforms: [platform],
           sourceContent: project.sourceContent,
-          ...((project.postsPerPlatform ?? 1) > 1 ? { postsPerPlatform: project.postsPerPlatform } : {}),
         }),
       });
       if (!res.ok) {
@@ -442,17 +456,15 @@ export default function GeneratePage() {
     try {
       setRegeneratingSeriesPlatform(platform);
       setError(null);
-      const body: Record<string, unknown> = {
-        projectId: project.id,
-        platforms: [platform],
-        sourceContent: project.sourceContent,
-        regenerateSeriesForPlatform: platform,
-      };
-      if ((project.postsPerPlatform ?? 1) > 1) body.postsPerPlatform = project.postsPerPlatform;
       const res = await fetch("/api/generate", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(body),
+        body: JSON.stringify({
+          projectId: project.id,
+          platforms: [platform],
+          sourceContent: project.sourceContent,
+          regenerateSeriesForPlatform: platform,
+        }),
       });
       if (!res.ok) {
         const resBody = await res.json().catch(() => ({}));
@@ -479,17 +491,15 @@ export default function GeneratePage() {
     try {
       setRegeneratingSeriesPlatform(platform);
       setError(null);
-      const body: Record<string, unknown> = {
-        projectId: project.id,
-        platforms: [platform],
-        sourceContent: project.sourceContent,
-        regenerateFromIndex: { platform, seriesIndex },
-        postsPerPlatform: project.postsPerPlatform ?? 1,
-      };
       const res = await fetch("/api/generate", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(body),
+        body: JSON.stringify({
+          projectId: project.id,
+          platforms: [platform],
+          sourceContent: project.sourceContent,
+          regenerateFromIndex: { platform, seriesIndex },
+        }),
       });
       if (!res.ok) {
         const resBody = await res.json().catch(() => ({}));
@@ -670,9 +680,11 @@ export default function GeneratePage() {
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-3">
-          {(project.postsPerPlatform ?? 1) > 1 && (
+          {hasSeriesPerPlatform(project) && (
             <p className="text-sm text-muted-foreground">
-              {tGen("willGenerateSeries", { n: project.postsPerPlatform ?? 1 })}
+              {project.postsPerPlatformByPlatform && typeof project.postsPerPlatformByPlatform === "object" && Object.keys(project.postsPerPlatformByPlatform).length > 0
+                ? tGen("seriesPerPlatformSummary")
+                : tGen("willGenerateSeries", { n: project.postsPerPlatform ?? 1 })}
             </p>
           )}
           <PlatformSelector 
@@ -889,12 +901,11 @@ export default function GeneratePage() {
       )}
       
       {project.outputs && project.outputs.length > 0 && (() => {
-        const postsPerPlatform = project.postsPerPlatform ?? 1;
-        const byPlatform = new Map<string, Output[]>();
+        const byPlatformMap = new Map<string, Output[]>();
         for (const o of project.outputs) {
-          const list = byPlatform.get(o.platform) ?? [];
+          const list = byPlatformMap.get(o.platform) ?? [];
           list.push(o);
-          byPlatform.set(o.platform, list);
+          byPlatformMap.set(o.platform, list);
         }
         return (
           <div className="space-y-6">
@@ -902,8 +913,8 @@ export default function GeneratePage() {
             <p className="text-sm text-muted-foreground">
               Content that was previously generated for this project
             </p>
-            {Array.from(byPlatform.entries()).map(([platform, posts]) => {
-              const seriesTotal = postsPerPlatform > 1 ? postsPerPlatform : 1;
+            {Array.from(byPlatformMap.entries()).map(([platform, posts]) => {
+              const seriesTotal = getPostCountForPlatform(project, platform);
               const sortedPosts = [...posts].sort((a, b) => (a.seriesIndex ?? 1) - (b.seriesIndex ?? 1));
               if (seriesTotal > 1) {
                 return (

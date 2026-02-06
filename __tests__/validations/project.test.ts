@@ -57,6 +57,57 @@ describe("project validation", () => {
       });
       expect(result.success).toBe(false);
     });
+
+    it("accepts valid postsPerPlatformByPlatform (sum <= 10)", () => {
+      const result = createProjectSchema.safeParse({
+        ...validBase,
+        platforms: ["linkedin", "tiktok"],
+        postsPerPlatformByPlatform: { linkedin: 2, tiktok: 3 },
+      });
+      expect(result.success).toBe(true);
+    });
+
+    it("rejects when sum of postsPerPlatformByPlatform > 10", () => {
+      const result = createProjectSchema.safeParse({
+        ...validBase,
+        platforms: ["linkedin", "twitter", "email", "instagram"],
+        postsPerPlatformByPlatform: { linkedin: 3, twitter: 3, email: 3, instagram: 3 },
+      });
+      expect(result.success).toBe(false);
+      if (!result.success) {
+        expect(result.error.issues.some((i) => i.path.includes("postsPerPlatform") || i.path.includes("postsPerPlatformByPlatform"))).toBe(true);
+      }
+    });
+
+    it("rejects when postsPerPlatformByPlatform has key not in platforms", () => {
+      const result = createProjectSchema.safeParse({
+        ...validBase,
+        platforms: ["linkedin"],
+        postsPerPlatformByPlatform: { linkedin: 2, twitter: 3 },
+      });
+      expect(result.success).toBe(false);
+      if (!result.success) {
+        expect(result.error.issues.some((i) => i.path.includes("postsPerPlatformByPlatform"))).toBe(true);
+      }
+    });
+
+    it("rejects when postsPerPlatformByPlatform has invalid value (e.g. 4)", () => {
+      const result = createProjectSchema.safeParse({
+        ...validBase,
+        platforms: ["linkedin"],
+        postsPerPlatformByPlatform: { linkedin: 4 },
+      });
+      expect(result.success).toBe(false);
+    });
+
+    it("accepts map without postsPerPlatform (backward compatibility)", () => {
+      const result = createProjectSchema.safeParse({
+        ...validBase,
+        platforms: ["linkedin", "twitter"],
+        postsPerPlatformByPlatform: { linkedin: 1, twitter: 2 },
+      });
+      expect(result.success).toBe(true);
+    });
   });
 
   describe("createProjectSchemaForTextForm", () => {
@@ -118,6 +169,25 @@ describe("project validation", () => {
         postsPerPlatform: 3,
       });
       expect(result.success).toBe(true);
+    });
+
+    it("accepts postsPerPlatformByPlatform within limit", () => {
+      const result = updateProjectSchema.safeParse({
+        platforms: ["linkedin", "tiktok"],
+        postsPerPlatformByPlatform: { linkedin: 2, tiktok: 2 },
+      });
+      expect(result.success).toBe(true);
+    });
+
+    it("rejects update when postsPerPlatformByPlatform keys not in platforms", () => {
+      const result = updateProjectSchema.safeParse({
+        platforms: ["linkedin"],
+        postsPerPlatformByPlatform: { linkedin: 2, twitter: 3 },
+      });
+      expect(result.success).toBe(false);
+      if (!result.success) {
+        expect(result.error.issues.some((i) => i.path.includes("postsPerPlatformByPlatform"))).toBe(true);
+      }
     });
   });
 });

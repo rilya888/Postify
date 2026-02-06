@@ -17,27 +17,41 @@ import {
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
 import { Loader2, FileText, Mic, UploadIcon } from "lucide-react";
 import { toast } from "sonner";
 import { ProjectForm } from "@/components/projects/project-form";
 import PlatformSelector from "@/components/ai/platform-selector";
+import PlatformSelectorWithPostCount from "@/components/ai/platform-selector-with-post-count";
 import type { Platform } from "@/lib/constants/platforms";
 
-const audioFormSchema = z.object({
-  title: z.string().min(1, "Title is required").max(200, "Title must be less than 200 characters"),
-  platforms: z
-    .array(z.enum(["linkedin", "twitter", "email", "instagram", "facebook", "tiktok", "youtube"]))
-    .min(1, "Select at least one platform")
-    .max(7, "Maximum 7 platforms allowed"),
-  postsPerPlatform: z.union([z.literal(1), z.literal(2), z.literal(3)]).optional(),
-});
+const platformEnum = z.enum(["linkedin", "twitter", "email", "instagram", "facebook", "tiktok", "youtube"]);
+const postCountSchema = z.union([z.literal(1), z.literal(2), z.literal(3)]);
+
+const audioFormSchema = z
+  .object({
+    title: z.string().min(1, "Title is required").max(200, "Title must be less than 200 characters"),
+    platforms: z.array(platformEnum).min(1, "Select at least one platform").max(7, "Maximum 7 platforms allowed"),
+    postsPerPlatformByPlatform: z.record(platformEnum, postCountSchema).optional(),
+  })
+  .refine(
+    (data) => {
+      const platforms = data.platforms ?? [];
+      const byPlatform = data.postsPerPlatformByPlatform;
+      if (!byPlatform || typeof byPlatform !== "object" || Array.isArray(byPlatform)) return true;
+      const sum = platforms.reduce((s, p) => s + (byPlatform[p] ?? 1), 0);
+      return sum <= 10;
+    },
+    { message: "Total posts across platforms cannot exceed 10", path: ["postsPerPlatformByPlatform"] }
+  )
+  .refine(
+    (data) => {
+      const byPlatform = data.postsPerPlatformByPlatform;
+      if (!byPlatform || typeof byPlatform !== "object" || Array.isArray(byPlatform)) return true;
+      const platformsSet = new Set(data.platforms ?? []);
+      return Object.keys(byPlatform).every((k) => platformsSet.has(k));
+    },
+    { message: "Post count keys must be in selected platforms", path: ["postsPerPlatformByPlatform"] }
+  );
 
 type AudioFormData = z.infer<typeof audioFormSchema>;
 
@@ -65,7 +79,7 @@ export function NewProjectFlow() {
     defaultValues: {
       title: "",
       platforms: ["linkedin"],
-      postsPerPlatform: 1,
+      postsPerPlatformByPlatform: { linkedin: 1 },
     },
   });
 
@@ -102,17 +116,21 @@ export function NewProjectFlow() {
     setAudioStep("creating");
 
     try {
+      const body: Record<string, unknown> = {
+        title: data.title,
+        platforms: data.platforms,
+        sourceContent: "",
+      };
+      if (planFeatures?.canUseSeries && data.postsPerPlatformByPlatform && typeof data.postsPerPlatformByPlatform === "object" && Object.keys(data.postsPerPlatformByPlatform).length > 0) {
+        const filtered = Object.fromEntries(
+          data.platforms.filter((p) => p in data.postsPerPlatformByPlatform!).map((p) => [p, data.postsPerPlatformByPlatform![p as keyof typeof data.postsPerPlatformByPlatform]])
+        );
+        if (Object.keys(filtered).length > 0) body.postsPerPlatformByPlatform = filtered;
+      }
       const createRes = await fetch("/api/projects", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          title: data.title,
-          platforms: data.platforms,
-          sourceContent: "",
-          ...(planFeatures?.canUseSeries && data.postsPerPlatform != null && data.postsPerPlatform > 1
-            ? { postsPerPlatform: data.postsPerPlatform }
-            : {}),
-        }),
+        body: JSON.stringify(body),
       });
 
       const createBody = await createRes.json().catch(() => ({}));
@@ -228,56 +246,53 @@ export function NewProjectFlow() {
                     <FormItem>
                       <FormLabel>Select Platforms *</FormLabel>
                       <FormControl>
-                        <PlatformSelector
-                          selectedPlatforms={field.value ?? []}
-                          onPlatformToggle={(platform) => {
-                            const p = platform as Platform;
-                            const current = field.value ?? [];
-                            const next = current.includes(p)
-                              ? current.filter((x) => x !== p)
-                              : [...current, p];
-                            field.onChange(next);
-                          }}
-                          disabled={audioStep !== "idle"}
-                        />
+                        {planFeatures?.canUseSeries ? (
+                          <PlatformSelectorWithPostCount
+                            selectedPlatforms={field.value ?? []}
+                            postsPerPlatformByPlatform={audioForm.watch("postsPerPlatformByPlatform") ?? {}}
+                            onPlatformToggle={(platform) => {
+                              const p = platform as Platform;
+                              const current = field.value ?? [];
+                              const next = current.includes(p)
+                                ? current.filter((x) => x !== p)
+                                : [...current, p];
+                              field.onChange(next);
+                              const byPlatform = audioForm.getValues("postsPerPlatformByPlatform") ?? {};
+                              if (next.includes(p) && !(p in byPlatform)) {
+                                audioForm.setValue("postsPerPlatformByPlatform", { ...byPlatform, [p]: 1 });
+                              } else if (!next.includes(p)) {
+                                const { [p]: _, ...rest } = byPlatform;
+                                audioForm.setValue("postsPerPlatformByPlatform", rest);
+                              }
+                            }}
+                            onPostsPerPlatformChange={(platform, count) => {
+                              const byPlatform = audioForm.getValues("postsPerPlatformByPlatform") ?? {};
+                              audioForm.setValue("postsPerPlatformByPlatform", { ...byPlatform, [platform]: count });
+                            }}
+                            canUseSeries={planFeatures?.canUseSeries}
+                            maxPostsPerPlatform={planFeatures?.maxPostsPerPlatform ?? 1}
+                            disabled={audioStep !== "idle"}
+                            postsCountLabel={tGen("postsCountLabel")}
+                          />
+                        ) : (
+                          <PlatformSelector
+                            selectedPlatforms={field.value ?? []}
+                            onPlatformToggle={(platform) => {
+                              const p = platform as Platform;
+                              const current = field.value ?? [];
+                              const next = current.includes(p)
+                                ? current.filter((x) => x !== p)
+                                : [...current, p];
+                              field.onChange(next);
+                            }}
+                            disabled={audioStep !== "idle"}
+                          />
+                        )}
                       </FormControl>
                       <FormMessage />
                     </FormItem>
                   )}
                 />
-
-                {planFeatures?.canUseSeries && (
-                  <FormField
-                    control={audioForm.control}
-                    name="postsPerPlatform"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>{tGen("postsPerPlatform")}</FormLabel>
-                        <FormControl>
-                          <Select
-                            value={String(field.value ?? 1)}
-                            onValueChange={(v) => field.onChange(Number(v) as 1 | 2 | 3)}
-                            disabled={audioStep !== "idle"}
-                          >
-                            <SelectTrigger>
-                              <SelectValue placeholder={tGen("postsPerPlatform")} />
-                            </SelectTrigger>
-                            <SelectContent>
-                              {[1, 2, 3]
-                                .filter((n) => n <= (planFeatures?.maxPostsPerPlatform ?? 1))
-                                .map((n) => (
-                                  <SelectItem key={n} value={String(n)}>
-                                    {n === 1 ? "1 post" : `${n} posts (series)`}
-                                  </SelectItem>
-                                ))}
-                            </SelectContent>
-                          </Select>
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                )}
 
                 <FormItem>
                   <FormLabel>Audio file *</FormLabel>

@@ -55,7 +55,7 @@ const GENERATE_MODEL_BY_PLAN: Record<Plan, string> = {
   trial: "gpt-4o-mini",
   free: "gpt-4o-mini",
   pro: "gpt-4o-mini",
-  enterprise: "gpt-4o",
+  enterprise: "gpt-4o-mini",
 };
 
 export type ModelConfig = {

@@ -161,7 +161,9 @@
     "audioPlanTooltip": "Available on Text + Audio plan",
     "audioPlanDescription": "Audio upload is available on the Text + Audio plan. Choose Text or upgrade your subscription.",
     "postsPerPlatform": "Posts per platform",
+    "postsCountLabel": "Posts",
     "postsPerPlatformDescription": "Generate 1 to 3 linked posts per platform (series). Each post reveals more.",
+    "seriesPerPlatformSummary": "Will generate series per platform as configured.",
     "post1": "Post 1",
     "post2": "Post 2",
     "post3": "Post 3",
@@ -178,6 +180,7 @@
     "willGenerateSeries": "Will generate {n} linked posts per platform.",
     "deleteExtraPostsTitle": "Delete extra posts?",
     "deleteExtraPostsDescription": "Reducing to {n} posts per platform will delete {count} existing post(s). This cannot be undone.",
+    "deleteExtraPostsDescriptionPerPlatform": "Reducing posts for some platforms will delete {count} existing post(s). This cannot be undone.",
     "deleteAndUpdate": "Delete and update"
   }
 }

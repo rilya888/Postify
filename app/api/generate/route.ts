@@ -10,6 +10,51 @@ import { PLAN_LIMITS, getEffectivePlan } from "@/lib/constants/plans";
 import type { Plan } from "@/lib/constants/plans";
 import { getAllPlatformIds, type Platform } from "@/lib/constants/platforms";
 
+type ProjectWithPostsConfig = {
+  postsPerPlatform?: number | null;
+  postsPerPlatformByPlatform?: Record<string, number> | null;
+};
+
+/** Build generation slots from project config and target platforms. */
+function buildSlotsFromProject(
+  project: ProjectWithPostsConfig,
+  targetPlatforms: string[]
+): GenerationSlot[] {
+  const byPlatform = project.postsPerPlatformByPlatform;
+  const useByPlatform =
+    byPlatform &&
+    typeof byPlatform === "object" &&
+    !Array.isArray(byPlatform) &&
+    Object.keys(byPlatform).length > 0;
+  const fallback = project.postsPerPlatform ?? 1;
+  const getCount = (p: string): number => {
+    if (useByPlatform && p in byPlatform!) {
+      const n = byPlatform![p];
+      return n >= 1 && n <= 3 ? n : 1;
+    }
+    return fallback;
+  };
+  const slots: GenerationSlot[] = [];
+  for (const p of targetPlatforms) {
+    const count = getCount(p);
+    for (let i = 1; i <= count; i++) {
+      slots.push({ platform: p as Platform, seriesIndex: i });
+    }
+  }
+  slots.sort((a, b) => a.seriesIndex - b.seriesIndex || a.platform.localeCompare(b.platform));
+  return slots;
+}
+
+/** Get post count for a single platform from project (for regeneration). */
+function getPostCountForPlatform(project: ProjectWithPostsConfig, platform: string): number {
+  const byPlatform = project.postsPerPlatformByPlatform;
+  if (byPlatform && typeof byPlatform === "object" && platform in byPlatform) {
+    const n = byPlatform[platform];
+    return n >= 1 && n <= 3 ? n : 1;
+  }
+  return project.postsPerPlatform ?? 1;
+}
+
 export async function POST(request: NextRequest) {
   const requestId = randomUUID();
   try {
@@ -131,20 +176,6 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const postsPerPlatform =
-      regenerateSeriesForPlatform != null || regenerateFromIndex != null
-        ? (project.postsPerPlatform ?? 1)
-        : (project.postsPerPlatform ?? 1);
-    if (postsPerPlatform > 1 && plan !== "enterprise") {
-      return new Response(
-        JSON.stringify({
-          error: "Series (multiple posts per platform) is available on Enterprise plan",
-          code: "PLAN_REQUIRED",
-        }),
-        { status: 403, headers: { "Content-Type": "application/json" } }
-      );
-    }
-
     const targetPlatforms: string[] =
       regenerateSeriesForPlatform != null
         ? [regenerateSeriesForPlatform]
@@ -162,21 +193,6 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const maxOutputs = PLAN_LIMITS[plan]?.maxOutputsPerProject ?? 10;
-    const outputsNotInSelected = (project.outputs ?? []).filter(
-      (o) => !targetPlatforms.includes(o.platform)
-    ).length;
-    const totalAfter = outputsNotInSelected + targetPlatforms.length * postsPerPlatform;
-    if (totalAfter > maxOutputs) {
-      return new Response(
-        JSON.stringify({
-          error: `Total outputs would exceed plan limit (${maxOutputs})`,
-          details: `After generation you would have ${totalAfter} outputs. Maximum: ${maxOutputs}.`,
-        }),
-        { status: 400, headers: { "Content-Type": "application/json" } }
-      );
-    }
-
     let slotsOverride: GenerationSlot[] | undefined;
     if (
       regenerateFromIndex &&
@@ -185,10 +201,39 @@ export async function POST(request: NextRequest) {
     ) {
       const startIdx = regenerateFromIndex.seriesIndex;
       const platform = regenerateFromIndex.platform as Platform;
-      slotsOverride = Array.from({ length: Math.max(0, postsPerPlatform - startIdx + 1) }, (_, i) => ({
+      const countForPlatform = getPostCountForPlatform(project, platform);
+      slotsOverride = Array.from({ length: Math.max(0, countForPlatform - startIdx + 1) }, (_, i) => ({
         platform,
         seriesIndex: startIdx + i,
       }));
+    } else {
+      slotsOverride = buildSlotsFromProject(project, targetPlatforms);
+    }
+
+    const hasSeries = slotsOverride.length > targetPlatforms.length;
+    if (hasSeries && plan !== "enterprise") {
+      return new Response(
+        JSON.stringify({
+          error: "Series (multiple posts per platform) is available on Enterprise plan",
+          code: "PLAN_REQUIRED",
+        }),
+        { status: 403, headers: { "Content-Type": "application/json" } }
+      );
+    }
+
+    const maxOutputs = PLAN_LIMITS[plan]?.maxOutputsPerProject ?? 10;
+    const outputsNotInSelected = (project.outputs ?? []).filter(
+      (o) => !targetPlatforms.includes(o.platform)
+    ).length;
+    const totalAfter = outputsNotInSelected + slotsOverride.length;
+    if (totalAfter > maxOutputs) {
+      return new Response(
+        JSON.stringify({
+          error: `Total outputs would exceed plan limit (${maxOutputs})`,
+          details: `After generation you would have ${totalAfter} outputs. Maximum: ${maxOutputs}.`,
+        }),
+        { status: 400, headers: { "Content-Type": "application/json" } }
+      );
     }
 
     const result = await generateForPlatforms(
@@ -200,7 +245,7 @@ export async function POST(request: NextRequest) {
       brandVoiceId,
       requestId,
       plan,
-      postsPerPlatform,
+      1,
       slotsOverride
     );
 

@@ -66,6 +66,7 @@ describe("POST /api/generate", () => {
       userId: "user-1",
       sourceContent: "Hello world",
       postsPerPlatform: null,
+      postsPerPlatformByPlatform: null,
       outputs: [],
     });
     mockSubscriptionFindUnique.mockResolvedValue(null);
@@ -173,7 +174,7 @@ describe("POST /api/generate", () => {
       expect.stringMatching(/^[0-9a-f-]{36}$/i),
       "trial",
       1,
-      undefined
+      [{ platform: "linkedin", seriesIndex: 1 }]
     );
     const json = await res.json();
     expect(json.successful).toHaveLength(1);
@@ -181,12 +182,13 @@ describe("POST /api/generate", () => {
     expect(mockRegenerateForPlatform).not.toHaveBeenCalled();
   });
 
-  it("calls generateForPlatforms with postsPerPlatform when project has series (enterprise)", async () => {
+  it("calls generateForPlatforms with slotsOverride when project has series (enterprise)", async () => {
     mockProjectFindUnique.mockResolvedValueOnce({
       id: "proj-1",
       userId: "user-1",
       sourceContent: "Hello world",
       postsPerPlatform: 2,
+      postsPerPlatformByPlatform: null,
       outputs: [],
     });
     mockSubscriptionFindUnique.mockResolvedValueOnce({ plan: "enterprise" });
@@ -208,11 +210,53 @@ describe("POST /api/generate", () => {
       undefined,
       expect.stringMatching(/^[0-9a-f-]{36}$/i),
       "enterprise",
-      2,
-      undefined
+      1,
+      [
+        { platform: "linkedin", seriesIndex: 1 },
+        { platform: "linkedin", seriesIndex: 2 },
+      ]
     );
     const json = await res.json();
     expect(json.successful).toBeDefined();
+  });
+
+  it("calls generateForPlatforms with per-platform slots when project has postsPerPlatformByPlatform", async () => {
+    mockProjectFindUnique.mockResolvedValueOnce({
+      id: "proj-1",
+      userId: "user-1",
+      sourceContent: "Hello world",
+      postsPerPlatform: null,
+      postsPerPlatformByPlatform: { linkedin: 2, tiktok: 3 },
+      outputs: [],
+    });
+    mockSubscriptionFindUnique.mockResolvedValueOnce({ plan: "enterprise" });
+
+    const req = createRequest({
+      projectId: "proj-1",
+      platforms: ["linkedin", "tiktok"],
+      sourceContent: "Hello world",
+    });
+    const res = await POST(req);
+
+    expect(res.status).toBe(200);
+    expect(mockGenerateForPlatforms).toHaveBeenCalledWith(
+      "proj-1",
+      "user-1",
+      "Hello world",
+      ["linkedin", "tiktok"],
+      undefined,
+      undefined,
+      expect.stringMatching(/^[0-9a-f-]{36}$/i),
+      "enterprise",
+      1,
+      [
+        { platform: "linkedin", seriesIndex: 1 },
+        { platform: "tiktok", seriesIndex: 1 },
+        { platform: "linkedin", seriesIndex: 2 },
+        { platform: "tiktok", seriesIndex: 2 },
+        { platform: "tiktok", seriesIndex: 3 },
+      ]
+    );
   });
 
   it("returns 403 when postsPerPlatform > 1 and plan is not enterprise", async () => {
@@ -221,6 +265,7 @@ describe("POST /api/generate", () => {
       userId: "user-1",
       sourceContent: "Hello world",
       postsPerPlatform: 2,
+      postsPerPlatformByPlatform: null,
       outputs: [],
     });
     mockSubscriptionFindUnique.mockResolvedValueOnce(null);
@@ -237,6 +282,44 @@ describe("POST /api/generate", () => {
     expect(json.code).toBe("PLAN_REQUIRED");
     expect(json.error).toContain("Enterprise");
     expect(mockGenerateForPlatforms).not.toHaveBeenCalled();
+  });
+
+  it("builds slots from postsPerPlatformByPlatform when regenerateSeriesForPlatform is used", async () => {
+    mockProjectFindUnique.mockResolvedValueOnce({
+      id: "proj-1",
+      userId: "user-1",
+      sourceContent: "Hello world",
+      postsPerPlatform: null,
+      postsPerPlatformByPlatform: { linkedin: 3 },
+      outputs: [],
+    });
+    mockSubscriptionFindUnique.mockResolvedValueOnce({ plan: "enterprise" });
+
+    const req = createRequest({
+      projectId: "proj-1",
+      platforms: ["linkedin"],
+      sourceContent: "Hello world",
+      regenerateSeriesForPlatform: "linkedin",
+    });
+    const res = await POST(req);
+
+    expect(res.status).toBe(200);
+    expect(mockGenerateForPlatforms).toHaveBeenCalledWith(
+      "proj-1",
+      "user-1",
+      "Hello world",
+      ["linkedin"],
+      undefined,
+      undefined,
+      expect.stringMatching(/^[0-9a-f-]{36}$/i),
+      "enterprise",
+      1,
+      [
+        { platform: "linkedin", seriesIndex: 1 },
+        { platform: "linkedin", seriesIndex: 2 },
+        { platform: "linkedin", seriesIndex: 3 },
+      ]
+    );
   });
 
   describe("regeneration by outputId", () => {

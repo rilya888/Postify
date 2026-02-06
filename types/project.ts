@@ -9,7 +9,8 @@ export type Project = {
   title: string;
   sourceContent: string;
   platforms: Platform[];
-  postsPerPlatform?: number | null; // Enterprise: 1..3 posts per platform (series)
+  postsPerPlatform?: number | null; // Enterprise: 1..3 posts per platform (series); fallback when postsPerPlatformByPlatform empty
+  postsPerPlatformByPlatform?: Record<string, number> | null; // Enterprise: per-platform count e.g. { "tiktok": 3, "linkedin": 2 }
   createdAt: Date;
   updatedAt: Date;
 };
@@ -22,6 +23,7 @@ export type CreateProjectInput = {
   sourceContent: string;
   platforms: Platform[];
   postsPerPlatform?: 1 | 2 | 3;
+  postsPerPlatformByPlatform?: Partial<Record<Platform, 1 | 2 | 3>>;
 };
 
 /**
@@ -32,6 +34,7 @@ export type UpdateProjectInput = Partial<{
   sourceContent: string;
   platforms: Platform[];
   postsPerPlatform: 1 | 2 | 3;
+  postsPerPlatformByPlatform: Partial<Record<Platform, 1 | 2 | 3>>;
   confirmDeleteExtraPosts?: boolean;
 }>;
 

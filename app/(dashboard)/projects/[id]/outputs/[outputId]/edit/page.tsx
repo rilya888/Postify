@@ -126,7 +126,12 @@ export default function EditOutputPage() {
           const proj = projectData?.project ?? projectData;
           const list = proj?.outputs ?? [];
           setOutputsList(list.map((o: { id: string; platform: string }) => ({ id: o.id, platform: o.platform })));
-          setPostsPerPlatform(proj?.postsPerPlatform ?? null);
+          const byPlatform = proj?.postsPerPlatformByPlatform;
+          const countForPlatform =
+            byPlatform && typeof byPlatform === "object" && output.platform in byPlatform
+              ? byPlatform[output.platform]
+              : proj?.postsPerPlatform ?? 1;
+          setPostsPerPlatform(countForPlatform ?? null);
         }
         setIsLoading(false);
       } catch (error) {

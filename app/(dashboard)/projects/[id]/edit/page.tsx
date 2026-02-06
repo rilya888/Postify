@@ -32,11 +32,25 @@ export default async function EditProjectPage({
     redirect("/projects");
   }
 
+  const byPlatform = project.postsPerPlatformByPlatform as Record<string, number> | null | undefined;
+  const hasByPlatform =
+    byPlatform &&
+    typeof byPlatform === "object" &&
+    !Array.isArray(byPlatform) &&
+    Object.keys(byPlatform).length > 0;
+  const platformsList = project.platforms as string[];
   const initialData = {
     title: project.title,
     sourceContent: project.sourceContent,
-    platforms: project.platforms as ("linkedin" | "twitter" | "email")[],
+    platforms: project.platforms as ("linkedin" | "twitter" | "email" | "instagram" | "facebook" | "tiktok" | "youtube")[],
     postsPerPlatform: (project.postsPerPlatform ?? 1) as 1 | 2 | 3,
+    postsPerPlatformByPlatform: hasByPlatform
+      ? (Object.fromEntries(
+          platformsList.filter((p) => p in byPlatform!).map((p) => [p, Math.min(3, Math.max(1, byPlatform![p])) as 1 | 2 | 3])
+        ) as Partial<Record<string, 1 | 2 | 3>>)
+      : platformsList.length > 0
+        ? (Object.fromEntries(platformsList.map((p) => [p, (project.postsPerPlatform ?? 1) as 1 | 2 | 3])) as Partial<Record<string, 1 | 2 | 3>>)
+        : {},
   };
 
   return (

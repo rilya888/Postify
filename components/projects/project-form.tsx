@@ -18,13 +18,6 @@ import {
 import { Textarea } from "@/components/ui/textarea";
 import { Input } from "@/components/ui/input";
 import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
-import {
   AlertDialog,
   AlertDialogAction,
   AlertDialogCancel,
@@ -37,6 +30,7 @@ import {
 import { toast } from "sonner";
 import { createProjectSchemaForTextForm, updateProjectSchema } from "@/lib/validations/project";
 import PlatformSelector from "@/components/ai/platform-selector";
+import PlatformSelectorWithPostCount from "@/components/ai/platform-selector-with-post-count";
 import type { Platform } from "@/lib/constants/platforms";
 import {
   DOCUMENT_INPUT_ACCEPT,
@@ -54,8 +48,9 @@ type ProjectFormProps = {
   initialData?: {
     title: string;
     sourceContent: string;
-    platforms: ("linkedin" | "twitter" | "email")[];
+    platforms: ("linkedin" | "twitter" | "email" | "instagram" | "facebook" | "tiktok" | "youtube")[];
     postsPerPlatform?: 1 | 2 | 3;
+    postsPerPlatformByPlatform?: Partial<Record<Platform, 1 | 2 | 3>>;
   };
   projectId?: string;
   onSubmitSuccess?: () => void;
@@ -85,7 +80,7 @@ export function ProjectForm({
   const [extraPostsDialog, setExtraPostsDialog] = useState<{
     open: boolean;
     pendingData: ProjectFormData;
-    newPostsPerPlatform: number;
+    newPostsPerPlatform?: number;
     extraPostsCount: number;
   } | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -112,13 +107,24 @@ export function ProjectForm({
     };
   }, []);
 
+  const initialPlatforms = (initialData?.platforms as Platform[]) || [];
+  const initialByPlatform =
+    initialData?.postsPerPlatformByPlatform &&
+    typeof initialData.postsPerPlatformByPlatform === "object" &&
+    Object.keys(initialData.postsPerPlatformByPlatform).length > 0
+      ? initialData.postsPerPlatformByPlatform
+      : initialPlatforms.length > 0
+        ? Object.fromEntries(initialPlatforms.map((p) => [p, (initialData?.postsPerPlatform ?? 1) as 1 | 2 | 3]))
+        : {};
+
   const form = useForm<ProjectFormData>({
     resolver: zodResolver(isEditing ? updateProjectSchema : createProjectSchemaForTextForm),
     defaultValues: {
       title: initialData?.title || "",
       sourceContent: initialData?.sourceContent || "",
-      platforms: (initialData?.platforms as ("linkedin" | "twitter" | "email")[]) || [],
+      platforms: initialPlatforms.length ? initialPlatforms : [],
       postsPerPlatform: initialData?.postsPerPlatform ?? 1,
+      postsPerPlatformByPlatform: initialByPlatform,
     },
   });
 
@@ -137,6 +143,7 @@ export function ProjectForm({
         sourceContent: value.sourceContent || "",
         platforms: (value.platforms || []).filter(Boolean) as Platform[],
         postsPerPlatform: value.postsPerPlatform ?? 1,
+        postsPerPlatformByPlatform: value.postsPerPlatformByPlatform ?? {},
       });
     });
     return () => subscription.unsubscribe();
@@ -171,13 +178,12 @@ export function ProjectForm({
         if (
           isEditing &&
           result.code === "EXTRA_POSTS_EXIST" &&
-          typeof result.extraPostsCount === "number" &&
-          typeof data.postsPerPlatform === "number"
+          typeof result.extraPostsCount === "number"
         ) {
           setExtraPostsDialog({
             open: true,
             pendingData: data,
-            newPostsPerPlatform: data.postsPerPlatform,
+            newPostsPerPlatform: data.postsPerPlatformByPlatform ? undefined : (data.postsPerPlatform ?? 1),
             extraPostsCount: result.extraPostsCount,
           });
           setSaveProgress(0);
@@ -352,56 +358,53 @@ export function ProjectForm({
             <FormItem>
               <FormLabel>Select Platforms *</FormLabel>
               <FormControl>
-                <PlatformSelector
-                  selectedPlatforms={field.value ?? []}
-                  onPlatformToggle={(platform) => {
-                    const p = platform as Platform;
-                    const current = field.value ?? [];
-                    const next = current.includes(p)
-                      ? current.filter((x) => x !== p)
-                      : [...current, p];
-                    field.onChange(next);
-                  }}
-                  disabled={isSubmitting}
-                />
+                {planFeatures?.canUseSeries ? (
+                  <PlatformSelectorWithPostCount
+                    selectedPlatforms={field.value ?? []}
+                    postsPerPlatformByPlatform={form.watch("postsPerPlatformByPlatform") ?? {}}
+                    onPlatformToggle={(platform) => {
+                      const p = platform as Platform;
+                      const current = field.value ?? [];
+                      const next = current.includes(p)
+                        ? current.filter((x) => x !== p)
+                        : [...current, p];
+                      field.onChange(next);
+                      const byPlatform = form.getValues("postsPerPlatformByPlatform") ?? {};
+                      if (next.includes(p) && !(p in byPlatform)) {
+                        form.setValue("postsPerPlatformByPlatform", { ...byPlatform, [p]: 1 });
+                      } else if (!next.includes(p)) {
+                        const { [p]: _, ...rest } = byPlatform;
+                        form.setValue("postsPerPlatformByPlatform", rest);
+                      }
+                    }}
+                    onPostsPerPlatformChange={(platform, count) => {
+                      const byPlatform = form.getValues("postsPerPlatformByPlatform") ?? {};
+                      form.setValue("postsPerPlatformByPlatform", { ...byPlatform, [platform]: count });
+                    }}
+                    canUseSeries={planFeatures?.canUseSeries}
+                    maxPostsPerPlatform={planFeatures?.maxPostsPerPlatform ?? 1}
+                    disabled={isSubmitting}
+                    postsCountLabel={tGen("postsCountLabel")}
+                  />
+                ) : (
+                  <PlatformSelector
+                    selectedPlatforms={field.value ?? []}
+                    onPlatformToggle={(platform) => {
+                      const p = platform as Platform;
+                      const current = field.value ?? [];
+                      const next = current.includes(p)
+                        ? current.filter((x) => x !== p)
+                        : [...current, p];
+                      field.onChange(next);
+                    }}
+                    disabled={isSubmitting}
+                  />
+                )}
               </FormControl>
               <FormMessage />
             </FormItem>
           )}
         />
-
-        {planFeatures?.canUseSeries && (
-          <FormField
-            control={form.control}
-            name="postsPerPlatform"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>{tGen("postsPerPlatform")}</FormLabel>
-                <FormControl>
-                  <Select
-                    value={String(field.value ?? 1)}
-                    onValueChange={(v) => field.onChange(Number(v) as 1 | 2 | 3)}
-                    disabled={isSubmitting}
-                  >
-                    <SelectTrigger>
-                      <SelectValue placeholder={tGen("postsPerPlatform")} />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {[1, 2, 3]
-                        .filter((n) => n <= (planFeatures?.maxPostsPerPlatform ?? 1))
-                        .map((n) => (
-                          <SelectItem key={n} value={String(n)}>
-                            {n === 1 ? "1 post" : `${n} posts (series)`}
-                          </SelectItem>
-                        ))}
-                    </SelectContent>
-                  </Select>
-                </FormControl>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
-        )}
 
         {saveProgress > 0 && (
           <ProgressBar 
@@ -459,10 +462,14 @@ export function ProjectForm({
           <AlertDialogHeader>
             <AlertDialogTitle>{tGen("deleteExtraPostsTitle")}</AlertDialogTitle>
             <AlertDialogDescription>
-              {tGen("deleteExtraPostsDescription", {
-                n: extraPostsDialog?.newPostsPerPlatform ?? 0,
-                count: extraPostsDialog?.extraPostsCount ?? 0,
-              })}
+              {extraPostsDialog?.newPostsPerPlatform != null
+                ? tGen("deleteExtraPostsDescription", {
+                    n: extraPostsDialog.newPostsPerPlatform,
+                    count: extraPostsDialog.extraPostsCount ?? 0,
+                  })
+                : tGen("deleteExtraPostsDescriptionPerPlatform", {
+                    count: extraPostsDialog?.extraPostsCount ?? 0,
+                  })}
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>

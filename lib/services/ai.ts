@@ -110,11 +110,10 @@ export async function generateForPlatforms(
     if (!project) {
       throw new Error("Project not found or access denied");
     }
-    const seriesTotal = postsPerPlatform;
     const slots: GenerationSlot[] =
       slotsOverride ??
       platforms.flatMap((p) =>
-        Array.from({ length: seriesTotal }, (_, i) => ({ platform: p, seriesIndex: i + 1 }))
+        Array.from({ length: postsPerPlatform }, (_, i) => ({ platform: p, seriesIndex: i + 1 }))
       );
     slots.sort((a, b) => a.seriesIndex - b.seriesIndex || a.platform.localeCompare(b.platform));
 
@@ -172,6 +171,7 @@ export async function generateForPlatforms(
 
     async function generateOneSlot(slot: GenerationSlot): Promise<GenerationResult> {
       const { platform, seriesIndex } = slot;
+      const seriesTotalForPlatform = slots.filter((s) => s.platform === platform).length;
       const platformOperationId = `${operationId}_slot_${platform}_${seriesIndex}`;
       PerformanceMonitor.startMeasurement(platformOperationId, {
         userId,
@@ -199,8 +199,8 @@ export async function generateForPlatforms(
       let userMessage = usePack
         ? formatPrompt(userTemplate, { contentPack: formattedPack, brandVoice: brandVoiceStr })
         : formatPrompt(userTemplate, { sourceContent, brandVoice: brandVoiceStr });
-      if (seriesTotal > 1) {
-        const seriesContext = getSeriesContext(seriesIndex, seriesTotal);
+      if (seriesTotalForPlatform > 1) {
+        const seriesContext = getSeriesContext(seriesIndex, seriesTotalForPlatform);
         userMessage = seriesContext + "\n\n" + userMessage;
       }
       if (previousPostsSummary) {
@@ -222,7 +222,7 @@ export async function generateForPlatforms(
         brandVoiceId: brandVoice?.id ?? null,
         brandVoiceUpdatedAt: brandVoice?.updatedAt ? brandVoice.updatedAt.toISOString() : null,
         seriesIndex,
-        seriesTotal,
+        seriesTotal: seriesTotalForPlatform,
       });
 
       const temperature = options?.temperature ?? genConfig.temperatureByPlatform[platform];
@@ -429,7 +429,11 @@ export async function regenerateForPlatform(
     if (!project) {
       throw new Error("Project not found or access denied");
     }
-    const seriesTotal = (project as { postsPerPlatform?: number | null }).postsPerPlatform ?? 1;
+    const proj = project as { postsPerPlatformByPlatform?: Record<string, number> | null; postsPerPlatform?: number | null };
+    const seriesTotal =
+      (proj.postsPerPlatformByPlatform && typeof proj.postsPerPlatformByPlatform === "object" && platform in proj.postsPerPlatformByPlatform
+        ? proj.postsPerPlatformByPlatform[platform]
+        : null) ?? proj.postsPerPlatform ?? 1;
 
     let brandVoice: { id: string; updatedAt: Date; tone: string; style: string; personality: string; sentenceStructure: string; vocabulary: string[]; avoidVocabulary: string[]; examples: string[] } | null = null;
     if (brandVoiceId) {

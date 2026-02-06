@@ -133,40 +133,71 @@ export async function PATCH(
     }
 
     const plan = getEffectivePlan(subscription, user?.createdAt ?? null);
-    const newPostsPerPlatform =
+    const platformsList = validatedData.platforms ?? existingProject.platforms;
+    const existingByPlatform = (existingProject.postsPerPlatformByPlatform ?? null) as Record<string, number> | null;
+    const newByPlatformRaw = validatedData.postsPerPlatformByPlatform;
+    const newByPlatform =
+      newByPlatformRaw !== undefined && newByPlatformRaw !== null && typeof newByPlatformRaw === "object" && !Array.isArray(newByPlatformRaw)
+        ? (Object.fromEntries(
+            platformsList
+              .filter((p) => p in newByPlatformRaw)
+              .map((p) => [p, newByPlatformRaw[p as keyof typeof newByPlatformRaw] as number])
+          ) as Record<string, number>)
+        : undefined;
+    const useByPlatform =
+      plan === "enterprise" &&
+      newByPlatform &&
+      Object.keys(newByPlatform).length > 0;
+    const effectiveByPlatform = useByPlatform ? newByPlatform : null;
+    const newPostsPerPlatformLegacy =
       validatedData.postsPerPlatform != null
         ? plan === "enterprise"
           ? validatedData.postsPerPlatform
           : 1
         : existingProject.postsPerPlatform ?? 1;
 
-    if (validatedData.postsPerPlatform != null && newPostsPerPlatform < (existingProject.postsPerPlatform ?? 1)) {
-      const extraCount = await prisma.output.count({
-        where: {
-          projectId: params.id,
-          seriesIndex: { gt: newPostsPerPlatform },
-        },
-      });
-      if (extraCount > 0 && !validatedData.confirmDeleteExtraPosts) {
-        return createErrorResponse(
-          {
-            error: "Extra posts exist",
-            code: "EXTRA_POSTS_EXIST",
-            message: `Reducing to ${newPostsPerPlatform} posts per platform will delete ${extraCount} existing post(s). Confirm to proceed.`,
-            extraPostsCount: extraCount,
-            affectedSeriesIndexes: Array.from(
-              { length: extraCount },
-              (_, i) => newPostsPerPlatform + 1 + i
-            ),
-          },
-          400
-        );
+    // Resolve new count per platform for extra-posts check (use new map, else existing map, else legacy number)
+    const getNewCount = (platform: string): number => {
+      if (effectiveByPlatform && platform in effectiveByPlatform) return effectiveByPlatform[platform] as number;
+      if (existingByPlatform && platform in existingByPlatform) return existingByPlatform[platform] as number;
+      return newPostsPerPlatformLegacy;
+    };
+
+    const existingOutputs = await prisma.output.findMany({
+      where: { projectId: params.id },
+      select: { platform: true, seriesIndex: true },
+    });
+    let extraCount = 0;
+    const toDelete: { platform: string; seriesIndex: number }[] = [];
+    for (const o of existingOutputs) {
+      const limit = getNewCount(o.platform);
+      if ((o.seriesIndex ?? 1) > limit) {
+        extraCount++;
+        toDelete.push({ platform: o.platform, seriesIndex: o.seriesIndex });
       }
-      if (validatedData.confirmDeleteExtraPosts && extraCount > 0) {
+    }
+
+    if (extraCount > 0 && !validatedData.confirmDeleteExtraPosts) {
+      const reducingByPlatform = effectiveByPlatform != null;
+      return createErrorResponse(
+        {
+          error: "Extra posts exist",
+          code: "EXTRA_POSTS_EXIST",
+          message: reducingByPlatform
+            ? `Reducing posts for some platforms will delete ${extraCount} existing post(s). Confirm to proceed.`
+            : `Reducing to ${newPostsPerPlatformLegacy} posts per platform will delete ${extraCount} existing post(s). Confirm to proceed.`,
+          extraPostsCount: extraCount,
+        },
+        400
+      );
+    }
+    if (validatedData.confirmDeleteExtraPosts && extraCount > 0) {
+      for (const { platform, seriesIndex } of toDelete) {
         await prisma.output.deleteMany({
           where: {
             projectId: params.id,
-            seriesIndex: { gt: newPostsPerPlatform },
+            platform,
+            seriesIndex,
           },
         });
       }
@@ -194,13 +225,25 @@ export async function PATCH(
       sourceContent?: string;
       platforms?: string[];
       postsPerPlatform?: number | null;
+      postsPerPlatformByPlatform?: Record<string, number> | null;
     } = {
       title: validatedData.title,
       sourceContent: validatedData.sourceContent,
       platforms: validatedData.platforms,
     };
-    if (validatedData.postsPerPlatform !== undefined) {
-      updateData.postsPerPlatform = newPostsPerPlatform === 1 ? null : newPostsPerPlatform;
+    if (validatedData.postsPerPlatformByPlatform !== undefined) {
+      updateData.postsPerPlatformByPlatform =
+        effectiveByPlatform && Object.keys(effectiveByPlatform).length > 0 ? effectiveByPlatform : null;
+      updateData.postsPerPlatform =
+        effectiveByPlatform && Object.keys(effectiveByPlatform).length > 0
+          ? Math.max(...Object.values(effectiveByPlatform), 1) === 1
+            ? null
+            : Math.max(...Object.values(effectiveByPlatform))
+          : newPostsPerPlatformLegacy === 1
+            ? null
+            : newPostsPerPlatformLegacy;
+    } else if (validatedData.postsPerPlatform !== undefined) {
+      updateData.postsPerPlatform = newPostsPerPlatformLegacy === 1 ? null : newPostsPerPlatformLegacy;
     }
 
     const project = await prisma.project.update({
