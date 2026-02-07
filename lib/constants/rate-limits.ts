@@ -1,5 +1,5 @@
 /**
- * Rate limits per plan (trial, free, pro, enterprise).
+ * Rate limits per plan (trial, free, pro, max, enterprise).
  * transcribe: points per duration (e.g. per hour).
  * contentPack: points per minute.
  */
@@ -18,6 +18,10 @@ export const RATE_LIMITS: Record<Plan, { transcribe: { points: number; durationS
   pro: {
     transcribe: { points: 10, durationSeconds: 3600 },
     contentPack: { points: 50, durationSeconds: 60 },
+  },
+  max: {
+    transcribe: { points: 25, durationSeconds: 3600 },
+    contentPack: { points: 100, durationSeconds: 60 },
   },
   enterprise: {
     transcribe: { points: 50, durationSeconds: 3600 },

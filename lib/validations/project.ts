@@ -1,14 +1,17 @@
 import { z } from "zod";
-import { MAX_OUTPUTS_PER_PROJECT_ENTERPRISE } from "@/lib/constants/plans";
+import {
+  MAX_OUTPUTS_PER_PROJECT_ENTERPRISE,
+  getPlanCapabilities,
+} from "@/lib/constants/plans";
 import { STORABLE_TONE_IDS, isValidToneId } from "@/lib/constants/post-tones";
 import type { Plan } from "@/lib/constants/plans";
 
-/** Normalize postTone for plan: non-enterprise gets null (silent ignore). */
+/** Normalize postTone for plan: unavailable tiers get null (silent ignore). */
 export function validatePostToneForPlan(
   postTone: string | null | undefined,
   plan: Plan
 ): string | null {
-  if (!postTone || plan !== "enterprise") return null;
+  if (!postTone || !getPlanCapabilities(plan).canUsePostTone) return null;
   return isValidToneId(postTone) ? postTone : null;
 }
 

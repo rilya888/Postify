@@ -22,7 +22,7 @@ export async function GET(request: Request) {
   const order = sortOrder === "asc" ? "asc" : "desc";
 
   const where: { plan?: string; status?: string } = {};
-  if (plan && ["free", "pro", "enterprise"].includes(plan)) where.plan = plan;
+  if (plan && ["free", "pro", "max", "enterprise"].includes(plan)) where.plan = plan;
   if (status && ["active", "canceled", "past_due"].includes(status)) where.status = status;
 
   const [subscriptions, count] = await Promise.all([

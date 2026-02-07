@@ -1,5 +1,5 @@
 /**
- * Unit tests for quota / plan limits (trial, free, pro, enterprise).
+ * Unit tests for quota / plan limits (trial, free, pro, max, enterprise).
  */
 import { describe, it, expect, vi, beforeEach } from "vitest";
 
@@ -56,6 +56,22 @@ describe("quota plan limits", () => {
     expect(result.canAddMinutes(61)).toBe(false);
   });
 
+  it("effective plan max: checkAudioQuota returns allowed true", async () => {
+    mockUserFindUnique.mockResolvedValue({ createdAt: fiveDaysAgo });
+    mockSubscriptionFindUnique.mockResolvedValue({
+      userId: "u1",
+      plan: "max",
+      audioMinutesUsedThisPeriod: 5,
+      audioMinutesLimit: 300,
+      audioMinutesResetAt: new Date(now + 86400000),
+    });
+    const result = await checkAudioQuota("u1");
+    expect(result.allowed).toBe(true);
+    expect(result.planType).toBe("text_audio");
+    expect(result.usedMinutes).toBe(5);
+    expect(result.limitMinutes).toBe(300);
+  });
+
   it("effective plan enterprise: checkAudioQuota returns allowed true", async () => {
     mockUserFindUnique.mockResolvedValue({ createdAt: fiveDaysAgo });
     mockSubscriptionFindUnique.mockResolvedValue({
@@ -95,7 +111,20 @@ describe("quota plan limits", () => {
     expect(result.plan).toBe("enterprise");
     expect(result.planType).toBe("text_audio");
     expect(result.canUseAudio).toBe(true);
-    expect(result.limit).toBe(100);
+    expect(result.limit).toBe(150);
+  });
+
+  it("checkProjectQuota returns effective plan max, canUseAudio true", async () => {
+    mockUserFindUnique.mockResolvedValue({ createdAt: fiveDaysAgo });
+    mockSubscriptionFindUnique.mockResolvedValue({
+      userId: "u1",
+      plan: "max",
+    });
+    const result = await checkProjectQuota("u1");
+    expect(result.plan).toBe("max");
+    expect(result.planType).toBe("text_audio");
+    expect(result.canUseAudio).toBe(true);
+    expect(result.limit).toBe(75);
   });
 
   it("checkProjectQuota returns effective plan pro, canUseAudio false", async () => {

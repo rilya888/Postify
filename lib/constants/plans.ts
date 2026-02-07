@@ -9,7 +9,7 @@ export type PlanTypeDB = "TEXT" | "TEXT_AUDIO" | "TEXT_AUDIO_VIDEO" | "CUSTOM";
 
 /**
  * Plan limits for different subscription tiers.
- * Keys: trial (computed, not stored), free, pro, enterprise.
+ * Keys: trial (computed, not stored), free, pro, max, enterprise.
  */
 export const PLAN_LIMITS = {
   /** Trial: 3 days from registration, 3 projects, text + audio */
@@ -42,15 +42,25 @@ export const PLAN_LIMITS = {
     audioMinutesPerMonth: null as number | null,
     maxAudioFileSizeMb: null as number | null,
   },
-  /** Enterprise: paid, text + audio, 2x projects and per-project limits vs Pro */
-  enterprise: {
-    maxProjects: 100,
-    maxOutputsPerProject: 10,
-    maxCharactersPerContent: 10000,
-    maxVariationsPerGeneration: 10,
+  /** Max: paid, between Pro and Enterprise, includes audio */
+  max: {
+    maxProjects: 75,
+    maxOutputsPerProject: 7,
+    maxCharactersPerContent: 7500,
+    maxVariationsPerGeneration: 7,
     planType: "text_audio" as PlanType,
-    audioMinutesPerMonth: 600,
-    maxAudioFileSizeMb: 500,
+    audioMinutesPerMonth: 300,
+    maxAudioFileSizeMb: 250,
+  },
+  /** Enterprise: paid, highest limits, includes audio */
+  enterprise: {
+    maxProjects: 150,
+    maxOutputsPerProject: 12,
+    maxCharactersPerContent: 15000,
+    maxVariationsPerGeneration: 15,
+    planType: "text_audio" as PlanType,
+    audioMinutesPerMonth: 900,
+    maxAudioFileSizeMb: 750,
   },
 } as const;
 
@@ -70,7 +80,7 @@ export const PLAN_TYPE_FROM_DB: Record<PlanTypeDB, PlanType> = {
 };
 
 /** Valid plan values stored in DB (Subscription.plan) */
-const DB_PLANS = ["free", "pro", "enterprise"] as const;
+const DB_PLANS = ["free", "pro", "max", "enterprise"] as const;
 export type PlanDB = (typeof DB_PLANS)[number];
 
 export function isPlanDB(plan: string | null | undefined): plan is PlanDB {
@@ -94,14 +104,14 @@ const TRIAL_DURATION_MS = 3 * 24 * 60 * 60 * 1000;
 /**
  * Resolve effective plan from subscription and user registration date.
  * Trial: no paid plan and user created within last 3 days.
- * DB stores only "free" | "pro" | "enterprise"; "trial" is computed.
+ * DB stores only "free" | "pro" | "max" | "enterprise"; "trial" is computed.
  */
 export function getEffectivePlan(
   subscription: { plan?: string | null } | null,
   userCreatedAt: Date | string | null
 ): Plan {
   const plan = subscription?.plan;
-  if (plan === "pro" || plan === "enterprise") {
+  if (plan === "pro" || plan === "max" || plan === "enterprise") {
     return plan;
   }
   if (userCreatedAt != null) {
@@ -118,9 +128,30 @@ export function getPlanType(plan: Plan): PlanType {
   return PLAN_LIMITS[plan].planType;
 }
 
+export type PlanCapabilities = {
+  canUseAudio: boolean;
+  canUseSeries: boolean;
+  canUsePostTone: boolean;
+  canUseBrandVoice: boolean;
+  maxPostsPerPlatform: number;
+};
+
+/** Resolve feature capabilities for a plan. */
+export function getPlanCapabilities(plan: Plan): PlanCapabilities {
+  const audioEnabled = getPlanType(plan) === "text_audio";
+  const isEnterprise = plan === "enterprise";
+  return {
+    canUseAudio: audioEnabled,
+    canUseSeries: isEnterprise,
+    canUsePostTone: isEnterprise,
+    canUseBrandVoice: isEnterprise,
+    maxPostsPerPlatform: isEnterprise ? 3 : 1,
+  };
+}
+
 /** Whether the plan allows audio upload and transcription */
 export function canUseAudio(plan: Plan): boolean {
-  return getPlanType(plan) === "text_audio";
+  return getPlanCapabilities(plan).canUseAudio;
 }
 
 /** Get audio limits for the plan (null if text-only) */

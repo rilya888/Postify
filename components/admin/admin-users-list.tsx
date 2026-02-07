@@ -125,6 +125,7 @@ export function AdminUsersList({
               <SelectItem value="all">{t("allPlans")}</SelectItem>
               <SelectItem value="free">{t("plans.free")}</SelectItem>
               <SelectItem value="pro">{t("plans.pro")}</SelectItem>
+              <SelectItem value="max">{t("plans.max")}</SelectItem>
               <SelectItem value="enterprise">{t("plans.enterprise")}</SelectItem>
             </SelectContent>
           </Select>

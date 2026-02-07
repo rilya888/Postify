@@ -8,7 +8,11 @@ import { checkProjectQuota } from "@/lib/services/quota";
 import { logProjectChange } from "@/lib/services/project-history";
 import { checkProjectsRateLimit, checkGenerateRateLimit } from "@/lib/utils/rate-limit";
 import { Logger } from "@/lib/utils/logger";
-import { getEffectivePlan, PLAN_LIMITS } from "@/lib/constants/plans";
+import {
+  getEffectivePlan,
+  PLAN_LIMITS,
+  getPlanCapabilities,
+} from "@/lib/constants/plans";
 import { generateForPlatforms, type GenerationSlot } from "@/lib/services/ai";
 import type { Platform } from "@/lib/constants/platforms";
 import type { BulkGenerationResult, GenerationResult } from "@/types/ai";
@@ -153,6 +157,7 @@ export async function POST(request: Request) {
     ]);
 
     const plan = getEffectivePlan(subscription, user?.createdAt ?? null);
+    const capabilities = getPlanCapabilities(plan);
 
     const maxChars = PLAN_LIMITS[plan]?.maxCharactersPerContent ?? PLAN_LIMITS.free.maxCharactersPerContent;
     if (validatedData.sourceContent.length > maxChars) {
@@ -168,7 +173,7 @@ export async function POST(request: Request) {
 
     const byPlatform = validatedData.postsPerPlatformByPlatform;
     const useByPlatform =
-      plan === "enterprise" &&
+      capabilities.canUseSeries &&
       byPlatform &&
       typeof byPlatform === "object" &&
       !Array.isArray(byPlatform) &&
@@ -185,7 +190,7 @@ export async function POST(request: Request) {
 
     const hasFilteredByPlatform = !!filteredByPlatform && Object.keys(filteredByPlatform).length > 0;
     const legacyPostsPerPlatform = !hasFilteredByPlatform
-      ? plan === "enterprise" && validatedData.postsPerPlatform != null
+      ? capabilities.canUseSeries && validatedData.postsPerPlatform != null
         ? validatedData.postsPerPlatform
         : 1
       : Math.max(...Object.values(filteredByPlatform!), 1);
@@ -240,7 +245,8 @@ export async function POST(request: Request) {
         plan,
         1,
         slots,
-        finalPostTone
+        finalPostTone,
+        capabilities.canUseBrandVoice
       );
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : "Generation failed";

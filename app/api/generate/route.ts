@@ -6,7 +6,11 @@ import { prisma } from "@/lib/db/prisma";
 import { Logger } from "@/lib/utils/logger";
 import { checkGenerateRateLimit } from "@/lib/utils/rate-limit";
 import { detectPII } from "@/lib/utils/pii-check";
-import { PLAN_LIMITS, getEffectivePlan } from "@/lib/constants/plans";
+import {
+  PLAN_LIMITS,
+  getEffectivePlan,
+  getPlanCapabilities,
+} from "@/lib/constants/plans";
 import type { Plan } from "@/lib/constants/plans";
 import { getAllPlatformIds, type Platform } from "@/lib/constants/platforms";
 import { isValidToneId } from "@/lib/constants/post-tones";
@@ -99,6 +103,7 @@ export async function POST(request: NextRequest) {
       prisma.subscription.findUnique({ where: { userId } }),
     ]);
     const plan = getEffectivePlan(subscription, user?.createdAt ?? null) as Plan;
+    const capabilities = getPlanCapabilities(plan);
 
     // Regenerate single output by outputId
     if (outputId) {
@@ -119,7 +124,7 @@ export async function POST(request: NextRequest) {
         );
       }
       const effectivePostTone =
-        postToneOverride != null && plan === "enterprise" && isValidToneId(postToneOverride)
+        postToneOverride != null && capabilities.canUsePostTone && isValidToneId(postToneOverride)
           ? postToneOverride
           : (output.project as { postTone?: string | null }).postTone ?? null;
       const singleResult = await regenerateForPlatform(
@@ -131,7 +136,8 @@ export async function POST(request: NextRequest) {
         brandVoiceId,
         plan,
         output.seriesIndex,
-        effectivePostTone
+        effectivePostTone,
+        capabilities.canUseBrandVoice
       );
       const result = {
         successful: singleResult.success ? [singleResult] : [],
@@ -218,10 +224,10 @@ export async function POST(request: NextRequest) {
     }
 
     const hasSeries = slotsOverride.length > targetPlatforms.length;
-    if (hasSeries && plan !== "enterprise") {
+    if (hasSeries && !capabilities.canUseSeries) {
       return new Response(
         JSON.stringify({
-          error: "Series (multiple posts per platform) is available on Enterprise plan",
+          error: "Series (multiple posts per platform) is not available on your current plan",
           code: "PLAN_REQUIRED",
         }),
         { status: 403, headers: { "Content-Type": "application/json" } }
@@ -229,7 +235,7 @@ export async function POST(request: NextRequest) {
     }
 
     const effectivePostTone =
-      postToneOverride != null && plan === "enterprise" && isValidToneId(postToneOverride)
+      postToneOverride != null && capabilities.canUsePostTone && isValidToneId(postToneOverride)
         ? postToneOverride
         : (project as { postTone?: string | null }).postTone ?? null;
 
@@ -259,7 +265,8 @@ export async function POST(request: NextRequest) {
       plan,
       1,
       slotsOverride,
-      effectivePostTone
+      effectivePostTone,
+      capabilities.canUseBrandVoice
     );
 
     const pii = detectPII(sourceContent);

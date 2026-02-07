@@ -76,6 +76,7 @@
     "planTrial": "Пробная",
     "planFree": "Бесплатная",
     "planPro": "Pro",
+    "planMax": "Max",
     "planEnterprise": "Enterprise",
     "planTypeText": "Текст",
     "planTypeTextAudio": "Текст + Аудио",
@@ -420,14 +421,24 @@
         "f4": "Расширенные шаблоны"
       },
       "proCta": "Начать",
+      "maxTitle": "Max",
+      "maxPrice": "$59",
+      "maxPeriod": "/месяц",
+      "maxFeatures": {
+        "f1": "75 проектов",
+        "f2": "Текст + аудио",
+        "f3": "Повышенные лимиты генерации",
+        "f4": "Более быстрые рабочие процессы"
+      },
+      "maxCta": "Перейти на Max",
       "enterpriseTitle": "Enterprise",
       "enterprisePrice": "$99",
       "enterprisePeriod": "/месяц",
       "enterpriseFeatures": {
-        "f1": "100 проектов",
+        "f1": "150 проектов",
         "f2": "Текст + аудио",
-        "f3": "Повышенные лимиты",
-        "f4": "Приоритетная поддержка"
+        "f3": "Максимальные лимиты + тон поста",
+        "f4": "Brand voice + приоритетная поддержка"
       },
       "enterpriseCta": "Связаться с отделом продаж"
     },
@@ -506,6 +517,7 @@
   },
   "brandVoice": {
     "manageDescription": "Управляйте профилями голоса бренда для генерации контента.",
+    "enterpriseOnly": "Функция Brand Voice доступна только на плане Enterprise.",
     "create": "Создать голос бренда",
     "createTitle": "Создать голос бренда",
     "empty": "Пока нет профилей голоса бренда. Создайте профиль для единообразного стиля генерации.",
@@ -713,6 +725,7 @@
     "plans": {
       "free": "free",
       "pro": "pro",
+      "max": "max",
       "enterprise": "enterprise"
     },
     "roles": {

@@ -172,7 +172,7 @@ enum PlanType {
 model Subscription {
   id                String    @id @default(cuid())
   userId            String    @unique
-  plan              String    @default("free") // "free" | "pro" | "enterprise"
+  plan              String    @default("free") // "free" | "pro" | "max" | "enterprise"
   planType          PlanType  @default(TEXT)   // Explicit: TEXT | TEXT_AUDIO | ...
   status            String    @default("active") // "active" | "canceled" | "past_due"
   currentPeriodEnd  DateTime?

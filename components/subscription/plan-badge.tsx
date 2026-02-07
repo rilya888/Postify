@@ -67,6 +67,7 @@ export function PlanBadge() {
     trial: t("planTrial"),
     free: t("planFree"),
     pro: t("planPro"),
+    max: t("planMax"),
     enterprise: t("planEnterprise"),
   };
   const planLabel = planLabels[features.plan] ?? features.plan;

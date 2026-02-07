@@ -28,11 +28,11 @@ describe("project validation", () => {
       expect(createProjectSchema.safeParse({ ...validBase, postsPerPlatform: 3 }).success).toBe(true);
     });
 
-    it("rejects when platforms.length * postsPerPlatform > 10", () => {
-      // 4 platforms * 3 posts = 12 > 10
+    it("rejects when platforms.length * postsPerPlatform > 12", () => {
+      // 5 platforms * 3 posts = 15 > 12
       const result = createProjectSchema.safeParse({
         ...validBase,
-        platforms: ["linkedin", "twitter", "email", "instagram"],
+        platforms: ["linkedin", "twitter", "email", "instagram", "facebook"],
         postsPerPlatform: 3,
       });
       expect(result.success).toBe(false);
@@ -41,11 +41,11 @@ describe("project validation", () => {
       }
     });
 
-    it("accepts when platforms.length * postsPerPlatform <= 10", () => {
-      // 3 platforms * 3 posts = 9
+    it("accepts when platforms.length * postsPerPlatform <= 12", () => {
+      // 4 platforms * 3 posts = 12
       const result = createProjectSchema.safeParse({
         ...validBase,
-        platforms: ["linkedin", "twitter", "email"],
+        platforms: ["linkedin", "twitter", "email", "instagram"],
         postsPerPlatform: 3,
       });
       expect(result.success).toBe(true);
@@ -59,7 +59,7 @@ describe("project validation", () => {
       expect(result.success).toBe(false);
     });
 
-    it("accepts valid postsPerPlatformByPlatform (sum <= 10)", () => {
+    it("accepts valid postsPerPlatformByPlatform (sum <= 12)", () => {
       const result = createProjectSchema.safeParse({
         ...validBase,
         platforms: ["linkedin", "tiktok"],
@@ -68,11 +68,11 @@ describe("project validation", () => {
       expect(result.success).toBe(true);
     });
 
-    it("rejects when sum of postsPerPlatformByPlatform > 10", () => {
+    it("rejects when sum of postsPerPlatformByPlatform > 12", () => {
       const result = createProjectSchema.safeParse({
         ...validBase,
-        platforms: ["linkedin", "twitter", "email", "instagram"],
-        postsPerPlatformByPlatform: { linkedin: 3, twitter: 3, email: 3, instagram: 3 },
+        platforms: ["linkedin", "twitter", "email", "instagram", "facebook"],
+        postsPerPlatformByPlatform: { linkedin: 3, twitter: 3, email: 3, instagram: 3, facebook: 3 },
       });
       expect(result.success).toBe(false);
       if (!result.success) {
@@ -126,7 +126,7 @@ describe("project validation", () => {
       expect(result.success).toBe(true);
     });
 
-    it("rejects when platforms * postsPerPlatform exceeds 10", () => {
+    it("rejects when platforms * postsPerPlatform exceeds 12", () => {
       const result = createProjectSchemaForTextForm.safeParse({
         ...validBase,
         platforms: ["linkedin", "twitter", "email", "instagram", "facebook", "tiktok", "youtube"],
@@ -153,7 +153,7 @@ describe("project validation", () => {
       expect(result.success).toBe(true);
     });
 
-    it("rejects when platforms.length * postsPerPlatform > 10", () => {
+    it("rejects when platforms.length * postsPerPlatform > 12", () => {
       const result = updateProjectSchema.safeParse({
         platforms: ["linkedin", "twitter", "email", "instagram", "facebook"],
         postsPerPlatform: 3,

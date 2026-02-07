@@ -8,7 +8,7 @@ import { getAudioLimits } from "@/lib/constants/plans";
 import { addMonths } from "@/lib/utils/date";
 
 const patchBodySchema = z.object({
-  plan: z.enum(["free", "pro", "enterprise"]).optional(),
+  plan: z.enum(["free", "pro", "max", "enterprise"]).optional(),
   subscriptionStatus: z.enum(["active", "canceled", "past_due"]).optional(),
   currentPeriodEnd: z.string().datetime().optional().nullable(), // ISO date or null to clear
   role: z.enum(["user", "admin"]).optional(),
@@ -115,8 +115,8 @@ export async function PATCH(
   if (plan !== undefined) {
     subUpdates.plan = plan;
     subUpdates.planType =
-      plan === "pro" ? PlanType.TEXT : plan === "enterprise" ? PlanType.TEXT_AUDIO : PlanType.TEXT;
-    const audioLimits = plan === "enterprise" ? getAudioLimits("enterprise") : null;
+      plan === "max" || plan === "enterprise" ? PlanType.TEXT_AUDIO : PlanType.TEXT;
+    const audioLimits = plan === "max" || plan === "enterprise" ? getAudioLimits(plan) : null;
     if (audioLimits) {
       subUpdates.audioMinutesLimit = audioLimits.audioMinutesPerMonth;
       subUpdates.audioMinutesResetAt = addMonths(new Date(), 1);

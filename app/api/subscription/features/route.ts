@@ -2,13 +2,18 @@ import { NextResponse } from "next/server";
 import { auth } from "@/lib/auth/config";
 import { checkAudioQuota } from "@/lib/services/quota";
 import { prisma } from "@/lib/db/prisma";
-import { PLAN_LIMITS, getEffectivePlan, getAudioLimits } from "@/lib/constants/plans";
+import {
+  PLAN_LIMITS,
+  getEffectivePlan,
+  getAudioLimits,
+  getPlanCapabilities,
+} from "@/lib/constants/plans";
 
 const TRIAL_DURATION_MS = 3 * 24 * 60 * 60 * 1000;
 
 /**
  * GET /api/subscription/features
- * Returns plan features for the current user (effective plan: trial / free / pro / enterprise).
+ * Returns plan features for the current user (effective plan: trial / free / pro / max / enterprise).
  * UI uses this for PlanBadge, SubscriptionBlock, and "Upload audio" on generate page.
  */
 export async function GET() {
@@ -37,17 +42,16 @@ export async function GET() {
       ? new Date(new Date(user.createdAt).getTime() + TRIAL_DURATION_MS).toISOString()
       : null;
 
-  const canUseSeries = plan === "enterprise";
-  const canUsePostTone = plan === "enterprise";
-  const maxPostsPerPlatform = canUseSeries ? 3 : 1;
+  const capabilities = getPlanCapabilities(plan);
 
   return NextResponse.json({
     plan,
     planType: audio.planType,
-    canUseAudio: audio.allowed,
-    canUseSeries,
-    canUsePostTone,
-    maxPostsPerPlatform,
+    canUseAudio: capabilities.canUseAudio && audio.allowed,
+    canUseSeries: capabilities.canUseSeries,
+    canUsePostTone: capabilities.canUsePostTone,
+    canUseBrandVoice: capabilities.canUseBrandVoice,
+    maxPostsPerPlatform: capabilities.maxPostsPerPlatform,
     maxOutputsPerProject: limits?.maxOutputsPerProject ?? 10,
     maxProjects: limits?.maxProjects ?? 0,
     maxCharactersPerContent: limits?.maxCharactersPerContent ?? 0,

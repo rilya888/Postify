@@ -4,7 +4,11 @@ import { generateContentVariations } from "@/lib/services/ai";
 import { prisma } from "@/lib/db/prisma";
 import { Logger } from "@/lib/utils/logger";
 import { checkGenerateRateLimit } from "@/lib/utils/rate-limit";
-import { PLAN_LIMITS, getEffectivePlan } from "@/lib/constants/plans";
+import {
+  PLAN_LIMITS,
+  getEffectivePlan,
+  getPlanCapabilities,
+} from "@/lib/constants/plans";
 import type { Plan } from "@/lib/constants/plans";
 import { getAllPlatformIds } from "@/lib/constants/platforms";
 
@@ -72,6 +76,7 @@ export async function POST(request: NextRequest) {
       prisma.subscription.findUnique({ where: { userId } }),
     ]);
     const plan = getEffectivePlan(subscription, user?.createdAt ?? null) as Plan;
+    const capabilities = getPlanCapabilities(plan);
     const maxChars = PLAN_LIMITS[plan]?.maxCharactersPerContent ?? PLAN_LIMITS.free.maxCharactersPerContent;
     if (sourceContent.length > maxChars) {
       return new Response(
@@ -96,7 +101,8 @@ export async function POST(request: NextRequest) {
       count,
       options,
       brandVoiceId,
-      plan
+      plan,
+      capabilities.canUseBrandVoice
     );
 
     // Return results

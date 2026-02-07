@@ -175,7 +175,8 @@ describe("POST /api/generate", () => {
       "trial",
       1,
       [{ platform: "linkedin", seriesIndex: 1 }],
-      null
+      null,
+      false
     );
     const json = await res.json();
     expect(json.successful).toHaveLength(1);
@@ -217,7 +218,8 @@ describe("POST /api/generate", () => {
         { platform: "linkedin", seriesIndex: 1 },
         { platform: "linkedin", seriesIndex: 2 },
       ],
-      null
+      null,
+      true
     );
     const json = await res.json();
     expect(json.successful).toBeDefined();
@@ -260,7 +262,8 @@ describe("POST /api/generate", () => {
         { platform: "tiktok", seriesIndex: 2 },
         { platform: "tiktok", seriesIndex: 3 },
       ],
-      null
+      null,
+      true
     );
   });
 
@@ -295,7 +298,8 @@ describe("POST /api/generate", () => {
       "enterprise",
       1,
       [{ platform: "linkedin", seriesIndex: 1 }],
-      "sassy"
+      "sassy",
+      true
     );
   });
 
@@ -331,11 +335,12 @@ describe("POST /api/generate", () => {
       "enterprise",
       1,
       [{ platform: "linkedin", seriesIndex: 1 }],
-      "witty"
+      "witty",
+      true
     );
   });
 
-  it("returns 403 when postsPerPlatform > 1 and plan is not enterprise", async () => {
+  it("returns 403 when postsPerPlatform > 1 and plan does not include series", async () => {
     mockProjectFindUnique.mockResolvedValueOnce({
       id: "proj-1",
       userId: "user-1",
@@ -356,7 +361,7 @@ describe("POST /api/generate", () => {
     expect(res.status).toBe(403);
     const json = await res.json();
     expect(json.code).toBe("PLAN_REQUIRED");
-    expect(json.error).toContain("Enterprise");
+    expect(json.error).toContain("not available");
     expect(mockGenerateForPlatforms).not.toHaveBeenCalled();
   });
 
@@ -396,7 +401,8 @@ describe("POST /api/generate", () => {
         { platform: "linkedin", seriesIndex: 2 },
         { platform: "linkedin", seriesIndex: 3 },
       ],
-      null
+      null,
+      true
     );
   });
 
@@ -430,7 +436,8 @@ describe("POST /api/generate", () => {
         undefined,
         "trial",
         1,
-        null
+        null,
+        false
       );
       expect(mockGenerateForPlatforms).not.toHaveBeenCalled();
       const json = await res.json();
@@ -512,7 +519,8 @@ describe("POST /api/generate", () => {
         undefined,
         "enterprise",
         1,
-        "sassy"
+        "sassy",
+        true
       );
     });
 
@@ -547,7 +555,8 @@ describe("POST /api/generate", () => {
         undefined,
         "enterprise",
         1,
-        "professional"
+        "professional",
+        true
       );
     });
   });

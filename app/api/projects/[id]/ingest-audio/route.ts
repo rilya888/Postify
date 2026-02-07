@@ -58,7 +58,7 @@ export async function POST(
       return Response.json(
         {
           error: "Audio upload not available",
-          details: "Your plan does not include audio. Upgrade to Enterprise.",
+          details: "Your plan does not include audio. Upgrade to Max or Enterprise.",
         },
         { status: 400 }
       );

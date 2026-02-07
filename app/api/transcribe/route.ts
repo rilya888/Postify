@@ -41,7 +41,7 @@ export async function POST(request: NextRequest) {
     const plan = getEffectivePlan(subscription, user?.createdAt ?? null);
     if (!canUseAudio(plan)) {
       return Response.json(
-        { error: "Audio not available on your plan. Upgrade to Enterprise." },
+        { error: "Audio not available on your plan. Upgrade to Max or Enterprise." },
         { status: 400 }
       );
     }

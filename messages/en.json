@@ -76,6 +76,7 @@
     "planTrial": "Trial",
     "planFree": "Free",
     "planPro": "Pro",
+    "planMax": "Max",
     "planEnterprise": "Enterprise",
     "planTypeText": "Text",
     "planTypeTextAudio": "Text + Audio",
@@ -420,14 +421,24 @@
         "f4": "Advanced templates"
       },
       "proCta": "Get Started",
+      "maxTitle": "Max",
+      "maxPrice": "$59",
+      "maxPeriod": "/month",
+      "maxFeatures": {
+        "f1": "75 projects",
+        "f2": "Text + audio",
+        "f3": "More generation limits",
+        "f4": "Faster workflows"
+      },
+      "maxCta": "Upgrade to Max",
       "enterpriseTitle": "Enterprise",
       "enterprisePrice": "$99",
       "enterprisePeriod": "/month",
       "enterpriseFeatures": {
-        "f1": "100 projects",
+        "f1": "150 projects",
         "f2": "Text + audio",
-        "f3": "Higher limits",
-        "f4": "Priority support"
+        "f3": "Highest limits + post tone",
+        "f4": "Brand voice + priority support"
       },
       "enterpriseCta": "Contact Sales"
     },
@@ -506,6 +517,7 @@
   },
   "brandVoice": {
     "manageDescription": "Manage brand voice profiles used for content generation.",
+    "enterpriseOnly": "Brand voice is available on Enterprise plan only.",
     "create": "Create brand voice",
     "createTitle": "Create brand voice",
     "empty": "No brand voices yet. Create one to use a consistent tone in generated content.",
@@ -713,6 +725,7 @@
     "plans": {
       "free": "free",
       "pro": "pro",
+      "max": "max",
       "enterprise": "enterprise"
     },
     "roles": {

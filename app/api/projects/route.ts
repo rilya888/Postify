@@ -6,7 +6,7 @@ import { checkProjectQuota } from "@/lib/services/quota";
 import { logProjectChange } from "@/lib/services/project-history";
 import { checkProjectsRateLimit } from "@/lib/utils/rate-limit";
 import { Logger } from "@/lib/utils/logger";
-import { getEffectivePlan } from "@/lib/constants/plans";
+import { getEffectivePlan, getPlanCapabilities } from "@/lib/constants/plans";
 import { validatePostToneForPlan } from "@/lib/validations/project";
 import { z } from "zod";
 
@@ -186,11 +186,12 @@ export async function POST(request: Request) {
       prisma.subscription.findUnique({ where: { userId: session.user.id } }),
     ]);
     const plan = getEffectivePlan(subscription, user?.createdAt ?? null);
+    const capabilities = getPlanCapabilities(plan);
 
     // Prefer postsPerPlatformByPlatform when present and non-empty; otherwise legacy postsPerPlatform
     const byPlatform = validatedData.postsPerPlatformByPlatform;
     const useByPlatform =
-      plan === "enterprise" &&
+      capabilities.canUseSeries &&
       byPlatform &&
       typeof byPlatform === "object" &&
       !Array.isArray(byPlatform) &&
@@ -204,7 +205,7 @@ export async function POST(request: Request) {
         : undefined;
     const hasFilteredByPlatform = filteredByPlatform && Object.keys(filteredByPlatform).length > 0;
     const legacyPostsPerPlatform = !hasFilteredByPlatform
-      ? plan === "enterprise" && validatedData.postsPerPlatform != null
+      ? capabilities.canUseSeries && validatedData.postsPerPlatform != null
         ? validatedData.postsPerPlatform
         : 1
       : Math.max(...Object.values(filteredByPlatform!), 1);

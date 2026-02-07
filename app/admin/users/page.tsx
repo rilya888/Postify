@@ -39,7 +39,7 @@ export default async function AdminUsersPage({
 
   const roleWhere = role && (role === "user" || role === "admin") ? { role } : undefined;
   const planWhere =
-    plan && (plan === "free" || plan === "pro" || plan === "enterprise")
+    plan && (plan === "free" || plan === "pro" || plan === "max" || plan === "enterprise")
       ? plan === "free"
         ? { OR: [{ subscription: { is: null } }, { subscription: { plan: "free" } }] }
         : { subscription: { plan } }

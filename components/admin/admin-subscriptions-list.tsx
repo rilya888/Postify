@@ -75,6 +75,7 @@ export function AdminSubscriptionsList({
               <SelectItem value="all">{t("allPlans")}</SelectItem>
               <SelectItem value="free">{planLabel("free")}</SelectItem>
               <SelectItem value="pro">{planLabel("pro")}</SelectItem>
+              <SelectItem value="max">{planLabel("max")}</SelectItem>
               <SelectItem value="enterprise">{planLabel("enterprise")}</SelectItem>
             </SelectContent>
           </Select>

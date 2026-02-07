@@ -9,7 +9,7 @@ import { logAuditEventSafe } from "@/lib/services/audit-events";
 import { invalidateProjectGenerationCache } from "@/lib/services/cache";
 import { checkProjectsRateLimit } from "@/lib/utils/rate-limit";
 import { Logger } from "@/lib/utils/logger";
-import { getEffectivePlan } from "@/lib/constants/plans";
+import { getEffectivePlan, getPlanCapabilities } from "@/lib/constants/plans";
 import { validatePostToneForPlan } from "@/lib/validations/project";
 import { z } from "zod";
 
@@ -136,6 +136,7 @@ export async function PATCH(
     }
 
     const plan = getEffectivePlan(subscription, user?.createdAt ?? null);
+    const capabilities = getPlanCapabilities(plan);
     const platformsList = validatedData.platforms ?? existingProject.platforms;
     const existingByPlatform = (existingProject.postsPerPlatformByPlatform ?? null) as Record<string, number> | null;
     const newByPlatformRaw = validatedData.postsPerPlatformByPlatform;
@@ -148,13 +149,13 @@ export async function PATCH(
           ) as Record<string, number>)
         : undefined;
     const useByPlatform =
-      plan === "enterprise" &&
+      capabilities.canUseSeries &&
       newByPlatform &&
       Object.keys(newByPlatform).length > 0;
     const effectiveByPlatform = useByPlatform ? newByPlatform : null;
     const newPostsPerPlatformLegacy =
       validatedData.postsPerPlatform != null
-        ? plan === "enterprise"
+        ? capabilities.canUseSeries
           ? validatedData.postsPerPlatform
           : 1
         : existingProject.postsPerPlatform ?? 1;

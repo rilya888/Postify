@@ -2,7 +2,11 @@ import { auth } from "@/lib/auth/config";
 import { prisma } from "@/lib/db/prisma";
 import { getOrCreateContentPack } from "@/lib/services/content-pack";
 import { getActiveBrandVoice } from "@/lib/services/brand-voice";
-import { PLAN_LIMITS, getEffectivePlan } from "@/lib/constants/plans";
+import {
+  PLAN_LIMITS,
+  getEffectivePlan,
+  getPlanCapabilities,
+} from "@/lib/constants/plans";
 import { checkContentPackRateLimit } from "@/lib/utils/rate-limit";
 
 /**
@@ -34,6 +38,7 @@ export async function POST(
       prisma.subscription.findUnique({ where: { userId } }),
     ]);
     const plan = getEffectivePlan(subscription, user?.createdAt ?? null);
+    const capabilities = getPlanCapabilities(plan);
     const maxChars = PLAN_LIMITS[plan]?.maxCharactersPerContent ?? PLAN_LIMITS.free.maxCharactersPerContent;
     if (project.sourceContent.length > maxChars) {
       return Response.json(
@@ -51,7 +56,7 @@ export async function POST(
       );
     }
 
-    const brandVoice = await getActiveBrandVoice(userId);
+    const brandVoice = capabilities.canUseBrandVoice ? await getActiveBrandVoice(userId) : null;
     const pack = await getOrCreateContentPack(projectId, userId, project.sourceContent, {
       brandVoiceId: brandVoice?.id ?? undefined,
       brandVoiceUpdatedAt: brandVoice?.updatedAt ? brandVoice.updatedAt.toISOString() : undefined,

@@ -96,7 +96,7 @@ export default async function LandingPage() {
             <h2 className="text-3xl font-bold tracking-tight md:text-4xl">{t("featuresTitle")}</h2>
             <p className="max-w-[750px] text-lg text-muted-foreground">{t("featuresSubtitle")}</p>
           </div>
-          <div className="grid gap-8 md:grid-cols-3">
+          <div className="grid gap-8 md:grid-cols-2 xl:grid-cols-4">
             <div className="flex flex-col space-y-4 rounded-lg border p-6">
               <div className="flex h-12 w-12 items-center justify-center rounded-lg bg-primary/10">
                 <Sparkles className="h-6 w-6 text-primary" />
@@ -158,6 +158,23 @@ export default async function LandingPage() {
               </ul>
               <Button asChild variant="outline" className="w-full">
                 <Link href="/signup">{t("pricing.proCta")}</Link>
+              </Button>
+            </div>
+
+            <div className="flex flex-col space-y-4 rounded-lg border p-6">
+              <h3 className="text-2xl font-bold">{t("pricing.maxTitle")}</h3>
+              <div className="text-3xl font-bold">
+                {t("pricing.maxPrice")}
+                <span className="text-lg font-normal text-muted-foreground">{t("pricing.maxPeriod")}</span>
+              </div>
+              <ul className="flex-1 space-y-2 text-sm text-muted-foreground">
+                <li>{t("pricing.maxFeatures.f1")}</li>
+                <li>{t("pricing.maxFeatures.f2")}</li>
+                <li>{t("pricing.maxFeatures.f3")}</li>
+                <li>{t("pricing.maxFeatures.f4")}</li>
+              </ul>
+              <Button asChild variant="outline" className="w-full">
+                <Link href="/signup">{t("pricing.maxCta")}</Link>
               </Button>
             </div>
 

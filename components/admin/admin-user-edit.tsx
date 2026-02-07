@@ -40,7 +40,7 @@ function toDateInputValue(d: Date | null | undefined): string {
   return date.toISOString().slice(0, 10);
 }
 
-const AUDIO_PLANS = ["pro", "enterprise"];
+const AUDIO_PLANS = ["max", "enterprise"];
 function hasAudioPlan(sub: Props["user"]["subscription"]) {
   return sub && AUDIO_PLANS.includes(sub.plan);
 }
@@ -118,6 +118,7 @@ export function AdminUserEdit({ user, isSelf }: Props) {
               <SelectContent>
                 <SelectItem value="free">{t("plans.free")}</SelectItem>
                 <SelectItem value="pro">{t("plans.pro")}</SelectItem>
+                <SelectItem value="max">{t("plans.max")}</SelectItem>
                 <SelectItem value="enterprise">{t("plans.enterprise")}</SelectItem>
               </SelectContent>
             </Select>

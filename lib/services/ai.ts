@@ -144,7 +144,8 @@ export async function generateForPlatforms(
   plan: Plan = "free",
   postsPerPlatform: number = 1,
   slotsOverride?: GenerationSlot[],
-  postTone?: string | null
+  postTone?: string | null,
+  useBrandVoice: boolean = true
 ): Promise<BulkGenerationResult> {
   const operationId = `generateForPlatforms_${projectId}_${requestId ?? "no-req"}`;
   const genConfig = getModelConfig(plan).generate;
@@ -179,12 +180,14 @@ export async function generateForPlatforms(
     slots.sort((a, b) => a.seriesIndex - b.seriesIndex || a.platform.localeCompare(b.platform));
 
     let brandVoice: { id: string; updatedAt: Date; tone: string; style: string; personality: string; sentenceStructure: string; vocabulary: string[]; avoidVocabulary: string[]; examples: string[] } | null = null;
-    if (brandVoiceId) {
-      brandVoice = await prisma.brandVoice.findUnique({
-        where: { id: brandVoiceId, userId },
-      });
-    } else {
-      brandVoice = await getActiveBrandVoice(userId);
+    if (useBrandVoice) {
+      if (brandVoiceId) {
+        brandVoice = await prisma.brandVoice.findUnique({
+          where: { id: brandVoiceId, userId },
+        });
+      } else {
+        brandVoice = await getActiveBrandVoice(userId);
+      }
     }
 
     Logger.info("Starting content generation", {
@@ -497,7 +500,8 @@ export async function regenerateForPlatform(
   brandVoiceId?: string,
   plan: Plan = "free",
   seriesIndex: number = 1,
-  postToneOverride?: string | null
+  postToneOverride?: string | null,
+  useBrandVoice: boolean = true
 ): Promise<GenerationResult> {
   const genConfig = getModelConfig(plan).generate;
   const model = options?.model ?? genConfig.defaultModel;
@@ -538,12 +542,14 @@ export async function regenerateForPlatform(
         : null) ?? proj.postsPerPlatform ?? 1;
 
     let brandVoice: { id: string; updatedAt: Date; tone: string; style: string; personality: string; sentenceStructure: string; vocabulary: string[]; avoidVocabulary: string[]; examples: string[] } | null = null;
-    if (brandVoiceId) {
-      brandVoice = await prisma.brandVoice.findUnique({
-        where: { id: brandVoiceId, userId },
-      });
-    } else {
-      brandVoice = await getActiveBrandVoice(userId);
+    if (useBrandVoice) {
+      if (brandVoiceId) {
+        brandVoice = await prisma.brandVoice.findUnique({
+          where: { id: brandVoiceId, userId },
+        });
+      } else {
+        brandVoice = await getActiveBrandVoice(userId);
+      }
     }
 
     try {
@@ -735,7 +741,8 @@ export async function generateContentVariations(
   variationCount: number = 3,
   options?: GenerationOptions,
   brandVoiceId?: string,
-  plan: Plan = "free"
+  plan: Plan = "free",
+  useBrandVoice: boolean = true
 ): Promise<GenerationResult[]> {
   const genConfig = getModelConfig(plan).generate;
   const model = options?.model ?? genConfig.defaultModel;
@@ -766,12 +773,14 @@ export async function generateContentVariations(
     const languageInstruction = buildLanguageInstruction(targetLanguage);
 
     let brandVoice: { id: string; updatedAt: Date; tone: string; style: string; personality: string; sentenceStructure: string; vocabulary: string[]; avoidVocabulary: string[]; examples: string[] } | null = null;
-    if (brandVoiceId) {
-      brandVoice = await prisma.brandVoice.findUnique({
-        where: { id: brandVoiceId, userId },
-      });
-    } else {
-      brandVoice = await getActiveBrandVoice(userId);
+    if (useBrandVoice) {
+      if (brandVoiceId) {
+        brandVoice = await prisma.brandVoice.findUnique({
+          where: { id: brandVoiceId, userId },
+        });
+      } else {
+        brandVoice = await getActiveBrandVoice(userId);
+      }
     }
 
     const variationStyles = [

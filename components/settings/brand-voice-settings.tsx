@@ -40,8 +40,20 @@ export function BrandVoiceSettings() {
   const { data: session } = useSession();
   const [voices, setVoices] = useState<BrandVoice[]>([]);
   const [loading, setLoading] = useState(true);
+  const [isFeatureEnabled, setIsFeatureEnabled] = useState<boolean | null>(null);
   const [showCreate, setShowCreate] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
+
+  const loadFeatures = useCallback(async () => {
+    try {
+      const res = await fetch("/api/subscription/features");
+      if (!res.ok) throw new Error("LOAD_FAILED");
+      const data = await res.json();
+      setIsFeatureEnabled(data?.canUseBrandVoice === true);
+    } catch {
+      setIsFeatureEnabled(false);
+    }
+  }, []);
 
   const loadVoices = useCallback(async () => {
     try {
@@ -57,8 +69,15 @@ export function BrandVoiceSettings() {
   }, [t]);
 
   useEffect(() => {
-    if (session?.user?.id) loadVoices();
-  }, [session?.user?.id, loadVoices]);
+    if (session?.user?.id) {
+      loadFeatures();
+    }
+  }, [loadFeatures, session?.user?.id]);
+
+  useEffect(() => {
+    if (session?.user?.id && isFeatureEnabled) loadVoices();
+    if (isFeatureEnabled === false) setLoading(false);
+  }, [isFeatureEnabled, loadVoices, session?.user?.id]);
 
   async function setActive(id: string) {
     try {
@@ -92,6 +111,10 @@ export function BrandVoiceSettings() {
 
   if (loading) {
     return <Skeleton className="h-32 w-full" />;
+  }
+
+  if (!isFeatureEnabled) {
+    return <p className="text-sm text-muted-foreground">{t("enterpriseOnly")}</p>;
   }
 
   const activeVoice = voices.find((v) => v.isActive);

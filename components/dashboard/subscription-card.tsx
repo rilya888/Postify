@@ -51,6 +51,7 @@ export function SubscriptionCard() {
     trial: t("planTrial"),
     free: t("planFree"),
     pro: t("planPro"),
+    max: t("planMax"),
     enterprise: t("planEnterprise"),
   };
 

@@ -29,7 +29,7 @@ export default async function AdminSubscriptionsPage({
   const offset = (parseInt(page, 10) - 1) * limit;
 
   const where: { plan?: string; status?: string } = {};
-  if (plan && ["free", "pro", "enterprise"].includes(plan)) where.plan = plan;
+  if (plan && ["free", "pro", "max", "enterprise"].includes(plan)) where.plan = plan;
   if (status && ["active", "canceled", "past_due"].includes(status)) where.status = status;
 
   const [subscriptions, count] = await Promise.all([

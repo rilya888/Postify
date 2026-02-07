@@ -1,5 +1,7 @@
 import { NextRequest } from 'next/server';
 import { auth } from '@/lib/auth/config';
+import { prisma } from '@/lib/db/prisma';
+import { getEffectivePlan, getPlanCapabilities } from '@/lib/constants/plans';
 import {
   createBrandVoice,
   getBrandVoiceById,
@@ -9,6 +11,15 @@ import {
   getActiveBrandVoice
 } from '@/lib/services/brand-voice';
 
+async function canUseBrandVoiceFeature(userId: string): Promise<boolean> {
+  const [user, subscription] = await Promise.all([
+    prisma.user.findUnique({ where: { id: userId }, select: { createdAt: true } }),
+    prisma.subscription.findUnique({ where: { userId } }),
+  ]);
+  const plan = getEffectivePlan(subscription, user?.createdAt ?? null);
+  return getPlanCapabilities(plan).canUseBrandVoice;
+}
+
 export async function GET(request: NextRequest) {
   try {
     const session = await auth();
@@ -17,6 +28,12 @@ export async function GET(request: NextRequest) {
     }
 
     const userId = session.user.id;
+    if (!(await canUseBrandVoiceFeature(userId))) {
+      return new Response(
+        JSON.stringify({ error: 'Brand voice is available on Enterprise plan only' }),
+        { status: 403, headers: { 'Content-Type': 'application/json' } }
+      );
+    }
     const { searchParams } = new URL(request.url);
     const activeOnly = searchParams.get('active') === 'true';
     
@@ -50,6 +67,12 @@ export async function POST(request: NextRequest) {
     }
 
     const userId = session.user.id;
+    if (!(await canUseBrandVoiceFeature(userId))) {
+      return new Response(
+        JSON.stringify({ error: 'Brand voice is available on Enterprise plan only' }),
+        { status: 403, headers: { 'Content-Type': 'application/json' } }
+      );
+    }
     const data = await request.json();
 
     // Validate required fields
@@ -93,6 +116,12 @@ export async function PUT(request: NextRequest) {
     }
 
     const userId = session.user.id;
+    if (!(await canUseBrandVoiceFeature(userId))) {
+      return new Response(
+        JSON.stringify({ error: 'Brand voice is available on Enterprise plan only' }),
+        { status: 403, headers: { 'Content-Type': 'application/json' } }
+      );
+    }
     const { searchParams } = new URL(request.url);
     const id = searchParams.get('id');
 
@@ -144,6 +173,12 @@ export async function DELETE(request: NextRequest) {
     }
 
     const userId = session.user.id;
+    if (!(await canUseBrandVoiceFeature(userId))) {
+      return new Response(
+        JSON.stringify({ error: 'Brand voice is available on Enterprise plan only' }),
+        { status: 403, headers: { 'Content-Type': 'application/json' } }
+      );
+    }
     const { searchParams } = new URL(request.url);
     const id = searchParams.get('id');
 

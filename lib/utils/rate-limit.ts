@@ -98,7 +98,7 @@ export function checkProjectsRateLimit(userId: string): { allowed: boolean; retr
 }
 
 /**
- * Check transcribe rate limit (per plan: free 2/hour, pro 10/hour, enterprise 50/hour).
+ * Check transcribe rate limit (per plan profile from RATE_LIMITS).
  */
 export function checkTranscribeRateLimit(
   userId: string,
@@ -120,7 +120,7 @@ export function checkTranscribeRateLimit(
 }
 
 /**
- * Check content-pack rate limit (per plan: free 10/min, pro 50/min, enterprise 200/min).
+ * Check content-pack rate limit (per plan profile from RATE_LIMITS).
  */
 export function checkContentPackRateLimit(
   userId: string,

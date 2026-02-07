@@ -57,6 +57,7 @@ export function SubscriptionBlock() {
     trial: t("planTrial"),
     free: t("planFree"),
     pro: t("planPro"),
+    max: t("planMax"),
     enterprise: t("planEnterprise"),
   };
 
