@@ -1,12 +1,5 @@
 import { NextResponse } from "next/server";
 import { auth } from "@/lib/auth/config";
-import createIntlMiddleware from "next-intl/middleware";
-import { locales } from "@/i18n/routing";
-const intlMiddleware = createIntlMiddleware({
-  locales: [...locales],
-  defaultLocale: "en",
-  localePrefix: "never",
-});
 
 export default auth((req) => {
   const { pathname } = req.nextUrl;
@@ -32,8 +25,7 @@ export default auth((req) => {
     return NextResponse.redirect(new URL("/dashboard", req.url));
   }
 
-  // Run locale routing middleware before applying common security headers.
-  const response = intlMiddleware(req);
+  const response = NextResponse.next();
 
   // Content Security Policy
   response.headers.set(
