@@ -60,6 +60,14 @@ type ProjectFormProps = {
 };
 
 type ProjectFormData = z.infer<typeof createProjectSchemaForTextForm>;
+type CreateAndGenerateResponse = {
+  status: "success" | "partial" | "failed";
+  projectId?: string;
+  project?: { id?: string };
+  firstSuccessfulOutputId?: string | null;
+  successful?: unknown[];
+  failed?: unknown[];
+};
 
 /**
  * Project form component for creating and editing projects
@@ -179,8 +187,24 @@ export function ProjectForm({
 
     try {
       setSaveProgress(40);
-      setSaveProgress(60);
-      const { ok, result } = await submitPayload(data, confirmDeleteExtraPosts);
+      let ok = false;
+      let result: Record<string, unknown> = {};
+
+      if (isEditing) {
+        setSaveProgress(60);
+        const response = await submitPayload(data, confirmDeleteExtraPosts);
+        ok = response.ok;
+        result = response.result as Record<string, unknown>;
+      } else {
+        const response = await fetch("/api/projects/create-and-generate", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(data),
+        });
+        ok = response.ok;
+        result = (await response.json()) as Record<string, unknown>;
+      }
+
       setSaveProgress(80);
 
       if (!ok) {
@@ -207,17 +231,46 @@ export function ProjectForm({
       localStorage.removeItem(`project-draft-${projectId || "new"}`);
       setExtraPostsDialog(null);
 
-      NotificationService.success(
-        isEditing ? "Project updated" : "Project created",
-        isEditing
-          ? "Your project has been updated successfully"
-          : "Your project has been created successfully"
-      );
-
-      if (onSubmitSuccess) {
-        onSubmitSuccess();
+      if (isEditing) {
+        NotificationService.success("Project updated", "Your project has been updated successfully");
+        if (onSubmitSuccess) {
+          onSubmitSuccess();
+        } else {
+          router.push("/projects");
+          router.refresh();
+        }
       } else {
-        router.push("/projects");
+        const createAndGenerate = result as CreateAndGenerateResponse;
+        const createdProjectId = createAndGenerate.projectId ?? createAndGenerate.project?.id;
+        if (!createdProjectId) {
+          throw new Error("Project created but ID missing");
+        }
+
+        const successfulCount = createAndGenerate.successful?.length ?? 0;
+        const failedCount = createAndGenerate.failed?.length ?? 0;
+
+        if (createAndGenerate.status === "success" && createAndGenerate.firstSuccessfulOutputId) {
+          NotificationService.success("Project created", "Content generated successfully");
+          router.push(`/projects/${createdProjectId}/outputs/${createAndGenerate.firstSuccessfulOutputId}/edit`);
+        } else {
+          if (createAndGenerate.status === "partial") {
+            NotificationService.warn(
+              "Project created",
+              `Generation partially completed: ${successfulCount} success, ${failedCount} failed`
+            );
+          } else {
+            NotificationService.warn(
+              "Project created",
+              "Generation failed. You can retry generation on the next screen"
+            );
+          }
+
+          const params = new URLSearchParams();
+          params.set("status", createAndGenerate.status ?? "failed");
+          params.set("successful", String(successfulCount));
+          params.set("failed", String(failedCount));
+          router.push(`/projects/${createdProjectId}/generate?${params.toString()}`);
+        }
         router.refresh();
       }
     } catch (error) {

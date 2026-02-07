@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState, useEffect, useRef, useCallback } from "react";
-import { useParams, useRouter } from "next/navigation";
+import { useParams, useRouter, useSearchParams } from "next/navigation";
 import { useTranslations } from "next-intl";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
@@ -89,6 +89,7 @@ function hasSeriesPerPlatform(project: Project): boolean {
 
 export default function GeneratePage() {
   const params = useParams<{ id: string }>();
+  const searchParams = useSearchParams();
   const router = useRouter();
   const projectId = params.id;
   const t = useTranslations("projects");
@@ -122,6 +123,9 @@ export default function GeneratePage() {
   const audioInputRef = useRef<HTMLInputElement | null>(null);
   const [isUploadingTxt, setIsUploadingTxt] = useState(false);
   const txtInputRef = useRef<HTMLInputElement | null>(null);
+  const createStatus = searchParams.get("status");
+  const createSuccessful = Number(searchParams.get("successful") ?? "0");
+  const createFailed = Number(searchParams.get("failed") ?? "0");
 
   const loadProject = useCallback(async () => {
     if (!projectId) return null;
@@ -637,6 +641,16 @@ export default function GeneratePage() {
           )}
         </div>
       </div>
+
+      {(createStatus === "partial" || createStatus === "failed") && (
+        <Alert className="mb-6">
+          <AlertDescription>
+            {createStatus === "partial"
+              ? `Initial generation completed partially: ${createSuccessful} successful, ${createFailed} failed. You can retry failed items below.`
+              : "Initial generation failed. You can retry generation below."}
+          </AlertDescription>
+        </Alert>
+      )}
 
       {piiWarnings.length > 0 && (
         <Alert variant="default" className="mb-8 border-amber-500 bg-amber-50 dark:bg-amber-950/20">
