@@ -12,6 +12,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { User, Dna } from "lucide-react";
 import { PlanBadge } from "@/components/subscription/plan-badge";
+import { LanguageSwitcher } from "@/components/layout/language-switcher";
 
 /**
  * Header component with navigation and user menu.
@@ -29,6 +30,7 @@ export function Header() {
         </Link>
         
         <nav className="flex items-center gap-4">
+          <LanguageSwitcher />
           {status === "loading" ? (
             <div className="h-8 w-8 animate-pulse rounded-full bg-muted" />
           ) : session ? (

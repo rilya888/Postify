@@ -14,6 +14,8 @@
     "newProject": "New Project",
     "admin": "Admin",
     "userMenu": "User menu",
+    "languageSwitcher": "Language switcher",
+    "switchLanguageTo": "Switch language to {locale}",
     "somethingWentWrong": "Something went wrong",
     "backToHome": "Back to home"
   },
@@ -212,5 +214,79 @@
     "postsLimitHint": "Limit: {limit} posts per project. Current: {current}/{limit}",
     "postsLimitToast": "Maximum {limit} posts per project reached",
     "postsLimitCheckboxTooltip": "Maximum {limit} posts per project reached"
+  },
+  "footer": {
+    "copyright": "© {year} {appName}. All rights reserved.",
+    "privacy": "Privacy",
+    "terms": "Terms"
+  },
+  "landing": {
+    "metadataTitle": "HelixCast - Transform Your Content DNA",
+    "metadataDescription": "From one source, infinite reach. AI-powered content repurposing for LinkedIn, Twitter, and Email.",
+    "badge": "AI-Powered Content Repurposing",
+    "heroTitleStart": "From One Source,",
+    "heroTitleHighlight": "Infinite Reach",
+    "heroDescription": "Transform your content DNA into platform-perfect posts. Write once, publish everywhere. Save 10+ hours every week with AI.",
+    "getStarted": "Get Started Free",
+    "seeHowItWorks": "See How It Works",
+    "heroFootnote": "No credit card required • 3-day free trial • 2 minute setup",
+    "howItWorksTitle": "Your Content DNA, Decoded",
+    "howItWorksSubtitle": "Just like DNA contains the blueprint for life, your content contains the blueprint for engagement",
+    "steps": {
+      "step1Title": "1. Input Your Source",
+      "step1Description": "Paste your blog post, article, or any long-form content. This is your content DNA.",
+      "step2Title": "2. AI Transformation",
+      "step2Description": "Our AI analyzes and transforms your content for each platform's unique requirements.",
+      "step3Title": "3. Instant Distribution",
+      "step3Description": "Get optimized posts for LinkedIn, Twitter, and Email in seconds. Ready to publish."
+    },
+    "featuresTitle": "Everything You Need to Amplify Your Content",
+    "featuresSubtitle": "Powerful features designed to save you time and improve your content quality",
+    "features": {
+      "aiTitle": "AI-Powered Generation",
+      "aiDescription": "Our advanced AI understands your content and adapts it perfectly for each platform, maintaining your unique voice and style.",
+      "fastTitle": "Lightning Fast",
+      "fastDescription": "Generate content for multiple platforms in seconds, not hours. What used to take a full day now takes minutes.",
+      "controlTitle": "Full Control",
+      "controlDescription": "Edit and refine every piece of generated content with our built-in editor. You're always in control of your message."
+    },
+    "pricingTitle": "Simple, Transparent Pricing",
+    "pricingSubtitle": "Start with a free trial, then choose the plan that fits",
+    "pricing": {
+      "trialTitle": "Trial",
+      "trialPrice": "Free",
+      "trialPeriod": "3 days",
+      "trialFeatures": {
+        "f1": "3 projects",
+        "f2": "Text + audio (full)",
+        "f3": "All platforms",
+        "f4": "No credit card"
+      },
+      "trialCta": "Start Free Trial",
+      "proTitle": "Pro",
+      "proPrice": "$29",
+      "proPeriod": "/month",
+      "proFeatures": {
+        "f1": "50 projects",
+        "f2": "Text only",
+        "f3": "All platforms",
+        "f4": "Advanced templates"
+      },
+      "proCta": "Get Started",
+      "enterpriseTitle": "Enterprise",
+      "enterprisePrice": "$99",
+      "enterprisePeriod": "/month",
+      "enterpriseFeatures": {
+        "f1": "100 projects",
+        "f2": "Text + audio",
+        "f3": "Higher limits",
+        "f4": "Priority support"
+      },
+      "enterpriseCta": "Contact Sales"
+    },
+    "ctaTitle": "Ready to Amplify Your Content?",
+    "ctaSubtitle": "Join content creators who are already using HelixCast to scale their content strategy",
+    "ctaButton": "Start Free Trial",
+    "ctaFootnote": "No credit card required • 3-day free trial with full access"
   }
 }

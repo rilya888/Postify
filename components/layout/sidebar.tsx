@@ -31,7 +31,7 @@ export function Sidebar() {
         <Button asChild className="mb-4">
           <Link href="/projects/new">
             <Plus className="mr-2 h-4 w-4" />
-            New Project
+            {t("newProject")}
           </Link>
         </Button>
         
