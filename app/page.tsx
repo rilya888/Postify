@@ -126,7 +126,7 @@ export default async function LandingPage() {
             <h2 className="text-3xl font-bold tracking-tight md:text-4xl">{t("pricingTitle")}</h2>
             <p className="max-w-[750px] text-lg text-muted-foreground">{t("pricingSubtitle")}</p>
           </div>
-          <div className="grid gap-8 md:grid-cols-3">
+          <div className="grid grid-cols-1 gap-8 md:grid-cols-2">
             <div className="flex flex-col space-y-4 rounded-lg border-2 border-primary p-6">
               <h3 className="text-2xl font-bold">{t("pricing.trialTitle")}</h3>
               <div className="text-3xl font-bold">
