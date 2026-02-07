@@ -96,7 +96,7 @@ export default async function LandingPage() {
             <h2 className="text-3xl font-bold tracking-tight md:text-4xl">{t("featuresTitle")}</h2>
             <p className="max-w-[750px] text-lg text-muted-foreground">{t("featuresSubtitle")}</p>
           </div>
-          <div className="grid gap-8 md:grid-cols-2 xl:grid-cols-4">
+          <div className="grid gap-8 md:grid-cols-2">
             <div className="flex flex-col space-y-4 rounded-lg border p-6">
               <div className="flex h-12 w-12 items-center justify-center rounded-lg bg-primary/10">
                 <Sparkles className="h-6 w-6 text-primary" />
