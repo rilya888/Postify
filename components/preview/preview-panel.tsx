@@ -2,7 +2,10 @@
  * Preview panel component
  */
 
+"use client";
+
 import { useState, useEffect, useCallback, useRef, memo } from 'react';
+import { useTranslations } from 'next-intl';
 import { Platform, getPlatform } from '@/lib/constants/platforms';
 import { getCharacterCountInfo } from '@/lib/utils/editor';
 import { Button } from '@/components/ui/button';
@@ -21,21 +24,24 @@ function PreviewPanel({
   platform, 
   onCopy 
 }: PreviewPanelProps) {
+  const t = useTranslations("previewPanel");
+  const tPlatforms = useTranslations("platforms");
   const platformConfig = getPlatform(platform);
   const charCountInfo = getCharacterCountInfo(content, platform);
   const [copied, setCopied] = useState(false);
+  const platformName = tPlatforms(`${platform}.name`);
 
   const handleCopy = useCallback(async () => {
     const success = await copyToClipboard(content);
     if (success) {
       setCopied(true);
-      toast.success(`${platformConfig.name} content copied to clipboard!`);
+      toast.success(t("copySuccess", { platform: platformName }));
       onCopy?.();
       setTimeout(() => setCopied(false), 2000);
     } else {
-      toast.error(`Failed to copy ${platformConfig.name} content`);
+      toast.error(t("copyFailed", { platform: platformName }));
     }
-  }, [content, platformConfig.name, onCopy]);
+  }, [content, onCopy, platformName, t]);
 
   const previewRef = useRef<HTMLDivElement>(null);
 
@@ -53,13 +59,13 @@ function PreviewPanel({
   }, [handleCopy]);
 
   return (
-    <div ref={previewRef} tabIndex={0} className="h-full outline-none" role="region" aria-label={`${platformConfig.name} preview`}>
+    <div ref={previewRef} tabIndex={0} className="h-full outline-none" role="region" aria-label={t("previewAriaLabel", { platform: platformName })}>
     <Card className="h-full flex flex-col">
       <CardHeader className="pb-2">
         <CardTitle className="flex justify-between items-center">
           <div className="flex items-center gap-2">
             <span>{platformConfig.icon}</span>
-            <span>{platformConfig.name}</span>
+            <span>{platformName}</span>
           </div>
           <span className={`text-sm ${charCountInfo.isValid ? 'text-green-600' : 'text-red-600'}`}>
             {charCountInfo.current}/{charCountInfo.max}
@@ -79,9 +85,9 @@ function PreviewPanel({
         <Button 
           onClick={handleCopy}
           className="w-full"
-          aria-label={copied ? 'Copied to clipboard' : 'Copy to clipboard'}
+          aria-label={copied ? t("copiedAriaLabel") : t("copyAriaLabel")}
         >
-          {copied ? '✓ Copied!' : 'Copy to Clipboard'}
+          {copied ? t("copiedButton") : t("copyButton")}
         </Button>
       </CardFooter>
     </Card>

@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
+import { useTranslations } from "next-intl";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -44,6 +45,7 @@ export function AdminTranscriptsList({
   statusFilter?: string;
 }) {
   const router = useRouter();
+  const tAdmin = useTranslations("admin");
 
   const handleStatusChange = (value: string) => {
     router.push(`/admin/transcripts?${buildQuery(1, value === "all" ? "" : value)}`);
@@ -52,18 +54,18 @@ export function AdminTranscriptsList({
   return (
     <Card>
       <CardHeader>
-        <CardTitle>All transcripts</CardTitle>
+        <CardTitle>{tAdmin("allTranscripts")}</CardTitle>
         <div className="flex flex-wrap items-center gap-2 mt-2">
           <Select value={statusFilter || "all"} onValueChange={handleStatusChange}>
             <SelectTrigger className="w-[140px]">
-              <SelectValue placeholder="Status" />
+              <SelectValue placeholder={tAdmin("status")} />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="all">All statuses</SelectItem>
-              <SelectItem value="pending">pending</SelectItem>
-              <SelectItem value="in_progress">in_progress</SelectItem>
-              <SelectItem value="completed">completed</SelectItem>
-              <SelectItem value="failed">failed</SelectItem>
+              <SelectItem value="all">{tAdmin("allStatuses")}</SelectItem>
+              <SelectItem value="pending">{tAdmin("statuses.pending")}</SelectItem>
+              <SelectItem value="in_progress">{tAdmin("statuses.in_progress")}</SelectItem>
+              <SelectItem value="completed">{tAdmin("statuses.completed")}</SelectItem>
+              <SelectItem value="failed">{tAdmin("statuses.failed")}</SelectItem>
             </SelectContent>
           </Select>
         </div>
@@ -73,11 +75,11 @@ export function AdminTranscriptsList({
           <table className="w-full text-sm">
             <thead>
               <tr className="border-b">
-                <th className="text-left py-2 px-2">Project</th>
-                <th className="text-left py-2 px-2">User</th>
-                <th className="text-left py-2 px-2">Status</th>
-                <th className="text-left py-2 px-2">Duration</th>
-                <th className="text-left py-2 px-2">Created</th>
+                <th className="text-left py-2 px-2">{tAdmin("project")}</th>
+                <th className="text-left py-2 px-2">{tAdmin("user")}</th>
+                <th className="text-left py-2 px-2">{tAdmin("status")}</th>
+                <th className="text-left py-2 px-2">{tAdmin("duration")}</th>
+                <th className="text-left py-2 px-2">{tAdmin("created")}</th>
                 <th className="text-left py-2 px-2"></th>
               </tr>
             </thead>
@@ -107,7 +109,7 @@ export function AdminTranscriptsList({
                             : "secondary"
                       }
                     >
-                      {t.status}
+                      {tAdmin(`statuses.${t.status}`)}
                     </Badge>
                   </td>
                   <td className="py-2 px-2 text-muted-foreground">
@@ -118,7 +120,7 @@ export function AdminTranscriptsList({
                   </td>
                   <td className="py-2 px-2">
                     <Button variant="ghost" size="sm" asChild>
-                      <Link href={`/admin/projects/${t.sourceAsset.project.id}`}>View project</Link>
+                      <Link href={`/admin/projects/${t.sourceAsset.project.id}`}>{tAdmin("viewProject")}</Link>
                     </Button>
                   </td>
                 </tr>
@@ -127,24 +129,24 @@ export function AdminTranscriptsList({
           </table>
         </div>
         {transcripts.length === 0 && (
-          <p className="text-muted-foreground py-4 text-center">No transcripts found</p>
+          <p className="text-muted-foreground py-4 text-center">{tAdmin("noTranscriptsFound")}</p>
         )}
         {totalPages > 1 && (
           <div className="flex justify-center gap-2 mt-4">
             {currentPage > 1 && (
               <Button variant="outline" size="sm" asChild>
                 <Link href={`/admin/transcripts?${buildQuery(currentPage - 1, statusFilter)}`}>
-                  Previous
+                  {tAdmin("previous")}
                 </Link>
               </Button>
             )}
             <span className="py-2 text-muted-foreground">
-              Page {currentPage} of {totalPages}
+              {tAdmin("pageOf", { current: currentPage, total: totalPages })}
             </span>
             {currentPage < totalPages && (
               <Button variant="outline" size="sm" asChild>
                 <Link href={`/admin/transcripts?${buildQuery(currentPage + 1, statusFilter)}`}>
-                  Next
+                  {tAdmin("next")}
                 </Link>
               </Button>
             )}

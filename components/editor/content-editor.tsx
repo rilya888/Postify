@@ -3,6 +3,7 @@
  */
 
 import { useEditor, EditorContent } from '@tiptap/react';
+import { useTranslations } from 'next-intl';
 import StarterKit from '@tiptap/starter-kit';
 import Placeholder from '@tiptap/extension-placeholder';
 import Link from '@tiptap/extension-link';
@@ -25,6 +26,7 @@ function ContentEditor({
   options = {},
   platform
 }: ExtendedContentEditorProps) {
+  const t = useTranslations("editor");
   const editorOptions = { ...DEFAULT_EDITOR_OPTIONS, ...options };
   const effectivePlatform = platform || 'linkedin'; // Use the direct platform prop
   const [charCountInfo, setCharCountInfo] = useState(() =>
@@ -63,7 +65,7 @@ function ContentEditor({
   return (
     <div className="border rounded-lg overflow-hidden">
       {editor && <EditorToolbar editor={editor} />}
-      <div aria-label="Content editor">
+      <div aria-label={t("contentEditorAria")}>
       <EditorContent
         editor={editor}
         className="p-4 min-h-[300px] max-h-[500px] overflow-y-auto"

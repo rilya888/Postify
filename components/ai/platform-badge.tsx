@@ -1,4 +1,7 @@
+"use client";
+
 import React from "react";
+import { useTranslations } from "next-intl";
 import { Badge } from "@/components/ui/badge";
 import { PLATFORMS } from "@/lib/constants/platforms";
 import { cn } from "@/lib/utils";
@@ -14,6 +17,7 @@ const PlatformBadge: React.FC<PlatformBadgeProps> = ({
   variant = "default", 
   className 
 }) => {
+  const tPlatforms = useTranslations("platforms");
   const platformConfig = PLATFORMS[platform as keyof typeof PLATFORMS];
   
   if (!platformConfig) {
@@ -34,7 +38,7 @@ const PlatformBadge: React.FC<PlatformBadgeProps> = ({
   return (
     <Badge variant={badgeVariant} className={cn("text-xs", className)}>
       <span className="mr-1">{platformConfig.icon}</span>
-      {platformConfig.name}
+      {tPlatforms(`${platform}.name`)}
     </Badge>
   );
 };

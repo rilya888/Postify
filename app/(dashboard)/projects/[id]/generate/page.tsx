@@ -97,6 +97,7 @@ export default function GeneratePage() {
   const tSub = useTranslations("subscription");
   const tGen = useTranslations("generatePage");
   const tPostTone = useTranslations("postTone");
+  const tPlatforms = useTranslations("platforms");
   const tErr = useTranslations("errors");
   
   const [project, setProject] = useState<Project | null>(null);
@@ -253,12 +254,12 @@ export default function GeneratePage() {
       if (updated) setProject(updated);
     } catch (err) {
       if (err instanceof Error && err.name === "AbortError") {
-        toast.info("Generation cancelled");
+        toast.info(t("toasts.generationCancelled"));
         setError(null);
         return;
       }
       console.error("Generation error:", err);
-      const message = err instanceof Error ? err.message : "An error occurred during generation";
+      const message = err instanceof Error ? err.message : t("toasts.occurredError");
       setError(message);
       toast.error(message);
     } finally {
@@ -296,7 +297,7 @@ export default function GeneratePage() {
       if (updated) setProject(updated);
       if (audioInputRef.current) audioInputRef.current.value = "";
     } catch (err) {
-      const msg = err instanceof Error ? err.message : "Upload failed";
+      const msg = err instanceof Error ? err.message : tDocs("uploadFailed");
       setAudioUploadError(msg);
       toast.error(msg);
     } finally {
@@ -328,7 +329,7 @@ export default function GeneratePage() {
         text = truncated;
         if (wasTruncated) toast.warning(tDocs("textTruncated"));
       } catch (err) {
-        toast.error(err instanceof Error ? err.message : "Upload failed");
+        toast.error(err instanceof Error ? err.message : tDocs("uploadFailed"));
         e.target.value = "";
         return;
       }
@@ -366,10 +367,10 @@ export default function GeneratePage() {
       });
       if (!res.ok) {
         const body = await res.json().catch(() => ({}));
-        toast.error(body.details ?? body.error ?? "Update failed");
+        toast.error(body.details ?? body.error ?? t("toasts.updateFailed"));
         return;
       }
-      toast.success("Source content updated from file.");
+      toast.success(t("toasts.sourceUpdated"));
       const updated = await loadProject();
       if (updated) setProject(updated);
     } catch (err) {
@@ -407,7 +408,7 @@ export default function GeneratePage() {
       });
       if (!res.ok) {
         const body = await res.json().catch(() => ({}));
-        const message = body?.details ?? body?.error ?? "Regeneration failed";
+        const message = body?.details ?? body?.error ?? t("toasts.regenerationFailed");
         toast.error(message);
         return;
       }
@@ -422,7 +423,7 @@ export default function GeneratePage() {
           failed: prev?.failed ?? [],
           totalRequested: (prev?.totalRequested ?? 0) + 1,
         }));
-        toast.success(`${platform} content regenerated`);
+        toast.success(tGen("platformRegenerated", { platform: tPlatforms(`${platform}.name`) }));
       }
       const updated = await loadProject();
       if (updated) setProject(updated);
@@ -572,7 +573,7 @@ export default function GeneratePage() {
     return (
       <div className="container mx-auto py-10">
         <Alert>
-          <AlertDescription>Project not found</AlertDescription>
+          <AlertDescription>{tErr("projectNotFound")}</AlertDescription>
         </Alert>
       </div>
     );
@@ -605,7 +606,7 @@ export default function GeneratePage() {
             return tone ? (
               <Badge variant="secondary" className="flex items-center gap-1">
                 <span>{tone.icon}</span>
-                <span>Tone: {tPostTone(tone.labelKey)}</span>
+                <span>{tGen("toneLabel")}: {tPostTone(tone.labelKey)}</span>
               </Badge>
             ) : null;
           })()}
@@ -646,8 +647,8 @@ export default function GeneratePage() {
         <Alert className="mb-6">
           <AlertDescription>
             {createStatus === "partial"
-              ? `Initial generation completed partially: ${createSuccessful} successful, ${createFailed} failed. You can retry failed items below.`
-              : "Initial generation failed. You can retry generation below."}
+              ? tGen("initialGenerationPartial", { successful: createSuccessful, failed: createFailed })
+              : tGen("initialGenerationFailed")}
           </AlertDescription>
         </Alert>
       )}
@@ -755,9 +756,9 @@ export default function GeneratePage() {
       
       <Card className="mb-8">
         <CardHeader>
-          <CardTitle>Select Platforms</CardTitle>
+          <CardTitle>{tGen("selectPlatformsTitle")}</CardTitle>
           <CardDescription>
-            Choose the platforms you want to generate content for
+            {tGen("selectPlatformsDescription")}
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-3">
@@ -778,7 +779,10 @@ export default function GeneratePage() {
           <p className="text-sm text-muted-foreground">
             {!project?.sourceContent?.trim()
               ? t("generate.addSourceHint")
-              : `Selected: ${selectedPlatforms.length} of ${Object.keys(PLATFORMS).length} platforms`}
+              : tGen("selectedPlatformsCount", {
+                  selected: selectedPlatforms.length,
+                  total: Object.keys(PLATFORMS).length,
+                })}
           </p>
           <Button 
             onClick={handleGenerate} 
@@ -787,7 +791,7 @@ export default function GeneratePage() {
             {isGenerating ? (
               <>
                 <Loader2Icon className="mr-2 h-4 w-4 animate-spin" />
-                Generating...
+                {tGen("generating")}
               </>
             ) : (
               <>
@@ -802,17 +806,19 @@ export default function GeneratePage() {
       {isGenerating && (
         <Card className="mb-8">
           <CardHeader>
-            <CardTitle>Generation Progress</CardTitle>
+            <CardTitle>{tGen("generationProgressTitle")}</CardTitle>
           </CardHeader>
           <CardContent>
             <div className="space-y-4">
               <div className="flex justify-between">
-                <span>Processing...</span>
+                <span>{tGen("processing")}</span>
                 <span>{Math.round(progress)}%</span>
               </div>
               <Progress value={progress} className="w-full" />
               <p className="text-sm text-muted-foreground">
-                Generating content for {selectedPlatforms.join(", ")}...
+                {tGen("generatingForPlatforms", {
+                  platforms: selectedPlatforms.map((p) => tPlatforms(`${p}.name`)).join(", "),
+                })}
               </p>
               <Button
                 type="button"
@@ -822,7 +828,7 @@ export default function GeneratePage() {
                 className="mt-2"
               >
                 <SquareIcon className="h-4 w-4 mr-2" />
-                Cancel
+                {t("generate.cancelButton")}
               </Button>
             </div>
           </CardContent>
@@ -832,9 +838,9 @@ export default function GeneratePage() {
       {generationResults && (
         <Card className="mb-8">
           <CardHeader>
-            <CardTitle>Generation Results</CardTitle>
+            <CardTitle>{tGen("generationResultsTitle")}</CardTitle>
             <CardDescription>
-              Content has been generated for the selected platforms
+              {tGen("generationResultsDescription")}
             </CardDescription>
           </CardHeader>
           <CardContent>
@@ -842,7 +848,7 @@ export default function GeneratePage() {
               <div className="border rounded-lg p-4 bg-green-50 dark:bg-green-950/20">
                 <h4 className="font-semibold text-green-700 dark:text-green-300 flex items-center">
                   <CheckCircleIcon className="mr-2 h-4 w-4" />
-                  Successful
+                  {tGen("successful")}
                 </h4>
                 <p className="text-2xl font-bold mt-2">{generationResults.successful.length}</p>
               </div>
@@ -850,14 +856,14 @@ export default function GeneratePage() {
               <div className="border rounded-lg p-4 bg-red-50 dark:bg-red-950/20">
                 <h4 className="font-semibold text-red-700 dark:text-red-300 flex items-center">
                   <XCircleIcon className="mr-2 h-4 w-4" />
-                  Failed
+                  {tGen("failed")}
                 </h4>
                 <p className="text-2xl font-bold mt-2">{generationResults.failed.length}</p>
               </div>
               
               <div className="border rounded-lg p-4 bg-blue-50 dark:bg-blue-950/20">
                 <h4 className="font-semibold text-blue-700 dark:text-blue-300">
-                  Total
+                  {tGen("total")}
                 </h4>
                 <p className="text-2xl font-bold mt-2">{generationResults.totalRequested}</p>
               </div>
@@ -876,7 +882,7 @@ export default function GeneratePage() {
                 }
                 return (
                   <div className="mt-6">
-                    <h3 className="text-lg font-medium mb-4">Generated Content</h3>
+                    <h3 className="text-lg font-medium mb-4">{tGen("generatedContentTitle")}</h3>
                     <div className="space-y-6">
                       {Array.from(byPlatform.entries()).map(([platform, results]) => {
                         const sorted = [...results].sort(
@@ -907,7 +913,7 @@ export default function GeneratePage() {
                                         ) : (
                                           <RotateCcwIcon className="h-4 w-4 mr-2" />
                                         )}
-                                        Regenerate
+                                        {tGen("regenerateAction")}
                                       </Button>
                                     ) : (
                                       <Button
@@ -921,7 +927,7 @@ export default function GeneratePage() {
                                         ) : (
                                           <RotateCcwIcon className="h-4 w-4 mr-2" />
                                         )}
-                                        Regenerate
+                                        {tGen("regenerateAction")}
                                       </Button>
                                     )
                                   }
@@ -937,12 +943,14 @@ export default function GeneratePage() {
               }
               return (
                 <div className="mt-6">
-                  <h3 className="text-lg font-medium mb-4">Generated Content</h3>
+                  <h3 className="text-lg font-medium mb-4">{tGen("generatedContentTitle")}</h3>
                   <Tabs defaultValue={generationResults.successful[0]?.platform} className="w-full">
                     <TabsList className="grid w-full grid-cols-3 max-sm:grid-cols-1">
                       {generationResults.successful.map((result, i) => (
                         <TabsTrigger key={`${result.platform}-${i}`} value={`${result.platform}-${i}`}>
-                          {PLATFORMS[result.platform as keyof typeof PLATFORMS]?.name || result.platform}
+                          {PLATFORMS[result.platform as keyof typeof PLATFORMS]
+                            ? tPlatforms(`${result.platform}.name`)
+                            : result.platform}
                         </TabsTrigger>
                       ))}
                     </TabsList>
@@ -967,7 +975,7 @@ export default function GeneratePage() {
                               ) : (
                                 <RotateCcwIcon className="h-4 w-4 mr-2" />
                               )}
-                              Regenerate
+                              {tGen("regenerateAction")}
                             </Button>
                           }
                         />
@@ -990,9 +998,9 @@ export default function GeneratePage() {
         }
         return (
           <div className="space-y-6">
-            <h2 className="text-xl font-semibold">Previously Generated Content</h2>
+            <h2 className="text-xl font-semibold">{tGen("previouslyGeneratedTitle")}</h2>
             <p className="text-sm text-muted-foreground">
-              Content that was previously generated for this project
+              {tGen("previouslyGeneratedDescription")}
             </p>
             {Array.from(byPlatformMap.entries()).map(([platform, posts]) => {
               const seriesTotal = getPostCountForPlatform(project, platform);
@@ -1036,7 +1044,7 @@ export default function GeneratePage() {
                             ) : (
                               <RotateCcwIcon className="h-4 w-4 mr-2" />
                             )}
-                            Regenerate
+                            {tGen("regenerateAction")}
                           </Button>
                         }
                       />

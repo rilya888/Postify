@@ -1,5 +1,6 @@
 import { Metadata } from "next";
 import dynamic from "next/dynamic";
+import { getTranslations } from "next-intl/server";
 import { auth } from "@/lib/auth/config";
 import { redirect } from "next/navigation";
 import { PlanBadge } from "@/components/subscription/plan-badge";
@@ -17,16 +18,20 @@ const ThemeSwitcher = dynamic(
   { ssr: false }
 );
 
-export const metadata: Metadata = {
-  title: "Settings",
-  description: "Application settings",
-};
+export async function generateMetadata(): Promise<Metadata> {
+  const t = await getTranslations("settingsPage");
+  return {
+    title: t("metadataTitle"),
+    description: t("metadataDescription"),
+  };
+}
 
 /**
  * Settings page: profile, subscription, brand voice, security, danger zone, appearance, legal.
  */
 export default async function SettingsPage() {
   const session = await auth();
+  const t = await getTranslations("settingsPage");
 
   if (!session) {
     redirect("/login");
@@ -35,16 +40,14 @@ export default async function SettingsPage() {
   return (
     <div className="space-y-8">
       <div className="flex items-center justify-between">
-        <h1 className="text-3xl font-bold">Settings</h1>
+        <h1 className="text-3xl font-bold">{t("title")}</h1>
         <PlanBadge />
       </div>
 
       <Card>
         <CardHeader>
-          <CardTitle>Profile</CardTitle>
-          <p className="text-sm text-muted-foreground">
-            Your name and email. Email cannot be changed here.
-          </p>
+          <CardTitle>{t("profileTitle")}</CardTitle>
+          <p className="text-sm text-muted-foreground">{t("profileDescription")}</p>
         </CardHeader>
         <CardContent>
           <ProfileForm />
@@ -53,10 +56,8 @@ export default async function SettingsPage() {
 
       <Card>
         <CardHeader>
-          <CardTitle>Subscription</CardTitle>
-          <p className="text-sm text-muted-foreground">
-            Plan, limits, and usage.
-          </p>
+          <CardTitle>{t("subscriptionTitle")}</CardTitle>
+          <p className="text-sm text-muted-foreground">{t("subscriptionDescription")}</p>
         </CardHeader>
         <CardContent>
           <SubscriptionBlock />
@@ -65,10 +66,8 @@ export default async function SettingsPage() {
 
       <Card>
         <CardHeader>
-          <CardTitle>Brand voice</CardTitle>
-          <p className="text-sm text-muted-foreground">
-            Manage brand voice profiles used for content generation.
-          </p>
+          <CardTitle>{t("brandVoiceTitle")}</CardTitle>
+          <p className="text-sm text-muted-foreground">{t("brandVoiceDescription")}</p>
         </CardHeader>
         <CardContent>
           <BrandVoiceSettings />
@@ -77,10 +76,8 @@ export default async function SettingsPage() {
 
       <Card>
         <CardHeader>
-          <CardTitle>Security</CardTitle>
-          <p className="text-sm text-muted-foreground">
-            Change your password.
-          </p>
+          <CardTitle>{t("securityTitle")}</CardTitle>
+          <p className="text-sm text-muted-foreground">{t("securityDescription")}</p>
         </CardHeader>
         <CardContent>
           <ChangePasswordForm />
@@ -89,10 +86,8 @@ export default async function SettingsPage() {
 
       <Card>
         <CardHeader>
-          <CardTitle>Appearance</CardTitle>
-          <p className="text-sm text-muted-foreground">
-            Choose light, dark, or system theme.
-          </p>
+          <CardTitle>{t("appearanceTitle")}</CardTitle>
+          <p className="text-sm text-muted-foreground">{t("appearanceDescription")}</p>
         </CardHeader>
         <CardContent>
           <ThemeSwitcher />
@@ -101,10 +96,8 @@ export default async function SettingsPage() {
 
       <Card className="border-destructive/50">
         <CardHeader>
-          <CardTitle className="text-destructive">Danger zone</CardTitle>
-          <p className="text-sm text-muted-foreground">
-            Permanently delete your account and all data. This cannot be undone.
-          </p>
+          <CardTitle className="text-destructive">{t("dangerZoneTitle")}</CardTitle>
+          <p className="text-sm text-muted-foreground">{t("dangerZoneDescription")}</p>
         </CardHeader>
         <CardContent>
           <DangerZone />

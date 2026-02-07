@@ -43,9 +43,10 @@ const PlatformSelectorWithPostCount: React.FC<PlatformSelectorWithPostCountProps
   maxPostsPerPlatform,
   maxOutputsPerProject = 10,
   disabled = false,
-  postsCountLabel = "Posts",
+  postsCountLabel,
 }) => {
   const t = useTranslations("generatePage");
+  const tPlatforms = useTranslations("platforms");
   const options = ([1, 2, 3] as const).filter((n) => n <= Math.max(1, maxPostsPerPlatform));
 
   const totalUsed = selectedPlatforms.reduce(
@@ -66,7 +67,7 @@ const PlatformSelectorWithPostCount: React.FC<PlatformSelectorWithPostCountProps
   return (
     <Card className="w-full">
       <CardHeader>
-        <CardTitle>Select Platforms</CardTitle>
+        <CardTitle>{t("selectPlatformsTitle")}</CardTitle>
       </CardHeader>
       <CardContent className="space-y-4">
         {Object.entries(PLATFORMS).map(([key, platform]) => {
@@ -103,10 +104,10 @@ const PlatformSelectorWithPostCount: React.FC<PlatformSelectorWithPostCountProps
                     className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70 flex items-center"
                   >
                     <span className="mr-2">{platform.icon}</span>
-                    {platform.name}
+                    {tPlatforms(`${key}.name`)}
                   </Label>
                   <p className="text-xs text-muted-foreground">
-                    {platform.description} • Max: {platform.maxLength} chars
+                    {tPlatforms(`${key}.description`)} • {t("maxChars", { count: platform.maxLength })}
                   </p>
                 </div>
               </div>
@@ -114,7 +115,7 @@ const PlatformSelectorWithPostCount: React.FC<PlatformSelectorWithPostCountProps
                 isSelected ? (
                   <div className="flex justify-end items-center gap-2">
                     <Label htmlFor={`posts-${key}`} className="text-xs text-muted-foreground whitespace-nowrap sr-only">
-                      {postsCountLabel}
+                      {postsCountLabel ?? t("postsCountLabel")}
                     </Label>
                     <Select
                       value={String(count)}
@@ -136,7 +137,7 @@ const PlatformSelectorWithPostCount: React.FC<PlatformSelectorWithPostCountProps
                               value={String(n)}
                               disabled={isOptionDisabled}
                             >
-                              {n === 1 ? "1 post" : `${n} posts (series)`}
+                              {n === 1 ? t("postCountSingle") : t("postCountSeries", { count: n })}
                             </SelectItem>
                           );
                         })}

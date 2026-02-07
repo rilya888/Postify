@@ -1,6 +1,7 @@
 'use client';
 
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
+import { useTranslations } from 'next-intl';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
@@ -20,21 +21,18 @@ import { toast } from 'sonner';
 import { createBrandVoice, updateBrandVoice } from '@/lib/services/brand-voice';
 import { BrandVoice } from '@prisma/client';
 
-// Define the schema for brand voice form
-const brandVoiceSchema = z.object({
-  name: z.string().min(1, 'Name is required').max(100),
-  description: z.string().optional(),
-  tone: z.string().min(1, 'Tone is required'),
-  style: z.string().min(1, 'Style is required'),
-  vocabulary: z.string().transform(str => str.split(',').map(s => s.trim()).filter(s => s)),
-  avoidVocabulary: z.string().transform(str => str.split(',').map(s => s.trim()).filter(s => s)),
-  sentenceStructure: z.string().min(1, 'Sentence structure is required'),
-  personality: z.string().min(1, 'Personality is required'),
-  examples: z.string().transform(str => str.split('\n').map(s => s.trim()).filter(s => s)),
-  isActive: z.boolean().optional(),
-});
-
-type BrandVoiceFormValues = z.infer<typeof brandVoiceSchema>;
+type BrandVoiceFormValues = {
+  name: string;
+  description?: string;
+  tone: string;
+  style: string;
+  vocabulary: string;
+  avoidVocabulary: string;
+  sentenceStructure: string;
+  personality: string;
+  examples: string;
+  isActive?: boolean;
+};
 
 interface BrandVoiceFormProps {
   userId: string;
@@ -45,7 +43,26 @@ interface BrandVoiceFormProps {
 }
 
 export function BrandVoiceForm({ userId, initialData, onSuccess, submitViaApi }: BrandVoiceFormProps) {
+  const t = useTranslations('brandVoiceForm');
+  const tValidation = useTranslations('validation');
   const [isSubmitting, setIsSubmitting] = useState(false);
+
+  const brandVoiceSchema = useMemo(
+    () =>
+      z.object({
+        name: z.string().min(1, tValidation('nameRequired')).max(100, tValidation('nameMaxLength')),
+        description: z.string().optional(),
+        tone: z.string().min(1, t('toneRequired')),
+        style: z.string().min(1, t('styleRequired')),
+        vocabulary: z.string(),
+        avoidVocabulary: z.string(),
+        sentenceStructure: z.string().min(1, t('sentenceStructureRequired')),
+        personality: z.string().min(1, t('personalityRequired')),
+        examples: z.string(),
+        isActive: z.boolean().optional(),
+      }),
+    [t, tValidation]
+  );
 
   const form = useForm<BrandVoiceFormValues>({
     resolver: zodResolver(brandVoiceSchema),
@@ -54,22 +71,20 @@ export function BrandVoiceForm({ userId, initialData, onSuccess, submitViaApi }:
       description: initialData?.description || '',
       tone: initialData?.tone || '',
       style: initialData?.style || '',
-      // @ts-expect-error - Type conversion for form initialization
       vocabulary: initialData?.vocabulary ? initialData.vocabulary.join(', ') : '',
-      // @ts-expect-error - Type conversion for form initialization
       avoidVocabulary: initialData?.avoidVocabulary ? initialData.avoidVocabulary.join(', ') : '',
       sentenceStructure: initialData?.sentenceStructure || '',
       personality: initialData?.personality || '',
-      // @ts-expect-error - Type conversion for form initialization
       examples: initialData?.examples ? initialData.examples.join('\n') : '',
       isActive: initialData?.isActive || false,
     },
   });
 
-  const toStrArray = (v: string | string[] | undefined, sep: ',' | '\n' = ','): string[] => {
-    if (Array.isArray(v)) return v;
-    if (typeof v === 'string') return sep === ',' ? v.split(',').map(s => s.trim()).filter(Boolean) : v.split('\n').map(s => s.trim()).filter(Boolean);
-    return [];
+  const toStrArray = (v: string | undefined, sep: ',' | '\n' = ','): string[] => {
+    if (typeof v !== 'string') return [];
+    return sep === ','
+      ? v.split(',').map((s) => s.trim()).filter(Boolean)
+      : v.split('\n').map((s) => s.trim()).filter(Boolean);
   };
 
   const buildBody = (values: BrandVoiceFormValues) => ({
@@ -77,14 +92,14 @@ export function BrandVoiceForm({ userId, initialData, onSuccess, submitViaApi }:
     description: values.description || undefined,
     tone: values.tone,
     style: values.style,
-    vocabulary: toStrArray(values.vocabulary as string | string[] | undefined, ','),
-    avoidVocabulary: toStrArray(values.avoidVocabulary as string | string[] | undefined, ','),
+    vocabulary: toStrArray(values.vocabulary, ','),
+    avoidVocabulary: toStrArray(values.avoidVocabulary, ','),
     sentenceStructure: values.sentenceStructure,
     personality: values.personality,
-    examples: toStrArray(values.examples as string | string[] | undefined, '\n'),
+    examples: toStrArray(values.examples, '\n'),
   });
 
-  const onSubmit: (values: BrandVoiceFormValues) => Promise<void> = async (values) => {
+  const onSubmit = async (values: BrandVoiceFormValues) => {
     setIsSubmitting(true);
     try {
       if (submitViaApi) {
@@ -97,9 +112,9 @@ export function BrandVoiceForm({ userId, initialData, onSuccess, submitViaApi }:
           });
           if (!res.ok) {
             const json = await res.json().catch(() => ({}));
-            throw new Error(json.error ?? 'Failed to update');
+            throw new Error(json.error ?? t('updateFailed'));
           }
-          toast.success('Brand voice updated successfully');
+          toast.success(t('updated'));
         } else {
           const res = await fetch('/api/brand-voices', {
             method: 'POST',
@@ -108,17 +123,17 @@ export function BrandVoiceForm({ userId, initialData, onSuccess, submitViaApi }:
           });
           if (!res.ok) {
             const json = await res.json().catch(() => ({}));
-            throw new Error(json.error ?? 'Failed to create');
+            throw new Error(json.error ?? t('createFailed'));
           }
-          toast.success('Brand voice created successfully');
+          toast.success(t('created'));
         }
       } else {
         if (initialData) {
           await updateBrandVoice(initialData.id, userId, values);
-          toast.success('Brand voice updated successfully');
+          toast.success(t('updated'));
         } else {
           await createBrandVoice(userId, values);
-          toast.success('Brand voice created successfully');
+          toast.success(t('created'));
         }
       }
 
@@ -127,7 +142,7 @@ export function BrandVoiceForm({ userId, initialData, onSuccess, submitViaApi }:
       }
     } catch (error) {
       console.error('Error saving brand voice:', error);
-      toast.error(error instanceof Error ? error.message : 'Failed to save brand voice');
+      toast.error(error instanceof Error ? error.message : t('saveFailed'));
     } finally {
       setIsSubmitting(false);
     }
@@ -135,15 +150,15 @@ export function BrandVoiceForm({ userId, initialData, onSuccess, submitViaApi }:
 
   return (
     <Form {...form}>
-      <form onSubmit={form.handleSubmit(onSubmit as any)} className="space-y-6">
+      <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
         <FormField
-          control={form.control as any}
+          control={form.control}
           name="name"
           render={({ field }) => (
             <FormItem>
-              <FormLabel>Name *</FormLabel>
+              <FormLabel>{t('nameLabel')}</FormLabel>
               <FormControl>
-                <Input placeholder="e.g., Professional, Casual, Corporate" {...field} />
+                <Input placeholder={t('namePlaceholder')} {...field} />
               </FormControl>
               <FormMessage />
             </FormItem>
@@ -151,14 +166,14 @@ export function BrandVoiceForm({ userId, initialData, onSuccess, submitViaApi }:
         />
 
         <FormField
-          control={form.control as any}
+          control={form.control}
           name="description"
           render={({ field }) => (
             <FormItem>
-              <FormLabel>Description</FormLabel>
+              <FormLabel>{t('descriptionLabel')}</FormLabel>
               <FormControl>
                 <Textarea
-                  placeholder="Describe this brand voice profile..."
+                  placeholder={t('descriptionPlaceholder')}
                   className="min-h-[100px]"
                   {...field}
                 />
@@ -168,15 +183,15 @@ export function BrandVoiceForm({ userId, initialData, onSuccess, submitViaApi }:
           )}
         />
 
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
           <FormField
-            control={form.control as any}
+            control={form.control}
             name="tone"
             render={({ field }) => (
               <FormItem>
-                <FormLabel>Tone *</FormLabel>
+                <FormLabel>{t('toneLabel')}</FormLabel>
                 <FormControl>
-                  <Input placeholder="e.g., professional, casual, friendly, authoritative" {...field} />
+                  <Input placeholder={t('tonePlaceholder')} {...field} />
                 </FormControl>
                 <FormMessage />
               </FormItem>
@@ -184,13 +199,13 @@ export function BrandVoiceForm({ userId, initialData, onSuccess, submitViaApi }:
           />
 
           <FormField
-            control={form.control as any}
+            control={form.control}
             name="style"
             render={({ field }) => (
               <FormItem>
-                <FormLabel>Style *</FormLabel>
+                <FormLabel>{t('styleLabel')}</FormLabel>
                 <FormControl>
-                  <Input placeholder="e.g., formal, conversational, storytelling" {...field} />
+                  <Input placeholder={t('stylePlaceholder')} {...field} />
                 </FormControl>
                 <FormMessage />
               </FormItem>
@@ -199,14 +214,14 @@ export function BrandVoiceForm({ userId, initialData, onSuccess, submitViaApi }:
         </div>
 
         <FormField
-          control={form.control as any}
+          control={form.control}
           name="vocabulary"
           render={({ field }) => (
             <FormItem>
-              <FormLabel>Preferred Vocabulary</FormLabel>
+              <FormLabel>{t('vocabularyLabel')}</FormLabel>
               <FormControl>
                 <Textarea
-                  placeholder="Enter preferred words/phrases, separated by commas"
+                  placeholder={t('vocabularyPlaceholder')}
                   className="min-h-[100px]"
                   {...field}
                 />
@@ -217,14 +232,14 @@ export function BrandVoiceForm({ userId, initialData, onSuccess, submitViaApi }:
         />
 
         <FormField
-          control={form.control as any}
+          control={form.control}
           name="avoidVocabulary"
           render={({ field }) => (
             <FormItem>
-              <FormLabel>Vocabulary to Avoid</FormLabel>
+              <FormLabel>{t('avoidVocabularyLabel')}</FormLabel>
               <FormControl>
                 <Textarea
-                  placeholder="Enter words/phrases to avoid, separated by commas"
+                  placeholder={t('avoidVocabularyPlaceholder')}
                   className="min-h-[100px]"
                   {...field}
                 />
@@ -234,15 +249,15 @@ export function BrandVoiceForm({ userId, initialData, onSuccess, submitViaApi }:
           )}
         />
 
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
           <FormField
-            control={form.control as any}
+            control={form.control}
             name="sentenceStructure"
             render={({ field }) => (
               <FormItem>
-                <FormLabel>Sentence Structure *</FormLabel>
+                <FormLabel>{t('sentenceStructureLabel')}</FormLabel>
                 <FormControl>
-                  <Input placeholder="e.g., short, medium, complex, varied" {...field} />
+                  <Input placeholder={t('sentenceStructurePlaceholder')} {...field} />
                 </FormControl>
                 <FormMessage />
               </FormItem>
@@ -250,13 +265,13 @@ export function BrandVoiceForm({ userId, initialData, onSuccess, submitViaApi }:
           />
 
           <FormField
-            control={form.control as any}
+            control={form.control}
             name="personality"
             render={({ field }) => (
               <FormItem>
-                <FormLabel>Personality *</FormLabel>
+                <FormLabel>{t('personalityLabel')}</FormLabel>
                 <FormControl>
-                  <Input placeholder="e.g., confident, humble, humorous, serious" {...field} />
+                  <Input placeholder={t('personalityPlaceholder')} {...field} />
                 </FormControl>
                 <FormMessage />
               </FormItem>
@@ -265,14 +280,14 @@ export function BrandVoiceForm({ userId, initialData, onSuccess, submitViaApi }:
         </div>
 
         <FormField
-          control={form.control as any}
+          control={form.control}
           name="examples"
           render={({ field }) => (
             <FormItem>
-              <FormLabel>Example Content</FormLabel>
+              <FormLabel>{t('examplesLabel')}</FormLabel>
               <FormControl>
                 <Textarea
-                  placeholder="Enter example content that represents this brand voice, one per line"
+                  placeholder={t('examplesPlaceholder')}
                   className="min-h-[150px]"
                   {...field}
                 />
@@ -284,18 +299,15 @@ export function BrandVoiceForm({ userId, initialData, onSuccess, submitViaApi }:
 
         {initialData && (
           <FormField
-            control={form.control as any}
+            control={form.control}
             name="isActive"
             render={({ field }) => (
               <FormItem className="flex flex-row items-start space-x-3 space-y-0 rounded-md border p-4">
                 <FormControl>
-                  <Checkbox
-                    checked={field.value}
-                    onCheckedChange={field.onChange}
-                  />
+                  <Checkbox checked={field.value} onCheckedChange={field.onChange} />
                 </FormControl>
                 <div className="space-y-1 leading-none">
-                  <FormLabel>Set as Active Brand Voice</FormLabel>
+                  <FormLabel>{t('setActiveLabel')}</FormLabel>
                 </div>
               </FormItem>
             )}
@@ -303,7 +315,7 @@ export function BrandVoiceForm({ userId, initialData, onSuccess, submitViaApi }:
         )}
 
         <Button type="submit" disabled={isSubmitting} className="w-full">
-          {isSubmitting ? 'Saving...' : initialData ? 'Update Profile' : 'Create Profile'}
+          {isSubmitting ? t('saving') : initialData ? t('updateButton') : t('createButton')}
         </Button>
       </form>
     </Form>

@@ -1,12 +1,16 @@
 import { Metadata } from "next";
+import { getTranslations } from "next-intl/server";
 import { getCacheStats } from "@/lib/services/cache";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { CacheActions } from "@/components/admin/cache-actions";
 
-export const metadata: Metadata = {
-  title: "Admin Cache",
-  description: "Cache statistics and management",
-};
+export async function generateMetadata(): Promise<Metadata> {
+  const t = await getTranslations("adminMetadata");
+  return {
+    title: t("cacheTitle"),
+    description: t("cacheDescription"),
+  };
+}
 
 export const dynamic = "force-dynamic";
 
@@ -17,22 +21,23 @@ function formatBytes(bytes: number) {
 }
 
 export default async function AdminCachePage() {
+  const t = await getTranslations("admin");
   const stats = await getCacheStats();
 
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-3xl font-bold">Cache</h1>
-        <p className="text-muted-foreground mt-1">Statistics and cleanup</p>
+        <h1 className="text-3xl font-bold">{t("cache")}</h1>
+        <p className="text-muted-foreground mt-1">{t("statisticsAndCleanup")}</p>
       </div>
       <Card>
         <CardHeader>
-          <CardTitle>Statistics</CardTitle>
+          <CardTitle>{t("statistics")}</CardTitle>
         </CardHeader>
         <CardContent className="space-y-2">
-          <p>Total entries: <strong>{stats.total}</strong></p>
-          <p>Expired: <strong>{stats.expired}</strong></p>
-          <p>Estimated size: <strong>{formatBytes(stats.sizeEstimate)}</strong></p>
+          <p>{t("totalEntriesLabel")} <strong>{stats.total}</strong></p>
+          <p>{t("expiredLabel")} <strong>{stats.expired}</strong></p>
+          <p>{t("estimatedSizeLabel")} <strong>{formatBytes(stats.sizeEstimate)}</strong></p>
         </CardContent>
       </Card>
       <CacheActions />

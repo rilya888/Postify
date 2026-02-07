@@ -122,13 +122,13 @@ export function SeriesPostsView({
                     {t("postNofM", { n: post.seriesIndex ?? 1, m: seriesTotal })}
                   </Badge>
                   <span className="text-sm text-muted-foreground">{t(roleKey)}</span>
-                  {post.isEdited && <Badge variant="secondary">Edited</Badge>}
+                  {post.isEdited && <Badge variant="secondary">{t("editedBadge")}</Badge>}
                 </div>
                 <div className="flex items-center gap-2">
                   <Button variant="outline" size="sm" asChild>
                     <Link href={`/projects/${projectId}/outputs/${post.id}/edit`}>
                       <PencilIcon className="h-4 w-4 mr-2" />
-                      Edit
+                      {t("editAction")}
                     </Link>
                   </Button>
                   <Button
@@ -142,7 +142,7 @@ export function SeriesPostsView({
                     ) : (
                       <RotateCcwIcon className="h-4 w-4 mr-2" />
                     )}
-                    Regenerate
+                    {t("regenerateAction")}
                   </Button>
                 </div>
               </div>

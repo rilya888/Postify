@@ -14,6 +14,7 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { useRouter } from "next/navigation";
+import { useTranslations } from "next-intl";
 import { toast } from "sonner";
 
 type Props = {
@@ -46,6 +47,7 @@ function hasAudioPlan(sub: Props["user"]["subscription"]) {
 
 export function AdminUserEdit({ user, isSelf }: Props) {
   const router = useRouter();
+  const t = useTranslations("admin");
   const [plan, setPlan] = useState(user.subscription?.plan ?? "free");
   const [status, setStatus] = useState(user.subscription?.status ?? "active");
   const [periodEnd, setPeriodEnd] = useState(toDateInputValue(user.subscription?.currentPeriodEnd));
@@ -69,12 +71,12 @@ export function AdminUserEdit({ user, isSelf }: Props) {
       });
       if (!res.ok) {
         const data = await res.json().catch(() => ({}));
-        throw new Error(data.error ?? "Failed to update");
+        throw new Error(data.error ?? t("failedToUpdate"));
       }
-      toast.success("User updated");
+      toast.success(t("userUpdated"));
       router.refresh();
     } catch (e) {
-      toast.error(e instanceof Error ? e.message : "Failed to update");
+      toast.error(e instanceof Error ? e.message : t("failedToUpdate"));
     } finally {
       setSaving(false);
     }
@@ -83,53 +85,58 @@ export function AdminUserEdit({ user, isSelf }: Props) {
   return (
     <Card>
       <CardHeader>
-        <CardTitle>User & subscription</CardTitle>
-        <p className="text-sm text-muted-foreground">Change plan, status, and period end for this user.</p>
+        <CardTitle>{t("userAndSubscription")}</CardTitle>
+        <p className="text-sm text-muted-foreground">{t("changePlanStatusPeriod")}</p>
       </CardHeader>
       <CardContent className="space-y-4">
         <div className="flex flex-wrap items-center gap-2">
-          <Badge variant={user.role === "admin" ? "default" : "secondary"}>{user.role}</Badge>
+          <Badge variant={user.role === "admin" ? "default" : "secondary"}>{t(`roles.${user.role}`)}</Badge>
           {user.subscription && (
             <Badge variant="outline">
-              {user.subscription.plan} · {user.subscription.status}
+              {t(`plans.${user.subscription.plan}`)} · {t(`statuses.${user.subscription.status}`)}
             </Badge>
           )}
           {user.subscription?.audioMinutesUsedThisPeriod != null && (
             <span className="text-sm text-muted-foreground">
-              Audio: {user.subscription.audioMinutesUsedThisPeriod}
-              {user.subscription.audioMinutesLimit != null ? ` / ${user.subscription.audioMinutesLimit}` : ""} min
+              {t("audioMinutesUsed", {
+                used: user.subscription.audioMinutesUsedThisPeriod,
+                limit:
+                  user.subscription.audioMinutesLimit != null
+                    ? ` / ${user.subscription.audioMinutesLimit}`
+                    : "",
+              })}
             </span>
           )}
         </div>
         <div className="grid gap-4 sm:grid-cols-2">
           <div>
-            <Label>Plan</Label>
+            <Label>{t("plan")}</Label>
             <Select value={plan} onValueChange={setPlan}>
               <SelectTrigger>
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="free">free</SelectItem>
-                <SelectItem value="pro">pro</SelectItem>
-                <SelectItem value="enterprise">enterprise</SelectItem>
+                <SelectItem value="free">{t("plans.free")}</SelectItem>
+                <SelectItem value="pro">{t("plans.pro")}</SelectItem>
+                <SelectItem value="enterprise">{t("plans.enterprise")}</SelectItem>
               </SelectContent>
             </Select>
           </div>
           <div>
-            <Label>Subscription status</Label>
+            <Label>{t("subscriptionStatus")}</Label>
             <Select value={status} onValueChange={setStatus}>
               <SelectTrigger>
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="active">active</SelectItem>
-                <SelectItem value="canceled">canceled</SelectItem>
-                <SelectItem value="past_due">past_due</SelectItem>
+                <SelectItem value="active">{t("statuses.active")}</SelectItem>
+                <SelectItem value="canceled">{t("statuses.canceled")}</SelectItem>
+                <SelectItem value="past_due">{t("statuses.past_due")}</SelectItem>
               </SelectContent>
             </Select>
           </div>
           <div className="sm:col-span-2">
-            <Label htmlFor="period-end">Period end (optional)</Label>
+            <Label htmlFor="period-end">{t("periodEndOptional")}</Label>
             <Input
               id="period-end"
               type="date"
@@ -137,18 +144,18 @@ export function AdminUserEdit({ user, isSelf }: Props) {
               onChange={(e) => setPeriodEnd(e.target.value)}
               className="max-w-[200px] mt-1"
             />
-            <p className="text-xs text-muted-foreground mt-1">Leave empty to clear. Used for subscription period / trial end.</p>
+            <p className="text-xs text-muted-foreground mt-1">{t("periodEndHint")}</p>
           </div>
           {!isSelf && (
             <div>
-              <Label>Role</Label>
+              <Label>{t("role")}</Label>
               <Select value={role} onValueChange={setRole}>
                 <SelectTrigger>
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="user">user</SelectItem>
-                  <SelectItem value="admin">admin</SelectItem>
+                  <SelectItem value="user">{t("roles.user")}</SelectItem>
+                  <SelectItem value="admin">{t("roles.admin")}</SelectItem>
                 </SelectContent>
               </Select>
             </div>
@@ -156,7 +163,7 @@ export function AdminUserEdit({ user, isSelf }: Props) {
         </div>
         <div className="flex flex-wrap items-center gap-2">
           <Button onClick={() => handleSave(false)} disabled={saving}>
-            {saving ? "Saving..." : "Save changes"}
+            {saving ? t("saving") : t("saveChanges")}
           </Button>
           {hasAudioPlan(user.subscription) && (
             <Button
@@ -173,18 +180,18 @@ export function AdminUserEdit({ user, isSelf }: Props) {
                   });
                   if (!res.ok) {
                     const data = await res.json().catch(() => ({}));
-                    throw new Error(data.error ?? "Failed");
+                    throw new Error(data.error ?? t("failed"));
                   }
-                  toast.success("Audio minutes reset");
+                  toast.success(t("audioMinutesReset"));
                   router.refresh();
                 } catch (e) {
-                  toast.error(e instanceof Error ? e.message : "Failed to reset");
+                  toast.error(e instanceof Error ? e.message : t("failedToReset"));
                 } finally {
                   setSaving(false);
                 }
               }}
             >
-              Reset audio minutes
+              {t("resetAudioMinutes")}
             </Button>
           )}
         </div>

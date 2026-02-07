@@ -3,6 +3,7 @@
 import { useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { useTranslations } from "next-intl";
 import { LayoutDashboard, Users, Database, Shield, Menu, CreditCard, FolderOpen, FileText } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
@@ -10,16 +11,17 @@ import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 import { APP_NAME } from "@/lib/constants/app";
 
 const navItems = [
-  { href: "/admin/dashboard", label: "Dashboard", icon: LayoutDashboard },
-  { href: "/admin/users", label: "Users", icon: Users },
-  { href: "/admin/subscriptions", label: "Subscriptions", icon: CreditCard },
-  { href: "/admin/projects", label: "Projects", icon: FolderOpen },
-  { href: "/admin/transcripts", label: "Transcripts", icon: FileText },
-  { href: "/admin/cache", label: "Cache", icon: Database },
+  { href: "/admin/dashboard", labelKey: "dashboard", icon: LayoutDashboard },
+  { href: "/admin/users", labelKey: "users", icon: Users },
+  { href: "/admin/subscriptions", labelKey: "subscriptions", icon: CreditCard },
+  { href: "/admin/projects", labelKey: "projects", icon: FolderOpen },
+  { href: "/admin/transcripts", labelKey: "transcripts", icon: FileText },
+  { href: "/admin/cache", labelKey: "cache", icon: Database },
 ];
 
 export function AdminSidebar() {
   const pathname = usePathname();
+  const t = useTranslations("admin");
   const [isSheetOpen, setIsSheetOpen] = useState(false);
 
   const brandBlock = (
@@ -28,7 +30,7 @@ export function AdminSidebar() {
       className="mb-4 flex items-center gap-2 text-sm font-semibold text-foreground hover:text-primary transition-colors"
     >
       <Shield className="h-4 w-4 text-primary" aria-hidden />
-      <span>{APP_NAME} Admin</span>
+      <span>{t("appAdmin", { appName: APP_NAME })}</span>
     </Link>
   );
 
@@ -43,7 +45,7 @@ export function AdminSidebar() {
         >
           <Link href={item.href}>
             <item.icon className="mr-2 h-4 w-4" />
-            {item.label}
+            {t(item.labelKey)}
           </Link>
         </Button>
       ))}
@@ -77,7 +79,7 @@ export function AdminSidebar() {
               >
                 <Link href={item.href}>
                   <item.icon className="mr-2 h-4 w-4" />
-                  {item.label}
+                  {t(item.labelKey)}
                 </Link>
               </Button>
             ))}

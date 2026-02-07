@@ -34,7 +34,8 @@
     "test:watch": "vitest",
     "migrate:deploy": "bash scripts/migrate-deploy.sh",
     "postinstall": "prisma generate",
-    "setup": "npm install && prisma generate"
+    "setup": "npm install && prisma generate",
+    "i18n:check": "node scripts/check-i18n-hardcode.js"
   },
   "dependencies": {
     "@hookform/resolvers": "^3.10.0",

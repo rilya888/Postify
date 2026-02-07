@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { useSearchParams } from "next/navigation";
+import { useTranslations } from "next-intl";
 import { signIn } from "next-auth/react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -24,6 +25,8 @@ import { Loader2 } from "lucide-react";
  * Handles user authentication with email/password
  */
 export function LoginForm() {
+  const t = useTranslations("authForm");
+  const tCommon = useTranslations("common");
   const [isLoading, setIsLoading] = useState(false);
   const searchParams = useSearchParams();
   const callbackUrl = searchParams.get("callbackUrl") ?? "/dashboard";
@@ -48,15 +51,22 @@ export function LoginForm() {
       });
 
       if (result?.error) {
-        toast.error(result.error === "CredentialsSignin" ? "Invalid email or password" : String(result.error));
+        toast.error(
+          result.error === "CredentialsSignin" ? t("invalidCredentials") : String(result.error)
+        );
+        setIsLoading(false);
         return;
       }
 
       const targetUrl = result?.url ?? callbackUrl;
-      const path = targetUrl.startsWith("http") ? new URL(targetUrl).pathname : (targetUrl.startsWith("/") ? targetUrl : `/${targetUrl}`);
+      const path = targetUrl.startsWith("http")
+        ? new URL(targetUrl).pathname
+        : targetUrl.startsWith("/")
+          ? targetUrl
+          : `/${targetUrl}`;
       setTimeout(() => window.location.replace(path), 100);
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : "An unexpected error occurred");
+      toast.error(err instanceof Error ? err.message : t("unexpectedError"));
       setIsLoading(false);
     }
   }
@@ -69,11 +79,11 @@ export function LoginForm() {
           name="email"
           render={({ field }) => (
             <FormItem>
-              <FormLabel>Email</FormLabel>
+              <FormLabel>{t("emailLabel")}</FormLabel>
               <FormControl>
                 <Input
                   type="email"
-                  placeholder="name@example.com"
+                  placeholder={t("emailPlaceholder")}
                   disabled={isLoading}
                   {...field}
                 />
@@ -87,11 +97,11 @@ export function LoginForm() {
           name="password"
           render={({ field }) => (
             <FormItem>
-              <FormLabel>Password</FormLabel>
+              <FormLabel>{t("passwordLabel")}</FormLabel>
               <FormControl>
                 <Input
                   type="password"
-                  placeholder="Enter your password"
+                  placeholder={t("passwordPlaceholder")}
                   disabled={isLoading}
                   {...field}
                 />
@@ -102,7 +112,7 @@ export function LoginForm() {
         />
         <Button type="submit" className="w-full" disabled={isLoading}>
           {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-          Sign In
+          {tCommon("signIn")}
         </Button>
       </form>
     </Form>

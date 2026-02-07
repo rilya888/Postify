@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { useTranslations } from "next-intl";
 import { Button } from "@/components/ui/button";
 import {
   AlertDialog,
@@ -27,7 +28,8 @@ export function BulkActions({
   onSelectionChange,
   onActionComplete,
 }: BulkActionsProps) {
-  // Using imported toast function directly
+  const t = useTranslations("projectsBulk");
+  const tCommon = useTranslations("common");
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
 
@@ -45,22 +47,21 @@ export function BulkActions({
       const result = await response.json();
 
       if (!response.ok) {
-        throw new Error(result.error || "Failed to delete projects");
+        throw new Error(result.error || t("deleteFailed"));
       }
 
       NotificationService.success(
-        "Projects deleted",
-        `${result.deletedCount} project(s) have been deleted successfully`
+        t("deletedTitle"),
+        t("deletedDescription", { count: result.deletedCount })
       );
 
-      // Clear selection after successful deletion
       onSelectionChange([]);
-      
+
       if (onActionComplete) {
         onActionComplete();
       }
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : "Failed to delete projects");
+      toast.error(error instanceof Error ? error.message : t("deleteFailed"));
     } finally {
       setIsDeleting(false);
       setIsDeleteDialogOpen(false);
@@ -73,45 +74,38 @@ export function BulkActions({
 
   return (
     <>
-      <div className="fixed bottom-4 left-1/2 transform -translate-x-1/2 bg-background border rounded-lg shadow-lg p-4 flex gap-2 z-50">
-        <span className="self-center">
-          {selectedProjectIds.length} project(s) selected
-        </span>
+      <div className="fixed bottom-4 left-1/2 z-50 flex -translate-x-1/2 transform gap-2 rounded-lg border bg-background p-4 shadow-lg">
+        <span className="self-center">{t("selectedCount", { count: selectedProjectIds.length })}</span>
         <Button
           variant="destructive"
           size="sm"
           onClick={() => setIsDeleteDialogOpen(true)}
           disabled={isDeleting}
         >
-          <Trash className="h-4 w-4 mr-2" />
-          Delete Selected
+          <Trash className="mr-2 h-4 w-4" />
+          {t("deleteSelected")}
         </Button>
-        <Button
-          variant="outline"
-          size="sm"
-          onClick={() => onSelectionChange([])}
-        >
-          Clear
+        <Button variant="outline" size="sm" onClick={() => onSelectionChange([])}>
+          {t("clear")}
         </Button>
       </div>
 
       <AlertDialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Delete Projects</AlertDialogTitle>
+            <AlertDialogTitle>{t("confirmTitle")}</AlertDialogTitle>
             <AlertDialogDescription>
-              Are you sure you want to delete {selectedProjectIds.length} project(s)? 
-              This action cannot be undone.
+              {t("confirmDescription", { count: selectedProjectIds.length })}
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel disabled={isDeleting}>Cancel</AlertDialogCancel>
-            <AlertDialogAction 
-              onClick={handleBulkDelete} 
+            <AlertDialogCancel disabled={isDeleting}>{tCommon("cancel")}</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleBulkDelete}
               disabled={isDeleting}
               className="bg-destructive hover:bg-destructive/90"
             >
-              {isDeleting ? "Deleting..." : "Delete"}
+              {isDeleting ? t("deleting") : tCommon("delete")}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>

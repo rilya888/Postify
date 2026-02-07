@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
+import { useTranslations } from "next-intl";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -36,6 +37,7 @@ export function AdminProjectsList({
   search: string;
 }) {
   const router = useRouter();
+  const t = useTranslations("admin");
 
   const handleSearch = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -47,11 +49,11 @@ export function AdminProjectsList({
   return (
     <Card>
       <CardHeader>
-        <CardTitle>All projects</CardTitle>
+        <CardTitle>{t("allProjects")}</CardTitle>
         <form onSubmit={handleSearch} className="flex gap-2 mt-2">
           <Input
             name="q"
-            placeholder="Search by title or user email..."
+            placeholder={t("searchProjectsPlaceholder")}
             defaultValue={search}
             className="max-w-sm"
           />
@@ -65,11 +67,11 @@ export function AdminProjectsList({
           <table className="w-full text-sm">
             <thead>
               <tr className="border-b">
-                <th className="text-left py-2 px-2">Title</th>
-                <th className="text-left py-2 px-2">User</th>
-                <th className="text-left py-2 px-2">Platforms</th>
-                <th className="text-left py-2 px-2">Outputs</th>
-                <th className="text-left py-2 px-2">Created</th>
+                <th className="text-left py-2 px-2">{t("title")}</th>
+                <th className="text-left py-2 px-2">{t("user")}</th>
+                <th className="text-left py-2 px-2">{t("platforms")}</th>
+                <th className="text-left py-2 px-2">{t("outputs")}</th>
+                <th className="text-left py-2 px-2">{t("created")}</th>
                 <th className="text-left py-2 px-2"></th>
               </tr>
             </thead>
@@ -89,7 +91,7 @@ export function AdminProjectsList({
                   </td>
                   <td className="py-2 px-2">
                     <Button variant="ghost" size="sm" asChild>
-                      <Link href={`/admin/projects/${p.id}`}>View</Link>
+                      <Link href={`/admin/projects/${p.id}`}>{t("view")}</Link>
                     </Button>
                   </td>
                 </tr>
@@ -98,24 +100,24 @@ export function AdminProjectsList({
           </table>
         </div>
         {projects.length === 0 && (
-          <p className="text-muted-foreground py-4 text-center">No projects found</p>
+          <p className="text-muted-foreground py-4 text-center">{t("noProjectsFound")}</p>
         )}
         {totalPages > 1 && (
           <div className="flex justify-center gap-2 mt-4">
             {currentPage > 1 && (
               <Button variant="outline" size="sm" asChild>
                 <Link href={`/admin/projects?${buildQuery(currentPage - 1, search)}`}>
-                  Previous
+                  {t("previous")}
                 </Link>
               </Button>
             )}
             <span className="py-2 text-muted-foreground">
-              Page {currentPage} of {totalPages}
+              {t("pageOf", { current: currentPage, total: totalPages })}
             </span>
             {currentPage < totalPages && (
               <Button variant="outline" size="sm" asChild>
                 <Link href={`/admin/projects?${buildQuery(currentPage + 1, search)}`}>
-                  Next
+                  {t("next")}
                 </Link>
               </Button>
             )}

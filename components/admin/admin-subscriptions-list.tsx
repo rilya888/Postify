@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
+import { useTranslations } from "next-intl";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -49,6 +50,10 @@ export function AdminSubscriptionsList({
   statusFilter?: string;
 }) {
   const router = useRouter();
+  const t = useTranslations("admin");
+
+  const planLabel = (plan: string) => t(`plans.${plan}`);
+  const statusLabel = (status: string) => t(`statuses.${status}`);
 
   const handlePlanChange = (value: string) => {
     router.push(`/admin/subscriptions?${buildQuery(1, value === "all" ? "" : value, statusFilter)}`);
@@ -60,28 +65,28 @@ export function AdminSubscriptionsList({
   return (
     <Card>
       <CardHeader>
-        <CardTitle>All subscriptions</CardTitle>
+        <CardTitle>{t("allSubscriptions")}</CardTitle>
         <div className="flex flex-wrap items-center gap-2 mt-2">
           <Select value={planFilter || "all"} onValueChange={handlePlanChange}>
             <SelectTrigger className="w-[120px]">
-              <SelectValue placeholder="Plan" />
+              <SelectValue placeholder={t("plan")} />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="all">All plans</SelectItem>
-              <SelectItem value="free">free</SelectItem>
-              <SelectItem value="pro">pro</SelectItem>
-              <SelectItem value="enterprise">enterprise</SelectItem>
+              <SelectItem value="all">{t("allPlans")}</SelectItem>
+              <SelectItem value="free">{planLabel("free")}</SelectItem>
+              <SelectItem value="pro">{planLabel("pro")}</SelectItem>
+              <SelectItem value="enterprise">{planLabel("enterprise")}</SelectItem>
             </SelectContent>
           </Select>
           <Select value={statusFilter || "all"} onValueChange={handleStatusChange}>
             <SelectTrigger className="w-[120px]">
-              <SelectValue placeholder="Status" />
+              <SelectValue placeholder={t("status")} />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="all">All statuses</SelectItem>
-              <SelectItem value="active">active</SelectItem>
-              <SelectItem value="canceled">canceled</SelectItem>
-              <SelectItem value="past_due">past_due</SelectItem>
+              <SelectItem value="all">{t("allStatuses")}</SelectItem>
+              <SelectItem value="active">{statusLabel("active")}</SelectItem>
+              <SelectItem value="canceled">{statusLabel("canceled")}</SelectItem>
+              <SelectItem value="past_due">{statusLabel("past_due")}</SelectItem>
             </SelectContent>
           </Select>
         </div>
@@ -91,12 +96,12 @@ export function AdminSubscriptionsList({
           <table className="w-full text-sm">
             <thead>
               <tr className="border-b">
-                <th className="text-left py-2 px-2">User</th>
-                <th className="text-left py-2 px-2">Plan</th>
-                <th className="text-left py-2 px-2">Status</th>
-                <th className="text-left py-2 px-2">Period end</th>
-                <th className="text-left py-2 px-2">Audio</th>
-                <th className="text-left py-2 px-2">Stripe</th>
+                <th className="text-left py-2 px-2">{t("user")}</th>
+                <th className="text-left py-2 px-2">{t("plan")}</th>
+                <th className="text-left py-2 px-2">{t("status")}</th>
+                <th className="text-left py-2 px-2">{t("periodEnd")}</th>
+                <th className="text-left py-2 px-2">{t("audio")}</th>
+                <th className="text-left py-2 px-2">{t("stripe")}</th>
                 <th className="text-left py-2 px-2"></th>
               </tr>
             </thead>
@@ -109,21 +114,21 @@ export function AdminSubscriptionsList({
                     </Link>
                   </td>
                   <td className="py-2 px-2">
-                    <Badge variant="outline">{s.plan}</Badge>
+                    <Badge variant="outline">{planLabel(s.plan)}</Badge>
                   </td>
-                  <td className="py-2 px-2">{s.status}</td>
+                  <td className="py-2 px-2">{statusLabel(s.status)}</td>
                   <td className="py-2 px-2 text-muted-foreground">
                     {s.currentPeriodEnd ? new Date(s.currentPeriodEnd).toLocaleDateString() : "—"}
                   </td>
                   <td className="py-2 px-2">
                     {s.audioMinutesLimit != null
-                      ? `${s.audioMinutesUsedThisPeriod} / ${s.audioMinutesLimit} min`
+                      ? t("audioMinutes", { used: s.audioMinutesUsedThisPeriod, limit: s.audioMinutesLimit })
                       : "—"}
                   </td>
                   <td className="py-2 px-2 text-muted-foreground text-xs">
                     {s.stripeCustomerId || s.stripeSubscriptionId ? (
-                      <span title={`Customer: ${s.stripeCustomerId ?? "—"}\nSub: ${s.stripeSubscriptionId ?? "—"}`}>
-                        IDs set
+                      <span title={t("stripeIdsTitle", { customer: s.stripeCustomerId ?? "—", sub: s.stripeSubscriptionId ?? "—" })}>
+                        {t("idsSet")}
                       </span>
                     ) : (
                       "—"
@@ -131,7 +136,7 @@ export function AdminSubscriptionsList({
                   </td>
                   <td className="py-2 px-2">
                     <Button variant="ghost" size="sm" asChild>
-                      <Link href={`/admin/users/${s.user.id}`}>View user</Link>
+                      <Link href={`/admin/users/${s.user.id}`}>{t("viewUser")}</Link>
                     </Button>
                   </td>
                 </tr>
@@ -140,24 +145,24 @@ export function AdminSubscriptionsList({
           </table>
         </div>
         {subscriptions.length === 0 && (
-          <p className="text-muted-foreground py-4 text-center">No subscriptions found</p>
+          <p className="text-muted-foreground py-4 text-center">{t("noSubscriptionsFound")}</p>
         )}
         {totalPages > 1 && (
           <div className="flex justify-center gap-2 mt-4">
             {currentPage > 1 && (
               <Button variant="outline" size="sm" asChild>
                 <Link href={`/admin/subscriptions?${buildQuery(currentPage - 1, planFilter, statusFilter)}`}>
-                  Previous
+                  {t("previous")}
                 </Link>
               </Button>
             )}
             <span className="py-2 text-muted-foreground">
-              Page {currentPage} of {totalPages}
+              {t("pageOf", { current: currentPage, total: totalPages })}
             </span>
             {currentPage < totalPages && (
               <Button variant="outline" size="sm" asChild>
                 <Link href={`/admin/subscriptions?${buildQuery(currentPage + 1, planFilter, statusFilter)}`}>
-                  Next
+                  {t("next")}
                 </Link>
               </Button>
             )}

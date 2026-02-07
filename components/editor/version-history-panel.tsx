@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import { useTranslations } from "next-intl";
 import {
   Sheet,
   SheetContent,
@@ -35,6 +36,7 @@ export function VersionHistoryPanel({
   onRestore,
   trigger,
 }: VersionHistoryPanelProps) {
+  const t = useTranslations("versionHistory");
   const [open, setOpen] = useState(false);
   const [versions, setVersions] = useState<OutputVersionItem[]>([]);
   const [isLoading, setIsLoading] = useState(false);
@@ -45,16 +47,16 @@ export function VersionHistoryPanel({
     setIsLoading(true);
     fetch(`/api/outputs/${outputId}/versions`)
       .then((res) => {
-        if (!res.ok) throw new Error("Failed to load versions");
+        if (!res.ok) throw new Error(t("loadFailed"));
         return res.json();
       })
       .then((data) => setVersions(data.versions ?? []))
       .catch(() => {
-        toast.error("Failed to load version history");
+        toast.error(t("loadFailed"));
         setVersions([]);
       })
       .finally(() => setIsLoading(false));
-  }, [open, outputId]);
+  }, [open, outputId, t]);
 
   const handleRestore = async (versionId: string, content: string) => {
     setRestoringId(versionId);
@@ -65,14 +67,14 @@ export function VersionHistoryPanel({
       );
       if (!res.ok) {
         const data = await res.json().catch(() => ({}));
-        throw new Error(data?.details ?? data?.error ?? "Failed to restore");
+        throw new Error(data?.details ?? data?.error ?? t("restoreFailed"));
       }
       const updated = await res.json();
       onRestore?.(updated.content ?? content);
       setOpen(false);
-      toast.success("Restored to selected version");
+      toast.success(t("restoreSuccess"));
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : "Failed to restore");
+      toast.error(err instanceof Error ? err.message : t("restoreFailed"));
     } finally {
       setRestoringId(null);
     }
@@ -96,16 +98,14 @@ export function VersionHistoryPanel({
         {trigger ?? (
           <Button type="button" variant="outline" size="default">
             <History className="mr-2 h-4 w-4" />
-            History
+            {t("historyButton")}
           </Button>
         )}
       </SheetTrigger>
       <SheetContent side="right" className="w-full sm:max-w-md overflow-y-auto">
         <SheetHeader>
-          <SheetTitle>Version history</SheetTitle>
-          <SheetDescription>
-            Restore a previous version of this content. Current content is saved as a new version before restoring.
-          </SheetDescription>
+          <SheetTitle>{t("title")}</SheetTitle>
+          <SheetDescription>{t("description")}</SheetDescription>
         </SheetHeader>
         <div className="mt-6">
           {isLoading ? (
@@ -116,7 +116,7 @@ export function VersionHistoryPanel({
             </div>
           ) : versions.length === 0 ? (
             <p className="text-muted-foreground text-sm">
-              No previous versions yet. Versions are created when you save changes.
+              {t("empty")}
             </p>
           ) : (
             <ul className="space-y-2">
@@ -137,11 +137,11 @@ export function VersionHistoryPanel({
                       onClick={() => handleRestore(v.id, v.content)}
                     >
                       {restoringId === v.id ? (
-                        "Restoring..."
+                        t("restoring")
                       ) : (
                         <>
                           <RotateCcw className="mr-1 h-3 w-3" />
-                          Restore
+                          {t("restore")}
                         </>
                       )}
                     </Button>

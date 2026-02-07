@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
+import { useTranslations } from "next-intl";
 import { useSession } from "next-auth/react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -34,6 +35,8 @@ type BrandVoice = {
 };
 
 export function BrandVoiceSettings() {
+  const t = useTranslations("brandVoice");
+  const tCommon = useTranslations("common");
   const { data: session } = useSession();
   const [voices, setVoices] = useState<BrandVoice[]>([]);
   const [loading, setLoading] = useState(true);
@@ -43,15 +46,15 @@ export function BrandVoiceSettings() {
   const loadVoices = useCallback(async () => {
     try {
       const res = await fetch("/api/brand-voices");
-      if (!res.ok) throw new Error("Failed to load");
+      if (!res.ok) throw new Error("LOAD_FAILED");
       const data = await res.json();
       setVoices(Array.isArray(data) ? data : []);
     } catch {
-      toast.error("Failed to load brand voices");
+      toast.error(t("loadFailed"));
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [t]);
 
   useEffect(() => {
     if (session?.user?.id) loadVoices();
@@ -64,26 +67,26 @@ export function BrandVoiceSettings() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ isActive: true }),
       });
-      if (!res.ok) throw new Error("Failed to set active");
-      toast.success("Brand voice activated");
+      if (!res.ok) throw new Error("SET_ACTIVE_FAILED");
+      toast.success(t("activated"));
       loadVoices();
     } catch {
-      toast.error("Failed to set active brand voice");
+      toast.error(t("setActiveFailed"));
     }
   }
 
   async function deleteVoice(id: string) {
-    if (!confirm("Delete this brand voice? This cannot be undone.")) return;
+    if (!window.confirm(t("confirmDelete"))) return;
     try {
       const res = await fetch(`/api/brand-voices?id=${encodeURIComponent(id)}`, {
         method: "DELETE",
       });
-      if (!res.ok) throw new Error("Failed to delete");
-      toast.success("Brand voice deleted");
+      if (!res.ok) throw new Error("DELETE_FAILED");
+      toast.success(t("deleted"));
       setEditingId(null);
       loadVoices();
     } catch {
-      toast.error("Failed to delete brand voice");
+      toast.error(t("deleteFailed"));
     }
   }
 
@@ -96,18 +99,16 @@ export function BrandVoiceSettings() {
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between">
-        <p className="text-sm text-muted-foreground">
-          Manage brand voice profiles used for content generation.
-        </p>
+        <p className="text-sm text-muted-foreground">{t("manageDescription")}</p>
         <Dialog open={showCreate} onOpenChange={setShowCreate}>
           <DialogTrigger asChild>
             <Button variant="outline" size="sm">
-              Create brand voice
+              {t("create")}
             </Button>
           </DialogTrigger>
-          <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+          <DialogContent className="max-h-[90vh] max-w-2xl overflow-y-auto">
             <DialogHeader>
-              <DialogTitle>Create brand voice</DialogTitle>
+              <DialogTitle>{t("createTitle")}</DialogTitle>
             </DialogHeader>
             <BrandVoiceForm
               userId={session?.user?.id ?? ""}
@@ -122,10 +123,7 @@ export function BrandVoiceSettings() {
       </div>
 
       {voices.length === 0 ? (
-        <p className="text-sm text-muted-foreground">
-          No brand voices yet. Create one to use a consistent tone in generated
-          content.
-        </p>
+        <p className="text-sm text-muted-foreground">{t("empty")}</p>
       ) : (
         <ul className="space-y-2">
           {voices.map((voice) => (
@@ -133,29 +131,22 @@ export function BrandVoiceSettings() {
               <Card>
                 <CardHeader className="py-3">
                   <div className="flex flex-wrap items-center justify-between gap-2">
-                    <CardTitle className="text-base flex items-center gap-2">
+                    <CardTitle className="flex items-center gap-2 text-base">
                       {voice.name}
-                      {voice.isActive && (
-                        <Badge variant="secondary">Active</Badge>
-                      )}
+                      {voice.isActive && <Badge variant="secondary">{t("active")}</Badge>}
                     </CardTitle>
                     <div className="flex items-center gap-1">
                       {!voice.isActive && (
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => setActive(voice.id)}
-                        >
-                          <Check className="h-4 w-4 mr-1" />
-                          Set active
+                        <Button variant="ghost" size="sm" onClick={() => setActive(voice.id)}>
+                          <Check className="mr-1 h-4 w-4" />
+                          {t("setActive")}
                         </Button>
                       )}
                       <Button
                         variant="ghost"
                         size="sm"
-                        onClick={() =>
-                          setEditingId(editingId === voice.id ? null : voice.id)
-                        }
+                        onClick={() => setEditingId(editingId === voice.id ? null : voice.id)}
+                        aria-label={t("edit")}
                       >
                         <Pencil className="h-4 w-4" />
                       </Button>
@@ -164,6 +155,7 @@ export function BrandVoiceSettings() {
                         size="sm"
                         onClick={() => deleteVoice(voice.id)}
                         className="text-destructive hover:text-destructive"
+                        aria-label={tCommon("delete")}
                       >
                         <Trash2 className="h-4 w-4" />
                       </Button>
@@ -185,8 +177,8 @@ export function BrandVoiceSettings() {
                 )}
                 {editingId !== voice.id && (
                   <CardContent className="py-3 pt-0 text-sm text-muted-foreground">
-                    <span className="font-medium">Tone:</span> {voice.tone}{" "}
-                    <span className="font-medium">Style:</span> {voice.style}
+                    <span className="font-medium">{t("toneLabel")}</span> {voice.tone}{" "}
+                    <span className="font-medium">{t("styleLabel")}</span> {voice.style}
                   </CardContent>
                 )}
               </Card>
@@ -197,7 +189,7 @@ export function BrandVoiceSettings() {
 
       {activeVoice && (
         <p className="text-xs text-muted-foreground">
-          Active profile for generation: <strong>{activeVoice.name}</strong>
+          {t("activeProfile", { name: activeVoice.name })}
         </p>
       )}
     </div>

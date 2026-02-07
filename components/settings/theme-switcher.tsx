@@ -1,6 +1,7 @@
 "use client";
 
 import { useTheme } from "next-themes";
+import { useTranslations } from "next-intl";
 import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
@@ -16,6 +17,7 @@ const placeholder = (
 );
 
 export function ThemeSwitcher() {
+  const t = useTranslations("settingsTheme");
   const ctx = useTheme();
   const [mounted, setMounted] = useState(false);
 
@@ -34,25 +36,25 @@ export function ThemeSwitcher() {
       <DropdownMenuTrigger asChild>
         <Button variant="outline" size="sm">
           {resolvedTheme === "dark" ? (
-            <Moon className="h-4 w-4 mr-2" />
+            <Moon className="mr-2 h-4 w-4" />
           ) : (
-            <Sun className="h-4 w-4 mr-2" />
+            <Sun className="mr-2 h-4 w-4" />
           )}
-          {theme === "system" ? "System" : theme === "dark" ? "Dark" : "Light"}
+          {theme === "system" ? t("system") : theme === "dark" ? t("dark") : t("light")}
         </Button>
       </DropdownMenuTrigger>
       <DropdownMenuContent align="start">
         <DropdownMenuItem onClick={() => setTheme("light")}>
-          <Sun className="h-4 w-4 mr-2" />
-          Light
+          <Sun className="mr-2 h-4 w-4" />
+          {t("light")}
         </DropdownMenuItem>
         <DropdownMenuItem onClick={() => setTheme("dark")}>
-          <Moon className="h-4 w-4 mr-2" />
-          Dark
+          <Moon className="mr-2 h-4 w-4" />
+          {t("dark")}
         </DropdownMenuItem>
         <DropdownMenuItem onClick={() => setTheme("system")}>
-          <Monitor className="h-4 w-4 mr-2" />
-          System
+          <Monitor className="mr-2 h-4 w-4" />
+          {t("system")}
         </DropdownMenuItem>
       </DropdownMenuContent>
     </DropdownMenu>

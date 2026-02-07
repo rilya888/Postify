@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { useTranslations } from "next-intl";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { changePasswordSchema, type ChangePasswordInput } from "@/lib/validations/auth";
@@ -18,6 +19,7 @@ import { toast } from "sonner";
 import { Loader2 } from "lucide-react";
 
 export function ChangePasswordForm() {
+  const t = useTranslations("settingsPassword");
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   const form = useForm<ChangePasswordInput>({
@@ -43,13 +45,13 @@ export function ChangePasswordForm() {
       });
       const json = await res.json();
       if (!res.ok) {
-        toast.error(json.error ?? "Failed to change password");
+        toast.error(json.error ?? t("changeFailed"));
         return;
       }
-      toast.success("Password changed");
+      toast.success(t("changed"));
       form.reset();
     } catch {
-      toast.error("Failed to change password");
+      toast.error(t("changeFailed"));
     } finally {
       setIsSubmitting(false);
     }
@@ -63,7 +65,7 @@ export function ChangePasswordForm() {
           name="currentPassword"
           render={({ field }) => (
             <FormItem>
-              <FormLabel>Current password</FormLabel>
+              <FormLabel>{t("currentPassword")}</FormLabel>
               <FormControl>
                 <Input type="password" autoComplete="current-password" {...field} />
               </FormControl>
@@ -76,7 +78,7 @@ export function ChangePasswordForm() {
           name="newPassword"
           render={({ field }) => (
             <FormItem>
-              <FormLabel>New password</FormLabel>
+              <FormLabel>{t("newPassword")}</FormLabel>
               <FormControl>
                 <Input type="password" autoComplete="new-password" {...field} />
               </FormControl>
@@ -89,7 +91,7 @@ export function ChangePasswordForm() {
           name="confirmPassword"
           render={({ field }) => (
             <FormItem>
-              <FormLabel>Confirm new password</FormLabel>
+              <FormLabel>{t("confirmPassword")}</FormLabel>
               <FormControl>
                 <Input type="password" autoComplete="new-password" {...field} />
               </FormControl>
@@ -101,10 +103,10 @@ export function ChangePasswordForm() {
           {isSubmitting ? (
             <>
               <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-              Changing…
+              {t("changing")}
             </>
           ) : (
-            "Change password"
+            t("submit")
           )}
         </Button>
       </form>

@@ -1,6 +1,7 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
+import { useTranslations } from 'next-intl';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { getUserBrandVoices, getActiveBrandVoice, setActiveBrandVoice } from '@/lib/services/brand-voice';
 import { BrandVoice } from '@prisma/client';
@@ -19,13 +20,14 @@ interface BrandVoiceSelectorProps {
 }
 
 export function BrandVoiceSelector({ onBrandVoiceSelect, _projectId }: BrandVoiceSelectorProps) {
+  const t = useTranslations("brandVoiceSelector");
   const { data: session } = useSession();
   const [brandVoices, setBrandVoices] = useState<BrandVoice[]>([]);
   const [activeBrandVoice, setActiveBrandVoiceState] = useState<BrandVoice | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [showCreateDialog, setShowCreateDialog] = useState(false);
 
-  const loadBrandVoices = async () => {
+  const loadBrandVoices = useCallback(async () => {
     if (!session?.user?.id) return;
 
     try {
@@ -38,11 +40,11 @@ export function BrandVoiceSelector({ onBrandVoiceSelect, _projectId }: BrandVoic
       onBrandVoiceSelect(activeVoice); // Notify parent of selection
     } catch (error) {
       console.error('Error loading brand voices:', error);
-      toast.error('Failed to load brand voices');
+      toast.error(t('loadFailed'));
     } finally {
       setIsLoading(false);
     }
-  };
+  }, [onBrandVoiceSelect, session?.user?.id, t]);
 
   useEffect(() => {
     if (session?.user?.id) {
@@ -65,29 +67,29 @@ export function BrandVoiceSelector({ onBrandVoiceSelect, _projectId }: BrandVoic
         const selectedVoice = brandVoices.find(v => v.id === brandVoiceId) || null;
         setActiveBrandVoiceState(selectedVoice);
         onBrandVoiceSelect(selectedVoice);
-        toast.success('Brand voice activated');
+        toast.success(t('activated'));
       }
     } catch (error) {
       console.error('Error setting active brand voice:', error);
-      toast.error('Failed to set brand voice');
+      toast.error(t('setFailed'));
     }
   }
 
   if (isLoading) {
-    return <div>Loading brand voices...</div>;
+    return <div>{t('loading')}</div>;
   }
 
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between">
-        <Label>Brand Voice</Label>
+        <Label>{t('label')}</Label>
         <Dialog open={showCreateDialog} onOpenChange={setShowCreateDialog}>
           <DialogTrigger asChild>
-            <Button variant="outline" size="sm">Create New Profile</Button>
+            <Button variant="outline" size="sm">{t('createNewProfile')}</Button>
           </DialogTrigger>
           <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
             <DialogHeader>
-              <DialogTitle>Create Brand Voice Profile</DialogTitle>
+              <DialogTitle>{t('createDialogTitle')}</DialogTitle>
             </DialogHeader>
             <BrandVoiceForm 
               userId={session?.user?.id || ''} 
@@ -102,17 +104,17 @@ export function BrandVoiceSelector({ onBrandVoiceSelect, _projectId }: BrandVoic
         onValueChange={handleSelect}
       >
         <SelectTrigger className="w-full">
-          <SelectValue placeholder="Select a brand voice profile">
-            {activeBrandVoice ? activeBrandVoice.name : 'No brand voice selected'}
+          <SelectValue placeholder={t('selectProfilePlaceholder')}>
+            {activeBrandVoice ? activeBrandVoice.name : t('noneSelected')}
           </SelectValue>
         </SelectTrigger>
         <SelectContent>
-          <SelectItem value="none">None</SelectItem>
+          <SelectItem value="none">{t('none')}</SelectItem>
           {brandVoices.map((voice) => (
             <SelectItem key={voice.id} value={voice.id}>
               <div className="flex items-center justify-between">
                 <span>{voice.name}</span>
-                {voice.isActive && <Badge variant="secondary">Active</Badge>}
+                {voice.isActive && <Badge variant="secondary">{t('active')}</Badge>}
               </div>
             </SelectItem>
           ))}
@@ -122,31 +124,31 @@ export function BrandVoiceSelector({ onBrandVoiceSelect, _projectId }: BrandVoic
       {activeBrandVoice && (
         <Card>
           <CardHeader>
-            <CardTitle className="text-lg">Active Brand Voice: {activeBrandVoice.name}</CardTitle>
+            <CardTitle className="text-lg">{t('activeBrandVoiceTitle', { name: activeBrandVoice.name })}</CardTitle>
           </CardHeader>
           <CardContent>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
               <div>
-                <p className="font-medium">Tone:</p>
+                <p className="font-medium">{t('tone')}</p>
                 <p>{activeBrandVoice.tone}</p>
               </div>
               <div>
-                <p className="font-medium">Style:</p>
+                <p className="font-medium">{t('style')}</p>
                 <p>{activeBrandVoice.style}</p>
               </div>
               <div>
-                <p className="font-medium">Personality:</p>
+                <p className="font-medium">{t('personality')}</p>
                 <p>{activeBrandVoice.personality}</p>
               </div>
               <div>
-                <p className="font-medium">Sentence Structure:</p>
+                <p className="font-medium">{t('sentenceStructure')}</p>
                 <p>{activeBrandVoice.sentenceStructure}</p>
               </div>
             </div>
             
             {activeBrandVoice.description && (
               <div className="mt-4">
-                <p className="font-medium">Description:</p>
+                <p className="font-medium">{t('description')}</p>
                 <p>{activeBrandVoice.description}</p>
               </div>
             )}

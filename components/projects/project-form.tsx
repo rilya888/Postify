@@ -91,6 +91,7 @@ export function ProjectForm({
   const t = useTranslations("documents");
   const tGen = useTranslations("generatePage");
   const tCommon = useTranslations("common");
+  const tForm = useTranslations("projectForm");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [saveProgress, setSaveProgress] = useState(0);
   const [isUploadingFile, setIsUploadingFile] = useState(false);
@@ -233,7 +234,7 @@ export function ProjectForm({
           setIsSubmitting(false);
           return;
         }
-        throw new Error(getApiErrorMessage(result, "Failed to save project"));
+        throw new Error(getApiErrorMessage(result, tForm("saveFailed")));
       }
 
       setSaveProgress(100);
@@ -242,7 +243,7 @@ export function ProjectForm({
       setExtraPostsDialog(null);
 
       if (isEditing) {
-        NotificationService.success("Project updated", "Your project has been updated successfully");
+        NotificationService.success(tForm("projectUpdatedTitle"), tForm("projectUpdatedDescription"));
         if (onSubmitSuccess) {
           onSubmitSuccess();
         } else {
@@ -253,25 +254,28 @@ export function ProjectForm({
         const createAndGenerate = result as CreateAndGenerateResponse;
         const createdProjectId = createAndGenerate.projectId ?? createAndGenerate.project?.id;
         if (!createdProjectId) {
-          throw new Error("Project created but ID missing");
+          throw new Error(tForm("createdButIdMissing"));
         }
 
         const successfulCount = createAndGenerate.successful?.length ?? 0;
         const failedCount = createAndGenerate.failed?.length ?? 0;
 
         if (createAndGenerate.status === "success" && createAndGenerate.firstSuccessfulOutputId) {
-          NotificationService.success("Project created", "Content generated successfully");
+          NotificationService.success(tForm("projectCreatedTitle"), tForm("contentGeneratedDescription"));
           router.push(`/projects/${createdProjectId}/outputs/${createAndGenerate.firstSuccessfulOutputId}/edit`);
         } else {
           if (createAndGenerate.status === "partial") {
             NotificationService.warn(
-              "Project created",
-              `Generation partially completed: ${successfulCount} success, ${failedCount} failed`
+              tForm("projectCreatedTitle"),
+              tForm("generationPartialDescription", {
+                successful: successfulCount,
+                failed: failedCount,
+              })
             );
           } else {
             NotificationService.warn(
-              "Project created",
-              "Generation failed. You can retry generation on the next screen"
+              tForm("projectCreatedTitle"),
+              tForm("generationFailedDescription")
             );
           }
 
@@ -286,8 +290,8 @@ export function ProjectForm({
     } catch (error) {
       setSaveProgress(0);
       NotificationService.error(
-        "Error",
-        error instanceof Error ? error.message : "An unexpected error occurred"
+        tForm("errorTitle"),
+        error instanceof Error ? error.message : tForm("unexpectedError")
       );
     } finally {
       setIsSubmitting(false);
@@ -322,10 +326,10 @@ export function ProjectForm({
         );
         form.setValue("sourceContent", truncated);
         if (wasTruncated) {
-          toast.warning("Текст обрезан до 10 000 символов");
+          toast.warning(t("textTruncated"));
         }
       } catch {
-        toast.error("Не удалось загрузить файл");
+        toast.error(t("loadFailed"));
       }
       event.target.value = "";
       return;
@@ -365,10 +369,10 @@ export function ProjectForm({
           name="title"
           render={({ field }) => (
             <FormItem>
-              <FormLabel>Title *</FormLabel>
+              <FormLabel>{tForm("titleLabel")}</FormLabel>
               <FormControl>
                 <Input
-                  placeholder="Enter project title"
+                  placeholder={tForm("titlePlaceholder")}
                   disabled={isSubmitting}
                   {...field}
                 />
@@ -383,14 +387,14 @@ export function ProjectForm({
           name="sourceContent"
           render={({ field }) => (
             <FormItem>
-              <FormLabel>Source Content *</FormLabel>
+              <FormLabel>{tForm("sourceContentLabel")}</FormLabel>
               <div className="flex flex-wrap items-center gap-2 pb-2">
                 <input
                   ref={fileInputRef}
                   type="file"
                   accept={DOCUMENT_INPUT_ACCEPT}
                   className="sr-only"
-                  aria-label="Upload document file"
+                  aria-label={tForm("uploadDocumentAria")}
                   onChange={handleFileSelect}
                   disabled={isSubmitting || isUploadingFile}
                 />
@@ -400,7 +404,7 @@ export function ProjectForm({
                   size="sm"
                   onClick={() => fileInputRef.current?.click()}
                   disabled={isSubmitting || isUploadingFile}
-                  aria-label="Upload file (.txt, .pdf, .doc, .docx, .rtf)"
+                  aria-label={tForm("uploadFileAria")}
                 >
                   {isUploadingFile ? (
                     <Loader2 className="mr-2 h-4 w-4 animate-spin" />
@@ -412,7 +416,7 @@ export function ProjectForm({
               </div>
               <FormControl>
                 <Textarea
-                  placeholder="Paste your original content here..."
+                  placeholder={tForm("sourceContentPlaceholder")}
                   className="min-h-[200px]"
                   disabled={isSubmitting}
                   {...field}
@@ -428,7 +432,7 @@ export function ProjectForm({
           name="platforms"
           render={({ field }) => (
             <FormItem>
-              <FormLabel>Select Platforms *</FormLabel>
+              <FormLabel>{tForm("selectPlatformsLabel")}</FormLabel>
               <FormControl>
                 {planFeatures?.canUseSeries ? (
                   <PlatformSelectorWithPostCount
@@ -503,8 +507,8 @@ export function ProjectForm({
         {saveProgress > 0 && (
           <ProgressBar 
             value={saveProgress} 
-            label={isSubmitting ? "Saving project..." : "Processing..."} 
-            description={saveProgress < 100 ? "Please wait" : "Complete!"} 
+            label={isSubmitting ? tForm("savingProject") : tForm("processing")}
+            description={saveProgress < 100 ? tForm("pleaseWait") : tForm("complete")}
           />
         )}
 
@@ -513,11 +517,11 @@ export function ProjectForm({
             {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
             {isEditing ? (
               <>
-                <Save className="mr-2 h-4 w-4" /> Update Project
+                <Save className="mr-2 h-4 w-4" /> {tForm("updateProject")}
               </>
             ) : (
               <>
-                <Plus className="mr-2 h-4 w-4" /> Create Project
+                <Plus className="mr-2 h-4 w-4" /> {tForm("createProject")}
               </>
             )}
           </Button>
@@ -528,17 +532,17 @@ export function ProjectForm({
               variant="outline" 
               onClick={() => {
                 form.reset(savedDraft);
-                toast.success("Your unsaved changes have been restored");
+                toast.success(tForm("draftRestored"));
               }}
               disabled={isSavingDraft}
             >
               {isSavingDraft ? (
                 <>
-                  <Loader2 className="mr-2 h-4 w-4 animate-spin" /> Saving...
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" /> {tForm("saving")}
                 </>
               ) : (
                 <>
-                  <Download className="mr-2 h-4 w-4" /> Restore Draft
+                  <Download className="mr-2 h-4 w-4" /> {tForm("restoreDraft")}
                 </>
               )}
             </Button>

@@ -75,6 +75,7 @@ export function NewProjectFlow() {
   const t = useTranslations("subscription");
   const tGen = useTranslations("generatePage");
   const tDocs = useTranslations("documents");
+  const tForm = useTranslations("projectForm");
   const [sourceType, setSourceType] = useState<"text" | "audio">("text");
   const [planFeatures, setPlanFeatures] = useState<PlanFeatures | null>(null);
   const [audioStep, setAudioStep] = useState<"idle" | "creating" | "transcribing">("idle");
@@ -118,7 +119,7 @@ export function NewProjectFlow() {
   async function onAudioSubmit(data: AudioFormData) {
     const file = selectedFile ?? audioInputRef.current?.files?.[0];
     if (!file) {
-      toast.error("Select an audio file");
+      toast.error(tForm("selectAudioFile"));
       return;
     }
 
@@ -149,14 +150,14 @@ export function NewProjectFlow() {
       const createBody = await createRes.json().catch(() => ({}));
       if (!createRes.ok) {
         setAudioStep("idle");
-        toast.error(createBody.error ?? createBody.details ?? "Failed to create project");
+        toast.error(createBody.error ?? createBody.details ?? tForm("createProjectFailed"));
         return;
       }
 
       const projectId = createBody.project?.id;
       if (!projectId) {
         setAudioStep("idle");
-        toast.error("Project created but ID missing");
+        toast.error(tForm("createdButIdMissing"));
         return;
       }
 
@@ -174,19 +175,19 @@ export function NewProjectFlow() {
 
       if (!ingestRes.ok) {
         setAudioStep("idle");
-        setAudioError(ingestBody.details ?? ingestBody.error ?? "Transcription failed");
-        toast.error(ingestBody.details ?? ingestBody.error ?? "Transcription failed");
+        setAudioError(ingestBody.details ?? ingestBody.error ?? tForm("transcriptionFailed"));
+        toast.error(ingestBody.details ?? ingestBody.error ?? tForm("transcriptionFailed"));
         router.push(`/projects/${projectId}/generate`);
         router.refresh();
         return;
       }
 
-      toast.success("Audio transcribed. Redirecting to generate.");
+      toast.success(tForm("audioTranscribedRedirect"));
       router.push(`/projects/${projectId}/generate`);
       router.refresh();
     } catch (err) {
       setAudioStep("idle");
-      const msg = err instanceof Error ? err.message : "An error occurred";
+      const msg = err instanceof Error ? err.message : tForm("unexpectedError");
       setAudioError(msg);
       toast.error(msg);
     }
@@ -239,10 +240,10 @@ export function NewProjectFlow() {
                   name="title"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Title *</FormLabel>
+                      <FormLabel>{tForm("titleLabel")}</FormLabel>
                       <FormControl>
                         <Input
-                          placeholder="Enter project title"
+                          placeholder={tForm("titlePlaceholder")}
                           disabled={audioStep !== "idle"}
                           {...field}
                         />
@@ -257,7 +258,7 @@ export function NewProjectFlow() {
                   name="platforms"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Select Platforms *</FormLabel>
+                      <FormLabel>{tForm("selectPlatformsLabel")}</FormLabel>
                       <FormControl>
                         {planFeatures?.canUseSeries ? (
                           <PlatformSelectorWithPostCount
@@ -330,7 +331,7 @@ export function NewProjectFlow() {
                 )}
 
                 <FormItem>
-                  <FormLabel>Audio file *</FormLabel>
+                  <FormLabel>{tForm("audioFileLabel")}</FormLabel>
                   <FormControl>
                     <div className="space-y-2">
                       <input
@@ -392,7 +393,7 @@ export function NewProjectFlow() {
                   {audioStep !== "idle" && (
                     <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                   )}
-                  Create Project
+                  {tForm("createProject")}
                 </Button>
               </form>
             </Form>

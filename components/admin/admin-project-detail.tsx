@@ -4,10 +4,12 @@ import { useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { useRouter } from "next/navigation";
+import { useTranslations } from "next-intl";
 import { toast } from "sonner";
 
 export function AdminProjectDetail({ projectId }: { projectId: string }) {
   const router = useRouter();
+  const t = useTranslations("admin");
   const [loading, setLoading] = useState(false);
 
   const handleInvalidateCache = async () => {
@@ -19,11 +21,11 @@ export function AdminProjectDetail({ projectId }: { projectId: string }) {
         body: JSON.stringify({ action: "invalidate-project", projectId }),
       });
       const data = await res.json().catch(() => ({}));
-      if (!res.ok) throw new Error(data.error ?? "Failed");
-      toast.success(`Cache invalidated (${data.deleted ?? 0} entries)`);
+      if (!res.ok) throw new Error(data.error ?? t("failed"));
+      toast.success(t("cacheInvalidatedEntries", { count: data.deleted ?? 0 }));
       router.refresh();
     } catch (e) {
-      toast.error(e instanceof Error ? e.message : "Failed to invalidate cache");
+      toast.error(e instanceof Error ? e.message : t("failedToInvalidateCache"));
     } finally {
       setLoading(false);
     }
@@ -32,11 +34,11 @@ export function AdminProjectDetail({ projectId }: { projectId: string }) {
   return (
     <Card>
       <CardHeader>
-        <CardTitle>Cache</CardTitle>
+        <CardTitle>{t("cache")}</CardTitle>
       </CardHeader>
       <CardContent>
         <Button variant="secondary" onClick={handleInvalidateCache} disabled={loading}>
-          {loading ? "Invalidating..." : "Invalidate cache for this project"}
+          {loading ? t("invalidating") : t("invalidateCacheForProject")}
         </Button>
       </CardContent>
     </Card>

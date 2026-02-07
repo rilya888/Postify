@@ -1,14 +1,18 @@
 import { Metadata } from "next";
+import { getTranslations } from "next-intl/server";
 import { auth } from "@/lib/auth/config";
 import { redirect } from "next/navigation";
 import { prisma } from "@/lib/db/prisma";
 import { ProjectForm } from "@/components/projects/project-form";
 import { ProjectErrorBoundary } from "@/components/projects/project-error-boundary";
 
-export const metadata: Metadata = {
-  title: "Edit Project",
-  description: "Edit your content repurposing project",
-};
+export async function generateMetadata(): Promise<Metadata> {
+  const t = await getTranslations("projectsEditPage");
+  return {
+    title: t("metadataTitle"),
+    description: t("metadataDescription"),
+  };
+}
 
 /**
  * Project edit page
@@ -19,6 +23,7 @@ export default async function EditProjectPage({
   params: { id: string };
 }) {
   const session = await auth();
+  const t = await getTranslations("projectsEditPage");
 
   if (!session) {
     redirect("/login");
@@ -42,15 +47,27 @@ export default async function EditProjectPage({
   const initialData = {
     title: project.title,
     sourceContent: project.sourceContent,
-    platforms: project.platforms as ("linkedin" | "twitter" | "email" | "instagram" | "facebook" | "tiktok" | "youtube")[],
+    platforms: project.platforms as (
+      | "linkedin"
+      | "twitter"
+      | "email"
+      | "instagram"
+      | "facebook"
+      | "tiktok"
+      | "youtube"
+    )[],
     postsPerPlatform: (project.postsPerPlatform ?? 1) as 1 | 2 | 3,
     postTone: project.postTone ?? null,
     postsPerPlatformByPlatform: hasByPlatform
       ? (Object.fromEntries(
-          platformsList.filter((p) => p in byPlatform!).map((p) => [p, Math.min(3, Math.max(1, byPlatform![p])) as 1 | 2 | 3])
+          platformsList
+            .filter((p) => p in byPlatform!)
+            .map((p) => [p, Math.min(3, Math.max(1, byPlatform![p])) as 1 | 2 | 3])
         ) as Partial<Record<string, 1 | 2 | 3>>)
       : platformsList.length > 0
-        ? (Object.fromEntries(platformsList.map((p) => [p, (project.postsPerPlatform ?? 1) as 1 | 2 | 3])) as Partial<Record<string, 1 | 2 | 3>>)
+        ? (Object.fromEntries(
+            platformsList.map((p) => [p, (project.postsPerPlatform ?? 1) as 1 | 2 | 3])
+          ) as Partial<Record<string, 1 | 2 | 3>>)
         : {},
   };
 
@@ -58,17 +75,12 @@ export default async function EditProjectPage({
     <ProjectErrorBoundary>
       <div className="space-y-6">
         <div>
-          <h1 className="text-3xl font-bold">Edit Project</h1>
-          <p className="text-muted-foreground">
-            Update your project details and selected platforms
-          </p>
+          <h1 className="text-3xl font-bold">{t("title")}</h1>
+          <p className="text-muted-foreground">{t("description")}</p>
         </div>
 
         <div className="max-w-3xl">
-          <ProjectForm 
-            initialData={initialData} 
-            projectId={params.id} 
-          />
+          <ProjectForm initialData={initialData} projectId={params.id} />
         </div>
       </div>
     </ProjectErrorBoundary>

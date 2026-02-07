@@ -1,5 +1,6 @@
 "use client";
 
+import { useTranslations } from "next-intl";
 import { Button } from "@/components/ui/button";
 import { Download } from "lucide-react";
 import { exportProjectToFile } from "@/lib/utils/project-export";
@@ -13,13 +14,12 @@ type ExportProjectButtonProps = {
  * Client button that exports project to JSON file
  */
 export function ExportProjectButton({ project }: ExportProjectButtonProps) {
+  const t = useTranslations("projectsList");
+
   return (
-    <Button
-      variant="outline"
-      onClick={() => exportProjectToFile(project)}
-    >
+    <Button variant="outline" onClick={() => exportProjectToFile(project)}>
       <Download className="mr-2 h-4 w-4" />
-      Export
+      {t("export")}
     </Button>
   );
 }

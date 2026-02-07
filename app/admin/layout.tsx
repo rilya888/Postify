@@ -1,5 +1,6 @@
 import { auth } from "@/lib/auth/config";
 import { requireAdmin } from "@/lib/auth/require-admin";
+import { getTranslations } from "next-intl/server";
 import { AdminSidebar } from "@/components/admin/admin-sidebar";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
@@ -11,6 +12,7 @@ export default async function AdminLayout({
   children: React.ReactNode;
 }) {
   const session = await auth();
+  const t = await getTranslations("admin");
   requireAdmin(session);
 
   return (
@@ -19,7 +21,7 @@ export default async function AdminLayout({
         <Button variant="ghost" size="sm" asChild>
           <Link href="/dashboard">
             <ArrowLeft className="mr-2 h-4 w-4" />
-            Back to app
+            {t("backToApp")}
           </Link>
         </Button>
       </header>

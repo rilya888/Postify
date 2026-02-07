@@ -1,4 +1,5 @@
 import { Metadata } from "next";
+import { getTranslations } from "next-intl/server";
 import { auth } from "@/lib/auth/config";
 import { redirect } from "next/navigation";
 import { prisma } from "@/lib/db/prisma";
@@ -10,10 +11,13 @@ import { ProjectsPageClient } from "@/components/projects/projects-page-client";
 import { ProjectsListClient } from "@/components/projects/projects-list-client";
 import { ProjectErrorBoundary } from "@/components/projects/project-error-boundary";
 
-export const metadata: Metadata = {
-  title: "Projects",
-  description: "Manage your content repurposing projects",
-};
+export async function generateMetadata(): Promise<Metadata> {
+  const t = await getTranslations("projectsPage");
+  return {
+    title: t("metadataTitle"),
+    description: t("metadataDescription"),
+  };
+}
 
 /**
  * Projects list page showing all user projects
@@ -24,6 +28,7 @@ export default async function ProjectsPage({
   searchParams: Record<string, string | string[] | undefined>;
 }) {
   const session = await auth();
+  const t = await getTranslations("projectsPage");
 
   if (!session) {
     redirect("/login");
@@ -72,12 +77,12 @@ export default async function ProjectsPage({
   return (
     <div className="space-y-6">
       <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
-        <h1 className="text-3xl font-bold">Projects</h1>
+        <h1 className="text-3xl font-bold">{t("title")}</h1>
         <div className="flex gap-2">
           <Button asChild>
             <Link href="/projects/new">
               <Plus className="mr-2 h-4 w-4" />
-              New Project
+              {t("newProject")}
             </Link>
           </Button>
         </div>

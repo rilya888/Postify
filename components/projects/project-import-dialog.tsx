@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { useTranslations } from "next-intl";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -25,7 +26,8 @@ export function ProjectImportDialog({
   onClose,
   onImportSuccess,
 }: ProjectImportDialogProps) {
-  // Using imported toast function directly
+  const t = useTranslations("projectsImport");
+  const tCommon = useTranslations("common");
   const [file, setFile] = useState<File | null>(null);
   const [isImporting, setIsImporting] = useState(false);
 
@@ -37,17 +39,16 @@ export function ProjectImportDialog({
 
   const handleImport = async () => {
     if (!file) {
-      toast.error("Please select a file to import");
+      toast.error(t("selectFile"));
       return;
     }
 
     setIsImporting(true);
     try {
       const project = await importProjectFromFile(file);
-      
-      // Validate the imported project structure
+
       if (!project.title || !project.sourceContent || !Array.isArray(project.platforms)) {
-        throw new Error("Invalid project structure in file");
+        throw new Error(t("invalidStructure"));
       }
 
       const response = await fetch("/api/projects", {
@@ -62,14 +63,14 @@ export function ProjectImportDialog({
 
       const result = await response.json();
       if (!response.ok) {
-        throw new Error(result.error || "Failed to import project");
+        throw new Error(result.error || t("importFailed"));
       }
 
       onImportSuccess(result.project as Project);
-      toast.success("Project has been imported and saved successfully");
+      toast.success(t("imported"));
       onClose();
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : "Failed to import project");
+      toast.error(error instanceof Error ? error.message : t("importFailed"));
     } finally {
       setIsImporting(false);
     }
@@ -79,26 +80,25 @@ export function ProjectImportDialog({
     <Dialog open={isOpen} onOpenChange={onClose}>
       <DialogContent>
         <DialogHeader>
-          <DialogTitle>Import Project</DialogTitle>
-          <DialogDescription>
-            Select a JSON file to import your project data
-          </DialogDescription>
+          <DialogTitle>{t("title")}</DialogTitle>
+          <DialogDescription>{t("description")}</DialogDescription>
         </DialogHeader>
         <div className="space-y-4">
-          <Input 
-            type="file" 
-            accept=".json" 
+          <Input
+            type="file"
+            accept=".json"
             onChange={handleFileChange}
             className="cursor-pointer"
+            aria-label={t("fileInputAria")}
           />
         </div>
         <DialogFooter>
           <Button variant="outline" onClick={onClose} disabled={isImporting}>
-            Cancel
+            {tCommon("cancel")}
           </Button>
           <Button onClick={handleImport} disabled={!file || isImporting}>
             {isImporting && <Upload className="mr-2 h-4 w-4 animate-spin" />}
-            Import
+            {isImporting ? t("importing") : t("import")}
           </Button>
         </DialogFooter>
       </DialogContent>

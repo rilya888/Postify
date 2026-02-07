@@ -1,13 +1,17 @@
 import { Metadata } from "next";
+import { getTranslations } from "next-intl/server";
 import { auth } from "@/lib/auth/config";
 import { requireAdmin } from "@/lib/auth/require-admin";
 import { prisma } from "@/lib/db/prisma";
 import { AdminUsersList } from "@/components/admin/admin-users-list";
 
-export const metadata: Metadata = {
-  title: "Admin Users",
-  description: "Manage users",
-};
+export async function generateMetadata(): Promise<Metadata> {
+  const t = await getTranslations("adminMetadata");
+  return {
+    title: t("usersTitle"),
+    description: t("usersDescription"),
+  };
+}
 
 export const dynamic = "force-dynamic";
 
@@ -16,6 +20,7 @@ export default async function AdminUsersPage({
 }: {
   searchParams: Promise<{ page?: string; search?: string; role?: string; plan?: string }>;
 }) {
+  const t = await getTranslations("admin");
   const session = await auth();
   requireAdmin(session);
 
@@ -70,8 +75,8 @@ export default async function AdminUsersPage({
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-3xl font-bold">Users</h1>
-        <p className="text-muted-foreground mt-1">Total: {count}</p>
+        <h1 className="text-3xl font-bold">{t("users")}</h1>
+        <p className="text-muted-foreground mt-1">{t("totalCount", { count })}</p>
       </div>
       <AdminUsersList
         users={users}

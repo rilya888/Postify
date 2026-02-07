@@ -2,6 +2,7 @@
 
 import React from "react";
 import Link from "next/link";
+import { useTranslations } from "next-intl";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -35,6 +36,8 @@ export function GeneratedContentPreview({
   actions,
   editHref,
 }: GeneratedContentPreviewProps) {
+  const t = useTranslations("generatePage");
+
   return (
     <Card className={className}>
       <CardContent className="pt-6">
@@ -42,7 +45,7 @@ export function GeneratedContentPreview({
           <div className="flex items-center gap-2">
             <PlatformBadge platform={platform} variant={variant === "success" ? "success" : undefined} />
             {isEdited && (
-              <Badge variant="secondary">Edited</Badge>
+              <Badge variant="secondary">{t("editedBadge")}</Badge>
             )}
           </div>
           <div className="flex items-center gap-2">
@@ -50,7 +53,7 @@ export function GeneratedContentPreview({
               <Button variant="outline" size="sm" asChild>
                 <Link href={editHref}>
                   <PencilIcon className="h-4 w-4 mr-2" />
-                  Edit
+                  {t("editAction")}
                 </Link>
               </Button>
             )}
@@ -62,7 +65,7 @@ export function GeneratedContentPreview({
           style={maxHeight !== "none" ? { maxHeight } : undefined}
         >
           {content || (
-            <span className="text-muted-foreground italic">No content</span>
+            <span className="text-muted-foreground italic">{t("noContent")}</span>
           )}
         </div>
       </CardContent>

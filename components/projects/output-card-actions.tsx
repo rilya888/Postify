@@ -2,6 +2,7 @@
 
 import { Copy, Eye } from 'lucide-react';
 import Link from 'next/link';
+import { useTranslations } from 'next-intl';
 import { Button } from '@/components/ui/button';
 import { copyToClipboard } from '@/lib/utils/clipboard';
 import { toast } from 'sonner';
@@ -21,25 +22,33 @@ export function OutputCardActions({
   content,
   platform,
 }: OutputCardActionsProps) {
+  const t = useTranslations('outputActions');
+
   const handleCopy = async () => {
     const success = await copyToClipboard(content);
     const name = getPlatform(platform).name;
     if (success) {
-      toast.success(`${name} content copied to clipboard!`);
+      toast.success(t('copied', { platform: name }));
     } else {
-      toast.error(`Failed to copy ${name} content`);
+      toast.error(t('copyFailed', { platform: name }));
     }
   };
 
   return (
-    <div className="flex gap-2 mt-2">
+    <div className="mt-2 flex gap-2">
       <Button variant="outline" size="sm" className="flex-1" asChild>
         <Link href={`/projects/${projectId}/outputs/${outputId}/edit`}>
           <Eye className="mr-2 h-4 w-4" />
-          View/Edit
+          {t('viewEdit')}
         </Link>
       </Button>
-      <Button variant="outline" size="sm" onClick={handleCopy} title="Copy to clipboard" aria-label="Copy to clipboard">
+      <Button
+        variant="outline"
+        size="sm"
+        onClick={handleCopy}
+        title={t('copyToClipboard')}
+        aria-label={t('copyToClipboard')}
+      >
         <Copy className="h-4 w-4" />
       </Button>
     </div>

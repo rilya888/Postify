@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { useTranslations } from "next-intl";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { PLATFORMS } from "@/lib/constants/platforms";
@@ -18,6 +19,7 @@ type ProjectsFiltersProps = {
  * Filters component for projects list
  */
 export function ProjectsFilters({ onFilterChange }: ProjectsFiltersProps) {
+  const t = useTranslations("projectsFilters");
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedPlatforms, setSelectedPlatforms] = useState<string[]>([]);
   const [showFilters, setShowFilters] = useState(false);
@@ -29,9 +31,9 @@ export function ProjectsFilters({ onFilterChange }: ProjectsFiltersProps) {
 
   const handlePlatformToggle = (platform: string) => {
     const newPlatforms = selectedPlatforms.includes(platform)
-      ? selectedPlatforms.filter(p => p !== platform)
+      ? selectedPlatforms.filter((p) => p !== platform)
       : [...selectedPlatforms, platform];
-    
+
     setSelectedPlatforms(newPlatforms);
     onFilterChange({ searchTerm, platforms: newPlatforms });
   };
@@ -48,34 +50,25 @@ export function ProjectsFilters({ onFilterChange }: ProjectsFiltersProps) {
         <div className="relative flex-1">
           <Search className="absolute left-2 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
           <Input
-            placeholder="Search projects..."
+            placeholder={t("searchPlaceholder")}
             value={searchTerm}
             onChange={(e) => handleSearchChange(e.target.value)}
             className="pl-8"
           />
         </div>
-        <Button
-          variant="outline"
-          onClick={() => setShowFilters(!showFilters)}
-          className="flex items-center gap-2"
-        >
+        <Button variant="outline" onClick={() => setShowFilters(!showFilters)} className="flex items-center gap-2">
           <Filter className="h-4 w-4" />
-          Filters
+          {t("filtersButton")}
         </Button>
       </div>
 
       {showFilters && (
         <div className="rounded-lg border bg-muted/50 p-4">
           <div className="mb-4 flex items-center justify-between">
-            <h3 className="font-medium">Filter by platform</h3>
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={clearFilters}
-              className="flex items-center gap-1"
-            >
+            <h3 className="font-medium">{t("filterByPlatform")}</h3>
+            <Button variant="ghost" size="sm" onClick={clearFilters} className="flex items-center gap-1">
               <X className="h-4 w-4" />
-              Clear
+              {t("clear")}
             </Button>
           </div>
           <div className="flex flex-wrap gap-4">
@@ -88,7 +81,7 @@ export function ProjectsFilters({ onFilterChange }: ProjectsFiltersProps) {
                 />
                 <label
                   htmlFor={`platform-${key}`}
-                  className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70 flex items-center gap-1"
+                  className="flex items-center gap-1 text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
                 >
                   <span>{platform.icon}</span>
                   <span>{platform.name}</span>

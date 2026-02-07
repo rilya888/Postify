@@ -1,4 +1,5 @@
 import { Metadata } from "next";
+import { getTranslations } from "next-intl/server";
 import { auth } from "@/lib/auth/config";
 import { requireAdmin } from "@/lib/auth/require-admin";
 import { prisma } from "@/lib/db/prisma";
@@ -7,10 +8,13 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import Link from "next/link";
 import { AdminUserEdit } from "@/components/admin/admin-user-edit";
 
-export const metadata: Metadata = {
-  title: "Admin User",
-  description: "View and edit user",
-};
+export async function generateMetadata(): Promise<Metadata> {
+  const t = await getTranslations("adminMetadata");
+  return {
+    title: t("userTitle"),
+    description: t("userDescription"),
+  };
+}
 
 export const dynamic = "force-dynamic";
 
@@ -19,6 +23,7 @@ export default async function AdminUserPage({
 }: {
   params: Promise<{ id: string }>;
 }) {
+  const t = await getTranslations("admin");
   const session = await auth();
   requireAdmin(session);
 
@@ -53,14 +58,14 @@ export default async function AdminUserPage({
   return (
     <div className="space-y-6">
       <div className="flex items-center gap-2 text-sm text-muted-foreground">
-        <Link href="/admin/users" className="hover:text-foreground">Users</Link>
+        <Link href="/admin/users" className="hover:text-foreground">{t("users")}</Link>
         <span>/</span>
         <span className="text-foreground">{user.email}</span>
       </div>
       <div>
         <h1 className="text-3xl font-bold">{user.email}</h1>
         <p className="text-muted-foreground mt-1">
-          {user.name ?? "No name"} · {user._count.projects} projects
+          {user.name ?? t("noName")} · {t("projectsCount", { count: user._count.projects })}
         </p>
       </div>
 
@@ -85,12 +90,12 @@ export default async function AdminUserPage({
 
       <Card>
         <CardHeader>
-          <CardTitle>Recent projects</CardTitle>
+          <CardTitle>{t("recentProjects")}</CardTitle>
         </CardHeader>
         <CardContent>
           <div className="space-y-2">
             {user.projects.length === 0 ? (
-              <p className="text-muted-foreground">No projects</p>
+              <p className="text-muted-foreground">{t("noProjects")}</p>
             ) : (
               user.projects.map((p) => (
                 <Link
@@ -100,7 +105,7 @@ export default async function AdminUserPage({
                 >
                   <span className="font-medium">{p.title}</span>
                   <span className="text-muted-foreground text-sm">
-                    {new Date(p.createdAt).toLocaleDateString()} · {p._count.outputs} outputs
+                    {new Date(p.createdAt).toLocaleDateString()} · {t("outputsCount", { count: p._count.outputs })}
                   </span>
                 </Link>
               ))

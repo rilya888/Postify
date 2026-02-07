@@ -34,6 +34,7 @@ export function PostToneSelector({
   selectedPlatforms = [],
 }: PostToneSelectorProps) {
   const t = useTranslations("postTone");
+  const tPlatforms = useTranslations("platforms");
 
   if (!canUsePostTone) {
     return (
@@ -110,11 +111,11 @@ export function PostToneSelector({
         <Alert variant="destructive">
           <Info className="h-4 w-4" />
           <AlertDescription>
-            <p className="font-medium mb-1">Platform compatibility:</p>
+            <p className="font-medium mb-1">{t("platformCompatibility")}</p>
             <ul className="list-disc list-inside space-y-1 text-sm">
               {warnings.map(({ platform, warning }) => (
                 <li key={platform}>
-                  <strong>{platform}:</strong> {warning}
+                  <strong>{tPlatforms(`${platform}.name`)}:</strong> {warning}
                 </li>
               ))}
             </ul>

@@ -1,10 +1,12 @@
 import { getAdminStats } from "@/lib/admin/stats";
+import { getTranslations } from "next-intl/server";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import Link from "next/link";
 
 export async function AdminStatsCards() {
   const stats = await getAdminStats();
+  const t = await getTranslations("admin");
 
   const formatBytes = (bytes: number) => {
     if (bytes < 1024) return `${bytes} B`;
@@ -17,41 +19,41 @@ export async function AdminStatsCards() {
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
         <Card>
           <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium">Users</CardTitle>
+            <CardTitle className="text-sm font-medium">{t("users")}</CardTitle>
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">{stats.usersTotal}</div>
             <p className="text-xs text-muted-foreground">
-              +{stats.usersNewLast7Days} last 7 days, +{stats.usersNewLast30Days} last 30 days
+              {t("usersLastPeriods", { d7: stats.usersNewLast7Days, d30: stats.usersNewLast30Days })}
             </p>
           </CardContent>
         </Card>
         <Card>
           <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium">Projects</CardTitle>
+            <CardTitle className="text-sm font-medium">{t("projects")}</CardTitle>
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">{stats.projectsTotal}</div>
-            <p className="text-xs text-muted-foreground">+{stats.projectsLast7Days} last 7 days</p>
+            <p className="text-xs text-muted-foreground">{t("projectsLast7Days", { count: stats.projectsLast7Days })}</p>
           </CardContent>
         </Card>
         <Card>
           <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium">Outputs</CardTitle>
+            <CardTitle className="text-sm font-medium">{t("outputs")}</CardTitle>
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">{stats.outputsTotal}</div>
-            <p className="text-xs text-muted-foreground">{stats.outputVersionsTotal} versions</p>
+            <p className="text-xs text-muted-foreground">{t("versionsCount", { count: stats.outputVersionsTotal })}</p>
           </CardContent>
         </Card>
         <Card>
           <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium">Transcripts</CardTitle>
+            <CardTitle className="text-sm font-medium">{t("transcripts")}</CardTitle>
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">{stats.transcriptsTotal}</div>
             {stats.transcriptsFailed > 0 && (
-              <p className="text-xs text-destructive">{stats.transcriptsFailed} failed</p>
+              <p className="text-xs text-destructive">{t("failedCount", { count: stats.transcriptsFailed })}</p>
             )}
           </CardContent>
         </Card>
@@ -59,17 +61,17 @@ export async function AdminStatsCards() {
 
       <Card>
         <CardHeader>
-          <CardTitle>Subscriptions by plan</CardTitle>
+          <CardTitle>{t("subscriptionsByPlan")}</CardTitle>
         </CardHeader>
         <CardContent>
           <div className="flex flex-wrap gap-2">
             {Object.entries(stats.subscriptionsByPlan).map(([plan, count]) => (
               <Badge key={plan} variant="secondary">
-                {plan}: {count}
+                {t(`plans.${plan}`)}: {count}
               </Badge>
             ))}
             {Object.keys(stats.subscriptionsByPlan).length === 0 && (
-              <span className="text-muted-foreground">No subscriptions yet</span>
+              <span className="text-muted-foreground">{t("noSubscriptionsYet")}</span>
             )}
           </div>
         </CardContent>
@@ -77,15 +79,15 @@ export async function AdminStatsCards() {
 
       <Card>
         <CardHeader>
-          <CardTitle>Cache</CardTitle>
+          <CardTitle>{t("cache")}</CardTitle>
         </CardHeader>
         <CardContent>
           <div className="flex flex-wrap items-center gap-4">
-            <span>Total entries: {stats.cacheStats.total}</span>
-            <span>Expired: {stats.cacheStats.expired}</span>
-            <span>Size: ~{formatBytes(stats.cacheStats.sizeEstimate)}</span>
+            <span>{t("totalEntries", { count: stats.cacheStats.total })}</span>
+            <span>{t("expiredCount", { count: stats.cacheStats.expired })}</span>
+            <span>{t("sizeApprox", { size: formatBytes(stats.cacheStats.sizeEstimate) })}</span>
             <Link href="/admin/cache" className="text-primary hover:underline text-sm">
-              Manage cache →
+              {t("manageCache")}
             </Link>
           </div>
         </CardContent>

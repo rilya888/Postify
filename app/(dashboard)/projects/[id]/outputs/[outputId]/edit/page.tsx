@@ -8,6 +8,7 @@ import { useState, useEffect, useCallback } from 'react';
 import dynamic from 'next/dynamic';
 import { useParams, useRouter } from 'next/navigation';
 import { useSession } from 'next-auth/react';
+import { useTranslations } from 'next-intl';
 import { toast } from 'sonner';
 import { RotateCcw, ChevronLeft, ChevronRight, FileText } from 'lucide-react';
 import Link from 'next/link';
@@ -49,7 +50,7 @@ const PreviewPanel = dynamic(
   }
 );
 import { useAutoSave } from '@/hooks/use-auto-save';
-import { Platform, PLATFORMS } from '@/lib/constants/platforms';
+import { Platform } from '@/lib/constants/platforms';
 import { PLATFORM_CHARACTER_LIMITS } from '@/lib/constants/editor';
 import { VersionHistoryPanel } from '@/components/editor/version-history-panel';
 
@@ -57,6 +58,8 @@ export default function EditOutputPage() {
   const router = useRouter();
   const { data: session } = useSession();
   const { id: projectId, outputId } = useParams<{ id: string; outputId: string }>();
+  const t = useTranslations("editOutputPage");
+  const tPlatforms = useTranslations("platforms");
   
   const [content, setContent] = useState('');
   const [originalContent, setOriginalContent] = useState('');
@@ -94,9 +97,9 @@ export default function EditOutputPage() {
         ]);
         if (!outputRes.ok) {
           const data = await outputRes.json().catch(() => ({}));
-          const message = data?.error ?? 'Output not found';
+          const message = data?.error ?? t('outputNotFound');
           if (outputRes.status === 404) {
-            toast.error('Project or output no longer exists');
+            toast.error(t('projectOrOutputMissing'));
             router.push('/projects');
             return;
           }
@@ -136,7 +139,7 @@ export default function EditOutputPage() {
         setIsLoading(false);
       } catch (error) {
         console.error('Error loading output:', error);
-        toast.error('Failed to load output content');
+        toast.error(t('loadFailed'));
         router.push(projectId ? `/projects/${projectId}` : '/projects');
       } finally {
         setIsLoading(false);
@@ -146,7 +149,7 @@ export default function EditOutputPage() {
     if (session?.user?.id) {
       loadOutput();
     }
-  }, [session, projectId, outputId, router]);
+  }, [session, projectId, outputId, router, t]);
 
   const limit = PLATFORM_CHARACTER_LIMITS[platform];
   const contentOverLimit = content.length > limit;
@@ -167,7 +170,7 @@ export default function EditOutputPage() {
 
       if (!response.ok) {
         const errorData = await response.json().catch(() => ({}));
-        const message = errorData?.details ?? errorData?.error ?? 'Failed to save content';
+        const message = errorData?.details ?? errorData?.error ?? t('saveFailed');
         throw new Error(message);
       }
 
@@ -175,10 +178,10 @@ export default function EditOutputPage() {
       setOriginalContent(updatedOutput.content);
       setHasUnsavedChanges(false);
       clearDraft();
-      toast.success('Content saved successfully!');
+      toast.success(t('saveSuccess'));
     } catch (error) {
       console.error('Error saving content:', error);
-      const message = error instanceof Error ? error.message : 'Failed to save content';
+      const message = error instanceof Error ? error.message : t('saveFailed');
       toast.error(message);
       // Keep draft in localStorage and in form so user can retry
     } finally {
@@ -191,7 +194,7 @@ export default function EditOutputPage() {
     e.preventDefault();
     if (!session?.user?.id) return;
     if (contentOverLimit) {
-      toast.error(`Content exceeds platform limit (max ${limit} characters)`);
+      toast.error(t('contentOverLimitToast', { limit }));
       return;
     }
     setIsSaving(true);
@@ -206,7 +209,7 @@ export default function EditOutputPage() {
 
       if (!response.ok) {
         const errorData = await response.json().catch(() => ({}));
-        const message = errorData?.details ?? errorData?.error ?? 'Failed to save content';
+        const message = errorData?.details ?? errorData?.error ?? t('saveFailed');
         throw new Error(message);
       }
 
@@ -214,10 +217,10 @@ export default function EditOutputPage() {
       setOriginalContent(updatedOutput.content);
       setHasUnsavedChanges(false);
       clearDraft();
-      toast.success('Content saved successfully!');
+      toast.success(t('saveSuccess'));
     } catch (error) {
       console.error('Error saving content:', error);
-      const message = error instanceof Error ? error.message : 'Failed to save content';
+      const message = error instanceof Error ? error.message : t('saveFailed');
       toast.error(message);
     } finally {
       setIsSaving(false);
@@ -231,7 +234,7 @@ export default function EditOutputPage() {
       const response = await fetch(`/api/outputs/${outputId}/revert`, { method: 'POST' });
       if (!response.ok) {
         const data = await response.json().catch(() => ({}));
-        toast.error(data?.details ?? data?.error ?? 'Failed to revert');
+        toast.error(data?.details ?? data?.error ?? t('revertFailed'));
         return;
       }
       const reverted = await response.json();
@@ -240,10 +243,10 @@ export default function EditOutputPage() {
       setHasUnsavedChanges(false);
       setCanRevert(false);
       clearDraft();
-      toast.success('Reverted to original content');
+      toast.success(t('revertSuccess'));
     } catch (error) {
       console.error('Error reverting:', error);
-      toast.error('Failed to revert');
+      toast.error(t('revertFailed'));
     } finally {
       setIsSaving(false);
     }
@@ -261,12 +264,12 @@ export default function EditOutputPage() {
   useEffect(() => {
     const key = getDraftKey();
     if (!key || !content) return;
-    const t = setTimeout(() => {
+    const timeoutId = setTimeout(() => {
       try {
         localStorage.setItem(key, content);
       } catch { /* ignore */ }
     }, 2000);
-    return () => clearTimeout(t);
+    return () => clearTimeout(timeoutId);
   }, [content, getDraftKey]);
 
   // Handle navigation away with unsaved changes
@@ -303,9 +306,9 @@ export default function EditOutputPage() {
       <AlertDialog open={showRestoreDialog} onOpenChange={setShowRestoreDialog}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Restore unsaved draft?</AlertDialogTitle>
+            <AlertDialogTitle>{t("restoreDraftTitle")}</AlertDialogTitle>
             <AlertDialogDescription>
-              An unsaved draft was found. Do you want to restore it or continue with the saved content?
+              {t("restoreDraftDescription")}
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
@@ -315,7 +318,7 @@ export default function EditOutputPage() {
                 setPendingDraft(null);
               }}
             >
-              Dismiss
+              {t("dismiss")}
             </AlertDialogCancel>
             <AlertDialogAction
               onClick={() => {
@@ -328,7 +331,7 @@ export default function EditOutputPage() {
                 setShowRestoreDialog(false);
               }}
             >
-              Restore draft
+              {t("restoreDraft")}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
@@ -340,15 +343,18 @@ export default function EditOutputPage() {
           onClick={() => router.back()}
           className="mb-4"
         >
-          ← Back to Project
+          ← {t("backToProject")}
         </Button>
         <div className="flex flex-wrap items-center justify-between gap-4">
           <div>
-            <h1 className="text-3xl font-bold">Edit Content</h1>
+            <h1 className="text-3xl font-bold">{t("title")}</h1>
             <p className="text-muted-foreground">
               {postsPerPlatform != null && postsPerPlatform > 1 && seriesIndex != null
-                ? `${PLATFORMS[platform]?.name ?? platform} — Post ${seriesIndex}`
-                : `Edit the generated content for ${platform}`}
+                ? t("seriesSubtitle", {
+                    platform: tPlatforms(`${platform}.name`),
+                    index: seriesIndex,
+                  })
+                : t("subtitle", { platform: tPlatforms(`${platform}.name`) })}
             </p>
           </div>
           {outputsList.length > 1 && (
@@ -357,7 +363,7 @@ export default function EditOutputPage() {
                 <Button variant="outline" size="sm" asChild>
                   <Link href={`/projects/${projectId}/outputs/${prevOutput.id}/edit`}>
                     <ChevronLeft className="h-4 w-4" />
-                    {prevOutput.platform}
+                    {tPlatforms(`${prevOutput.platform}.name`)}
                   </Link>
                 </Button>
               ) : null}
@@ -367,7 +373,7 @@ export default function EditOutputPage() {
               {nextOutput ? (
                 <Button variant="outline" size="sm" asChild>
                   <Link href={`/projects/${projectId}/outputs/${nextOutput.id}/edit`}>
-                    {nextOutput.platform}
+                    {tPlatforms(`${nextOutput.platform}.name`)}
                     <ChevronRight className="h-4 w-4" />
                   </Link>
                 </Button>
@@ -382,7 +388,7 @@ export default function EditOutputPage() {
           {/* Editor Panel */}
           <Card>
             <CardHeader>
-              <CardTitle>Editor</CardTitle>
+              <CardTitle>{t("editorTitle")}</CardTitle>
             </CardHeader>
             <CardContent>
               <ContentEditor
@@ -396,7 +402,7 @@ export default function EditOutputPage() {
           {/* Preview Panel */}
           <Card>
             <CardHeader>
-              <CardTitle>Preview</CardTitle>
+              <CardTitle>{t("previewTitle")}</CardTitle>
             </CardHeader>
             <CardContent>
               <PreviewPanel 
@@ -418,7 +424,7 @@ export default function EditOutputPage() {
                 onClick={() => setShowOriginal(!showOriginal)}
               >
                 <FileText className="h-4 w-4" />
-                {showOriginal ? 'Hide original' : 'Show original content'}
+                {showOriginal ? t("hideOriginal") : t("showOriginal")}
               </Button>
             </CardHeader>
             {showOriginal && (
@@ -435,13 +441,13 @@ export default function EditOutputPage() {
         <div className="flex justify-between items-center">
           <div>
             {contentOverLimit && (
-              <p className="text-red-600">Content exceeds platform limit ({content.length}/{limit}). Save is disabled.</p>
+              <p className="text-red-600">{t("contentOverLimit", { current: content.length, limit })}</p>
             )}
             {hasUnsavedChanges && !contentOverLimit && (
-              <p className="text-yellow-600">You have unsaved changes</p>
+              <p className="text-yellow-600">{t("unsavedChanges")}</p>
             )}
             {isSaving && (
-              <p className="text-blue-600">Saving...</p>
+              <p className="text-blue-600">{t("saving")}</p>
             )}
           </div>
           <div className="flex gap-2 flex-wrap">
@@ -464,7 +470,7 @@ export default function EditOutputPage() {
                 disabled={isSaving}
               >
                 <RotateCcw className="mr-2 h-4 w-4" />
-                Revert to original
+                {t("revertButton")}
               </Button>
             )}
             <Button 
@@ -472,13 +478,13 @@ export default function EditOutputPage() {
               variant="outline" 
               onClick={() => router.back()}
             >
-              Cancel
+              {t("cancel")}
             </Button>
             <Button 
               type="submit" 
               disabled={isSaving || !hasUnsavedChanges || contentOverLimit}
             >
-              {isSaving ? 'Saving...' : 'Save Changes'}
+              {isSaving ? t("saving") : t("saveChanges")}
             </Button>
           </div>
         </div>

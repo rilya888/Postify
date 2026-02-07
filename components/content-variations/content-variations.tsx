@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { useTranslations } from 'next-intl';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -31,6 +32,8 @@ export function ContentVariations({
   onVariationSelect,
   onRegenerate
 }: ContentVariationsProps) {
+  const t = useTranslations("contentVariations");
+  const tPlatforms = useTranslations("platforms");
   const [selectedVariation, setSelectedVariation] = useState<string | null>(null);
   const [copiedVariation, setCopiedVariation] = useState<string | null>(null);
 
@@ -38,10 +41,10 @@ export function ContentVariations({
     const success = await copyToClipboard(content);
     if (success) {
       setCopiedVariation(String(index));
-      toast.success(`Variation ${index + 1} copied to clipboard!`);
+      toast.success(t("variationCopied", { index: index + 1 }));
       setTimeout(() => setCopiedVariation(null), 2000);
     } else {
-      toast.error(`Failed to copy variation ${index + 1}`);
+      toast.error(t("variationCopyFailed", { index: index + 1 }));
     }
   };
 
@@ -53,19 +56,19 @@ export function ContentVariations({
   };
 
   const handleThumbsUp = (index: number) => {
-    toast.success(`Liked variation ${index + 1}!`);
+    toast.success(t("variationLiked", { index: index + 1 }));
     // In a real implementation, you would track user feedback
   };
 
   const handleThumbsDown = (index: number) => {
-    toast.info(`Disliked variation ${index + 1}. Generating new one...`);
+    toast.info(t("variationDisliked", { index: index + 1 }));
     // In a real implementation, you would regenerate this specific variation
   };
 
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
-        <h2 className="text-xl font-semibold">Content Variations</h2>
+        <h2 className="text-xl font-semibold">{t("title")}</h2>
         <div className="flex gap-2">
           {onRegenerate && (
             <Button 
@@ -74,7 +77,7 @@ export function ContentVariations({
               onClick={() => onRegenerate(3)}
             >
               <RotateCcw className="mr-2 h-4 w-4" />
-              Regenerate All
+              {t("regenerateAll")}
             </Button>
           )}
         </div>
@@ -82,8 +85,8 @@ export function ContentVariations({
 
       <Tabs defaultValue="all" className="w-full">
         <TabsList className="grid w-full grid-cols-2">
-          <TabsTrigger value="all">All Variations</TabsTrigger>
-          <TabsTrigger value="favorites">Favorites</TabsTrigger>
+          <TabsTrigger value="all">{t("allVariations")}</TabsTrigger>
+          <TabsTrigger value="favorites">{t("favorites")}</TabsTrigger>
         </TabsList>
         
         <TabsContent value="all" className="space-y-4">
@@ -101,12 +104,12 @@ export function ContentVariations({
                 <CardHeader className="pb-2">
                   <div className="flex justify-between items-start">
                     <CardTitle className="text-base">
-                      Variation {index + 1}
+                      {t("variationN", { index: index + 1 })}
                     </CardTitle>
                     <Badge variant="outline">{variation.style}</Badge>
                   </div>
                   <CardDescription>
-                    {platform.charAt(0).toUpperCase() + platform.slice(1)}
+                    {tPlatforms(`${platform}.name`)}
                   </CardDescription>
                 </CardHeader>
                 <CardContent className="pb-2">
@@ -145,7 +148,7 @@ export function ContentVariations({
                       handleCopy(variation.content, index);
                     }}
                   >
-                    {copiedVariation === String(index) ? '✓ Copied!' : 'Copy'}
+                    {copiedVariation === String(index) ? t("copied") : t("copy")}
                   </Button>
                 </CardFooter>
               </Card>
@@ -155,23 +158,23 @@ export function ContentVariations({
         
         <TabsContent value="favorites" className="space-y-4">
           <p className="text-center text-muted-foreground py-8">
-            No favorites yet. Click the thumbs up icon on variations you like.
+            {t("noFavorites")}
           </p>
         </TabsContent>
       </Tabs>
       
       {variations.length > 0 && (
         <div className="mt-6">
-          <h3 className="text-lg font-medium mb-2">Selected Variation</h3>
+          <h3 className="text-lg font-medium mb-2">{t("selectedVariationTitle")}</h3>
           <Card>
             <CardHeader>
               <CardTitle className="flex justify-between items-center">
                 <span>
-                  {variations.find(v => v.id === selectedVariation)?.style || 'Select a variation'}
+                  {variations.find(v => v.id === selectedVariation)?.style || t("selectVariation")}
                 </span>
                 {selectedVariation && (
                   <Badge>
-                    Variation {variations.findIndex(v => v.id === selectedVariation) + 1}
+                    {t("variationN", { index: variations.findIndex(v => v.id === selectedVariation) + 1 })}
                   </Badge>
                 )}
               </CardTitle>
@@ -183,7 +186,7 @@ export function ContentVariations({
                 </div>
               ) : (
                 <p className="text-muted-foreground italic">
-                  Select a variation to see the full content
+                  {t("selectVariationToPreview")}
                 </p>
               )}
             </CardContent>
@@ -200,16 +203,16 @@ export function ContentVariations({
                     }}
                   >
                     <Copy className="mr-2 h-4 w-4" />
-                    Copy Selected
+                    {t("copySelected")}
                   </Button>
                   <Button 
                     variant="secondary"
                     onClick={() => {
                       // In a real implementation, this would save the selected variation as the main output
-                      toast.success('Variation saved as main content!');
+                      toast.success(t("savedAsMain"));
                     }}
                   >
-                    Use This One
+                    {t("useThisOne")}
                   </Button>
                 </>
               )}

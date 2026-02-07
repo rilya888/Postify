@@ -15,12 +15,14 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { useRouter } from "next/navigation";
+import { useTranslations } from "next-intl";
 import { toast } from "sonner";
 
 const CONFIRM_KEY = "DELETE";
 
 export function CacheActions() {
   const router = useRouter();
+  const t = useTranslations("admin");
   const [loading, setLoading] = useState(false);
   const [clearAllConfirm, setClearAllConfirm] = useState("");
   const [clearAllOpen, setClearAllOpen] = useState(false);
@@ -34,11 +36,11 @@ export function CacheActions() {
         body: JSON.stringify({ action: "clean-expired" }),
       });
       const data = await res.json().catch(() => ({}));
-      if (!res.ok) throw new Error(data.error ?? "Failed");
-      toast.success(`Cleaned ${data.deleted ?? 0} expired entries`);
+      if (!res.ok) throw new Error(data.error ?? t("failed"));
+      toast.success(t("cleanedExpiredEntries", { count: data.deleted ?? 0 }));
       router.refresh();
     } catch (e) {
-      toast.error(e instanceof Error ? e.message : "Failed to clean cache");
+      toast.error(e instanceof Error ? e.message : t("failedToCleanCache"));
     } finally {
       setLoading(false);
     }
@@ -54,13 +56,13 @@ export function CacheActions() {
         body: JSON.stringify({ action: "clear-all", confirmKey: CONFIRM_KEY }),
       });
       const data = await res.json().catch(() => ({}));
-      if (!res.ok) throw new Error(data.error ?? "Failed");
-      toast.success(`Cleared ${data.deleted ?? 0} cache entries`);
+      if (!res.ok) throw new Error(data.error ?? t("failed"));
+      toast.success(t("clearedCacheEntries", { count: data.deleted ?? 0 }));
       setClearAllConfirm("");
       setClearAllOpen(false);
       router.refresh();
     } catch (e) {
-      toast.error(e instanceof Error ? e.message : "Failed to clear cache");
+      toast.error(e instanceof Error ? e.message : t("failedToClearCache"));
     } finally {
       setLoading(false);
     }
@@ -69,26 +71,25 @@ export function CacheActions() {
   return (
     <Card>
       <CardHeader>
-        <CardTitle>Actions</CardTitle>
+        <CardTitle>{t("actions")}</CardTitle>
       </CardHeader>
       <CardContent className="flex flex-wrap gap-2">
         <Button variant="secondary" onClick={handleCleanExpired} disabled={loading}>
-          {loading ? "Cleaning..." : "Clean expired entries"}
+          {loading ? t("cleaning") : t("cleanExpiredEntries")}
         </Button>
         <AlertDialog open={clearAllOpen} onOpenChange={(open) => { setClearAllOpen(open); if (!open) setClearAllConfirm(""); }}>
           <Button variant="destructive" disabled={loading} onClick={() => setClearAllOpen(true)}>
-            Clear all cache
+            {t("clearAllCache")}
           </Button>
           <AlertDialogContent>
             <AlertDialogHeader>
-              <AlertDialogTitle>Clear all cache?</AlertDialogTitle>
+              <AlertDialogTitle>{t("clearAllCacheQuestion")}</AlertDialogTitle>
               <AlertDialogDescription>
-                This will delete every cache entry. Generation and content-pack caches will be rebuilt on next use. Type{" "}
-                <strong>{CONFIRM_KEY}</strong> below to confirm.
+                {t("clearAllCacheDescription")} <strong>{CONFIRM_KEY}</strong> {t("clearAllCacheTypeToConfirm")}
               </AlertDialogDescription>
             </AlertDialogHeader>
             <div className="py-2">
-              <Label htmlFor="confirm-cache">Confirmation</Label>
+              <Label htmlFor="confirm-cache">{t("confirmation")}</Label>
               <Input
                 id="confirm-cache"
                 value={clearAllConfirm}
@@ -98,13 +99,13 @@ export function CacheActions() {
               />
             </div>
             <AlertDialogFooter>
-              <AlertDialogCancel disabled={loading}>Cancel</AlertDialogCancel>
+              <AlertDialogCancel disabled={loading}>{t("cancel")}</AlertDialogCancel>
               <Button
                 variant="destructive"
                 disabled={clearAllConfirm !== CONFIRM_KEY || loading}
                 onClick={handleClearAll}
               >
-                {loading ? "Clearing..." : "Clear all"}
+                {loading ? t("clearing") : t("clearAll")}
               </Button>
             </AlertDialogFooter>
           </AlertDialogContent>

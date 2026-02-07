@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { useTranslations } from "next-intl";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -35,6 +36,8 @@ type ProjectsListClientProps = {
  * Client list of project cards with selection, delete, bulk actions, and export
  */
 export function ProjectsListClient({ projects }: ProjectsListClientProps) {
+  const t = useTranslations("projectsList");
+  const tCommon = useTranslations("common");
   const router = useRouter();
   const [selectedProjectIds, setSelectedProjectIds] = useState<string[]>([]);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
@@ -44,9 +47,7 @@ export function ProjectsListClient({ projects }: ProjectsListClientProps) {
     if (e.ctrlKey || e.metaKey) {
       e.preventDefault();
       setSelectedProjectIds((prev) =>
-        prev.includes(projectId)
-          ? prev.filter((id) => id !== projectId)
-          : [...prev, projectId]
+        prev.includes(projectId) ? prev.filter((id) => id !== projectId) : [...prev, projectId]
       );
     }
   };
@@ -95,7 +96,7 @@ export function ProjectsListClient({ projects }: ProjectsListClientProps) {
         {selectedProjectIds.length > 0 && (
           <Button variant="outline" onClick={handleExportSelected}>
             <Download className="mr-2 h-4 w-4" />
-            Export Selected
+            {t("exportSelected")}
           </Button>
         )}
       </div>
@@ -121,7 +122,7 @@ export function ProjectsListClient({ projects }: ProjectsListClientProps) {
                     </Badge>
                   ))}
                 </div>
-                <p className="mt-4 text-sm text-muted-foreground line-clamp-3">
+                <p className="mt-4 line-clamp-3 text-sm text-muted-foreground">
                   {project.sourceContent.substring(0, 100)}...
                 </p>
                 <div className="mt-4 text-xs text-muted-foreground">
@@ -135,25 +136,25 @@ export function ProjectsListClient({ projects }: ProjectsListClientProps) {
               >
                 <DropdownMenu>
                   <DropdownMenuTrigger asChild>
-                    <Button variant="ghost" size="sm">
+                    <Button variant="ghost" size="sm" aria-label={t("actions")}>
                       <MoreHorizontal className="h-4 w-4" />
                     </Button>
                   </DropdownMenuTrigger>
                   <DropdownMenuContent align="end">
                     <DropdownMenuItem asChild>
-                      <Link href={`/projects/${project.id}/edit`}>Edit</Link>
+                      <Link href={`/projects/${project.id}/edit`}>{t("edit")}</Link>
                     </DropdownMenuItem>
                     <DropdownMenuItem asChild>
-                      <Link href={`/projects/${project.id}`}>View</Link>
+                      <Link href={`/projects/${project.id}`}>{t("view")}</Link>
                     </DropdownMenuItem>
                     <DropdownMenuItem asChild>
-                      <Link href={`/projects/${project.id}/generate`}>Generate</Link>
+                      <Link href={`/projects/${project.id}/generate`}>{t("generate")}</Link>
                     </DropdownMenuItem>
                     <DropdownMenuItem
                       onClick={() => handleDeleteClick(project.id, project.title)}
                       className="text-destructive focus:text-destructive"
                     >
-                      Delete
+                      {tCommon("delete")}
                     </DropdownMenuItem>
                   </DropdownMenuContent>
                 </DropdownMenu>
@@ -161,13 +162,11 @@ export function ProjectsListClient({ projects }: ProjectsListClientProps) {
             </Card>
           ))
         ) : (
-          <div className="col-span-full text-center py-12">
-            <h3 className="text-lg font-medium mb-2">No projects found</h3>
-            <p className="text-muted-foreground mb-4">
-              Get started by creating your first content repurposing project
-            </p>
+          <div className="col-span-full py-12 text-center">
+            <h3 className="mb-2 text-lg font-medium">{t("emptyTitle")}</h3>
+            <p className="mb-4 text-muted-foreground">{t("emptyDescription")}</p>
             <Button asChild>
-              <Link href="/projects/new">Create Project</Link>
+              <Link href="/projects/new">{t("createProject")}</Link>
             </Button>
           </div>
         )}

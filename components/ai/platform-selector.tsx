@@ -1,6 +1,7 @@
 "use client";
 
 import React from "react";
+import { useTranslations } from "next-intl";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
@@ -17,10 +18,13 @@ const PlatformSelector: React.FC<PlatformSelectorProps> = ({
   onPlatformToggle,
   disabled = false,
 }) => {
+  const tGen = useTranslations("generatePage");
+  const tPlatforms = useTranslations("platforms");
+
   return (
     <Card className="w-full">
       <CardHeader>
-        <CardTitle>Select Platforms</CardTitle>
+        <CardTitle>{tGen("selectPlatformsTitle")}</CardTitle>
       </CardHeader>
       <CardContent className="space-y-4">
         {Object.entries(PLATFORMS).map(([key, platform]) => (
@@ -37,10 +41,10 @@ const PlatformSelector: React.FC<PlatformSelectorProps> = ({
                 className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70 flex items-center"
               >
                 <span className="mr-2">{platform.icon}</span>
-                {platform.name}
+                {tPlatforms(`${key}.name`)}
               </Label>
               <p className="text-xs text-muted-foreground">
-                {platform.description} • Max: {platform.maxLength} chars
+                {tPlatforms(`${key}.description`)} • {tGen("maxChars", { count: platform.maxLength })}
               </p>
             </div>
           </div>

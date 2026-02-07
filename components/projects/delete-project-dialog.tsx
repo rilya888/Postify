@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { useTranslations } from "next-intl";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import {
@@ -33,8 +34,9 @@ export function DeleteProjectDialog({
   onClose,
   onSuccess,
 }: DeleteProjectDialogProps) {
+  const t = useTranslations("projectsDeleteDialog");
+  const tCommon = useTranslations("common");
   const router = useRouter();
-  // Using imported toast function directly
   const [isDeleting, setIsDeleting] = useState(false);
 
   async function handleDelete() {
@@ -47,12 +49,12 @@ export function DeleteProjectDialog({
 
       if (!response.ok) {
         const error = await response.json();
-        throw new Error(error.error || "Failed to delete project");
+        throw new Error(error.error || t("deleteFailed"));
       }
 
       NotificationService.success(
-        "Project deleted",
-        `Project "${projectName}" has been deleted successfully`
+        t("deletedTitle"),
+        t("deletedDescription", { name: projectName })
       );
 
       if (onSuccess) {
@@ -62,7 +64,7 @@ export function DeleteProjectDialog({
         router.refresh();
       }
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : "An unexpected error occurred");
+      toast.error(error instanceof Error ? error.message : t("unexpectedError"));
     } finally {
       setIsDeleting(false);
       onClose();
@@ -73,22 +75,18 @@ export function DeleteProjectDialog({
     <Dialog open={isOpen} onOpenChange={onClose}>
       <DialogContent>
         <DialogHeader>
-          <DialogTitle>Delete Project</DialogTitle>
+          <DialogTitle>{t("title")}</DialogTitle>
           <DialogDescription>
-            Are you sure you want to delete <strong>&quot;{projectName}&quot;</strong>? This action cannot be undone.
+            {t("description", { name: projectName })}
           </DialogDescription>
         </DialogHeader>
         <DialogFooter>
           <Button variant="outline" onClick={onClose} disabled={isDeleting}>
-            Cancel
+            {tCommon("cancel")}
           </Button>
-          <Button 
-            variant="destructive" 
-            onClick={handleDelete} 
-            disabled={isDeleting}
-          >
+          <Button variant="destructive" onClick={handleDelete} disabled={isDeleting}>
             {isDeleting && <Trash className="mr-2 h-4 w-4 animate-spin" />}
-            Delete
+            {tCommon("delete")}
           </Button>
         </DialogFooter>
       </DialogContent>

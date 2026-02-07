@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import { useTranslations } from "next-intl";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { updateProfileSchema, type UpdateProfileInput } from "@/lib/validations/auth";
@@ -25,6 +26,8 @@ type Profile = {
 };
 
 export function ProfileForm() {
+  const t = useTranslations("settingsProfile");
+  const tCommon = useTranslations("common");
   const [profile, setProfile] = useState<Profile | null>(null);
   const [loadingProfile, setLoadingProfile] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -40,7 +43,7 @@ export function ProfileForm() {
     let cancelled = false;
     fetch("/api/me")
       .then((res) => {
-        if (!res.ok) throw new Error("Failed to load profile");
+        if (!res.ok) throw new Error("PROFILE_LOAD_FAILED");
         return res.json();
       })
       .then((data) => {
@@ -50,7 +53,7 @@ export function ProfileForm() {
         }
       })
       .catch(() => {
-        if (!cancelled) toast.error("Failed to load profile");
+        if (!cancelled) toast.error(t("loadFailed"));
       })
       .finally(() => {
         if (!cancelled) setLoadingProfile(false);
@@ -58,7 +61,7 @@ export function ProfileForm() {
     return () => {
       cancelled = true;
     };
-  }, [form]);
+  }, [form, t]);
 
   async function onSubmit(data: UpdateProfileInput) {
     if (!data.name?.trim()) return;
@@ -71,22 +74,20 @@ export function ProfileForm() {
       });
       const json = await res.json();
       if (!res.ok) {
-        toast.error(json.error ?? "Failed to update profile");
+        toast.error(json.error ?? t("updateFailed"));
         return;
       }
       setProfile(json);
-      toast.success("Profile updated");
+      toast.success(t("updated"));
     } catch {
-      toast.error("Failed to update profile");
+      toast.error(t("updateFailed"));
     } finally {
       setIsSubmitting(false);
     }
   }
 
   if (loadingProfile) {
-    return (
-      <div className="h-20 animate-pulse rounded-md bg-muted" aria-hidden />
-    );
+    return <div className="h-20 animate-pulse rounded-md bg-muted" aria-hidden />;
   }
 
   return (
@@ -97,34 +98,27 @@ export function ProfileForm() {
           name="name"
           render={({ field }) => (
             <FormItem>
-              <FormLabel>Name</FormLabel>
+              <FormLabel>{t("nameLabel")}</FormLabel>
               <FormControl>
-                <Input placeholder="Your name" {...field} />
+                <Input placeholder={t("namePlaceholder")} {...field} />
               </FormControl>
               <FormMessage />
             </FormItem>
           )}
         />
         <div>
-          <FormLabel>Email</FormLabel>
-          <Input
-            value={profile?.email ?? ""}
-            disabled
-            className="bg-muted"
-            aria-readonly
-          />
-          <p className="mt-1 text-xs text-muted-foreground">
-            Email cannot be changed here.
-          </p>
+          <FormLabel>{t("emailLabel")}</FormLabel>
+          <Input value={profile?.email ?? ""} disabled className="bg-muted" aria-readonly />
+          <p className="mt-1 text-xs text-muted-foreground">{t("emailReadonly")}</p>
         </div>
         <Button type="submit" disabled={isSubmitting}>
           {isSubmitting ? (
             <>
               <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-              Saving…
+              {t("saving")}
             </>
           ) : (
-            "Save"
+            tCommon("save")
           )}
         </Button>
       </form>
