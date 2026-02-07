@@ -16,6 +16,10 @@ const securityHeaders = [
 const nextConfig = {
   reactStrictMode: true,
 
+  experimental: {
+    serverComponentsExternalPackages: ["pdf-parse", "pdfjs-dist"],
+  },
+
   images: {
     domains: [],
     formats: ['image/avif', 'image/webp'],
