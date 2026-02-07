@@ -2,66 +2,16 @@ import { NextResponse } from "next/server";
 import { auth } from "@/lib/auth/config";
 import createIntlMiddleware from "next-intl/middleware";
 import { locales } from "@/i18n/routing";
-
-// Simple in-memory rate limiter (for demo purposes)
-// In production, use a distributed store like Redis
-const rateLimitMap = new Map();
-
-// Rate limit configuration
-const MAX_REQUESTS = 100; // Max requests per window
-const TIME_WINDOW = 15 * 60 * 1000; // 15 minutes in milliseconds
 const intlMiddleware = createIntlMiddleware({
   locales: [...locales],
   defaultLocale: "en",
   localePrefix: "never",
 });
 
-function isRateLimited(identifier: string): boolean {
-  const now = Date.now();
-  const record = rateLimitMap.get(identifier);
-
-  if (!record) {
-    // First request from this IP
-    rateLimitMap.set(identifier, {
-      count: 1,
-      resetTime: now + TIME_WINDOW,
-    });
-    return false;
-  }
-
-  if (now > record.resetTime) {
-    // Reset the counter after the time window
-    rateLimitMap.set(identifier, {
-      count: 1,
-      resetTime: now + TIME_WINDOW,
-    });
-    return false;
-  }
-
-  if (record.count >= MAX_REQUESTS) {
-    // Rate limit exceeded
-    return true;
-  }
-
-  // Increment the counter
-  rateLimitMap.set(identifier, {
-    count: record.count + 1,
-    resetTime: record.resetTime,
-  });
-
-  return false;
-}
-
 export default auth((req) => {
   const { pathname } = req.nextUrl;
   const normalizedPathname = pathname;
   const isLoggedIn = !!req.auth;
-
-  // Apply rate limiting to all requests
-  const ip = req.ip ?? "127.0.0.1";
-  if (isRateLimited(ip)) {
-    return new Response("Rate limit exceeded", { status: 429 });
-  }
 
   // Protect dashboard and admin routes (role check is in admin layout)
   if (
