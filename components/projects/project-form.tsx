@@ -69,6 +69,16 @@ type CreateAndGenerateResponse = {
   failed?: unknown[];
 };
 
+function getApiErrorMessage(result: Record<string, unknown>, fallback: string): string {
+  if (typeof result.message === "string" && result.message.trim().length > 0) {
+    return result.message;
+  }
+  if (typeof result.error === "string" && result.error.trim().length > 0) {
+    return result.error;
+  }
+  return fallback;
+}
+
 /**
  * Project form component for creating and editing projects
  */
@@ -223,7 +233,7 @@ export function ProjectForm({
           setIsSubmitting(false);
           return;
         }
-        throw new Error(result.message ?? result.error ?? "Failed to save project");
+        throw new Error(getApiErrorMessage(result, "Failed to save project"));
       }
 
       setSaveProgress(100);
