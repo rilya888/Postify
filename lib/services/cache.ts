@@ -32,6 +32,7 @@ export function buildGenerationCacheKey(params: {
   brandVoiceId: string | null;
   brandVoiceUpdatedAt: string | null;
   postTone?: string | null;
+  targetLanguage?: string | null;
   seriesIndex?: number;
   seriesTotal?: number;
 }): string {
@@ -46,6 +47,7 @@ export function buildGenerationCacheKey(params: {
     params.brandVoiceId ?? "",
     params.brandVoiceUpdatedAt ?? "",
     params.postTone ?? "neutral",
+    params.targetLanguage ?? "auto",
     String(params.seriesIndex ?? 1),
     String(params.seriesTotal ?? 1),
   ].join("|");

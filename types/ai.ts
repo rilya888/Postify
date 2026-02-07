@@ -32,6 +32,10 @@ export type GenerationMetadata = {
   tokensUsed?: number | null;
   costEstimate?: number | null;
   seed?: number | null;
+  targetLanguage?: string;
+  detectedOutputLanguage?: string;
+  languageDetectionConfidence?: number;
+  languageMismatchRetried?: boolean;
 };
 
 /**

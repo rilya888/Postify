@@ -30,6 +30,12 @@ import {
 import { getModelConfig, LONG_TEXT_THRESHOLD_CHARS, GENERATION_CONCURRENCY } from "@/lib/constants/ai-models";
 import { getTonePromptInstruction } from "@/lib/constants/post-tones";
 import type { Plan } from "@/lib/constants/plans";
+import {
+  buildLanguageInstruction,
+  detectLanguage,
+  resolveTargetLanguage,
+  type LanguageCode,
+} from "@/lib/utils/language";
 
 /**
  * Run async tasks with limited concurrency.
@@ -69,6 +75,56 @@ BRAND VOICE:
 
 Follow these brand voice characteristics while adapting for the platform.
 `;
+}
+
+async function generateWithLanguageEnforcement(params: {
+  userMessage: string;
+  systemPrompt: string;
+  options: GenerationOptions & { model: string; temperature: number; maxTokens: number };
+  cacheKey: string;
+  retryCacheKey: string;
+  targetLanguage: LanguageCode;
+}) {
+  const first = await generateContentWithGracefulDegradation(
+    params.userMessage,
+    params.systemPrompt,
+    params.options,
+    3,
+    params.cacheKey,
+    CACHE_TTL.OUTPUTS_SECONDS
+  );
+  const firstDetected = detectLanguage(first.content);
+  const mismatch =
+    firstDetected.code !== "unknown" &&
+    firstDetected.code !== params.targetLanguage &&
+    firstDetected.confidence >= 0.55;
+
+  if (!mismatch) {
+    return {
+      result: first,
+      detectedOutputLanguage: firstDetected.code,
+      languageMismatchRetried: false,
+    };
+  }
+
+  const strictMessage =
+    buildLanguageInstruction(params.targetLanguage, true) +
+    "\n\nYour previous draft used the wrong language. Rewrite the full output in the required language.\n\n" +
+    params.userMessage;
+  const retried = await generateContentWithGracefulDegradation(
+    strictMessage,
+    params.systemPrompt,
+    params.options,
+    3,
+    params.retryCacheKey,
+    CACHE_TTL.OUTPUTS_SECONDS
+  );
+  const retriedDetected = detectLanguage(retried.content);
+  return {
+    result: retried,
+    detectedOutputLanguage: retriedDetected.code,
+    languageMismatchRetried: true,
+  };
 }
 
 /**
@@ -112,6 +168,9 @@ export async function generateForPlatforms(
     if (!project) {
       throw new Error("Project not found or access denied");
     }
+    const languageDetection = resolveTargetLanguage(sourceContent);
+    const targetLanguage = languageDetection.code;
+    const languageInstruction = buildLanguageInstruction(targetLanguage);
     const slots: GenerationSlot[] =
       slotsOverride ??
       platforms.flatMap((p) =>
@@ -139,12 +198,26 @@ export async function generateForPlatforms(
 
     const results: GenerationResult[] = [];
     const brandVoiceStr = serializeBrandVoiceForPrompt(brandVoice);
-    const optionsHash = generateCacheKey(JSON.stringify(options ?? {}));
+    Logger.info("Resolved target language for generation", {
+      requestId,
+      userId,
+      projectId,
+      targetLanguage,
+      confidence: languageDetection.confidence,
+      isMixed: languageDetection.isMixed,
+    });
+    const optionsHash = generateCacheKey(
+      JSON.stringify({
+        ...(options ?? {}),
+        targetLanguage,
+      })
+    );
 
     const forcePack = sourceContent.length >= LONG_TEXT_THRESHOLD_CHARS;
     let pack: ContentPackData | null = null;
     try {
       pack = await getOrCreateContentPack(projectId, userId, sourceContent, {
+        language: targetLanguage,
         brandVoiceId: brandVoice?.id ?? undefined,
         brandVoiceUpdatedAt: brandVoice?.updatedAt ? brandVoice.updatedAt.toISOString() : undefined,
         plan,
@@ -201,6 +274,7 @@ export async function generateForPlatforms(
       let userMessage = usePack
         ? formatPrompt(userTemplate, { contentPack: formattedPack, brandVoice: brandVoiceStr })
         : formatPrompt(userTemplate, { sourceContent, brandVoice: brandVoiceStr });
+      userMessage = languageInstruction + "\n\n" + userMessage;
       const toneInstruction = getTonePromptInstruction(postTone ?? null);
       if (toneInstruction) {
         userMessage = `---\nTONE INSTRUCTION:\n${toneInstruction}\n---\n\n` + userMessage;
@@ -228,26 +302,28 @@ export async function generateForPlatforms(
         brandVoiceId: brandVoice?.id ?? null,
         brandVoiceUpdatedAt: brandVoice?.updatedAt ? brandVoice.updatedAt.toISOString() : null,
         postTone: postTone ?? null,
+        targetLanguage,
         seriesIndex,
         seriesTotal: seriesTotalForPlatform,
       });
+      const retryCacheKey = `${cacheKey}_langretry_${generateCacheKey(userMessage)}`;
 
       const temperature = options?.temperature ?? genConfig.temperatureByPlatform[platform];
       const maxTokens = options?.maxTokens ?? genConfig.maxTokensByPlatform[platform];
 
       try {
         const startMs = Date.now();
-        const generationResult = await generateContentWithGracefulDegradation(
+        const generationResult = await generateWithLanguageEnforcement({
           userMessage,
           systemPrompt,
-          { ...options, model, temperature, maxTokens },
-          3,
+          options: { ...options, model, temperature, maxTokens },
           cacheKey,
-          CACHE_TTL.OUTPUTS_SECONDS
-        );
+          retryCacheKey,
+          targetLanguage,
+        });
         const latencyMs = Date.now() - startMs;
 
-        const sanitizedContent = sanitizeContent(generationResult.content);
+        const sanitizedContent = sanitizeContent(generationResult.result.content);
         const validation = validatePlatformContent(sanitizedContent, platform);
 
         const metadata = {
@@ -257,13 +333,17 @@ export async function generateForPlatforms(
           timestamp: new Date().toISOString(),
           success: true,
           validationMessages: validation.messages,
-          source: generationResult.source,
+          source: generationResult.result.source,
           brandVoiceId: brandVoice?.id,
           postTone: postTone ?? undefined,
           latencyMs,
           tokensUsed: null as number | null,
           costEstimate: null as number | null,
           seed: null as number | null,
+          targetLanguage,
+          detectedOutputLanguage: generationResult.detectedOutputLanguage,
+          languageDetectionConfidence: languageDetection.confidence,
+          languageMismatchRetried: generationResult.languageMismatchRetried,
         };
 
         const output = await prisma.output.upsert({
@@ -288,7 +368,7 @@ export async function generateForPlatforms(
           platform,
           seriesIndex,
           outputId: output.id,
-          content: generationResult.content,
+          content: generationResult.result.content,
           success: true,
           metadata: {
             model,
@@ -296,8 +376,12 @@ export async function generateForPlatforms(
             maxTokens,
             timestamp: new Date(),
             success: true,
-            source: generationResult.source,
+            source: generationResult.result.source,
             brandVoiceId: brandVoice?.id,
+            targetLanguage,
+            detectedOutputLanguage: generationResult.detectedOutputLanguage,
+            languageDetectionConfidence: languageDetection.confidence,
+            languageMismatchRetried: generationResult.languageMismatchRetried,
           },
         };
         results.push(result);
@@ -387,6 +471,7 @@ export async function generateForPlatforms(
       failed: failed.length,
       totalSlots: slots.length,
       brandVoiceId: brandVoice?.id,
+      targetLanguage,
     });
 
     return {
@@ -438,6 +523,9 @@ export async function regenerateForPlatform(
     if (!project) {
       throw new Error("Project not found or access denied");
     }
+    const languageDetection = resolveTargetLanguage(sourceContent);
+    const targetLanguage = languageDetection.code;
+    const languageInstruction = buildLanguageInstruction(targetLanguage);
     const proj = project as {
       postsPerPlatformByPlatform?: Record<string, number> | null;
       postsPerPlatform?: number | null;
@@ -490,6 +578,7 @@ export async function regenerateForPlatform(
         sourceContent,
         brandVoice: serializeBrandVoiceForPrompt(brandVoice),
       });
+      userMessage = languageInstruction + "\n\n" + userMessage;
       const toneInstruction = getTonePromptInstruction(effectivePostTone);
       if (toneInstruction) {
         userMessage = `---\nTONE INSTRUCTION:\n${toneInstruction}\n---\n\n` + userMessage;
@@ -513,23 +602,25 @@ export async function regenerateForPlatform(
         model,
         platform,
         inputHash: generateCacheKey(sourceContent),
-        optionsHash: generateCacheKey(JSON.stringify(options ?? {})),
+        optionsHash: generateCacheKey(JSON.stringify({ ...(options ?? {}), targetLanguage })),
         brandVoiceId: brandVoice?.id ?? null,
         brandVoiceUpdatedAt: brandVoice?.updatedAt ? brandVoice.updatedAt.toISOString() : null,
         postTone: effectivePostTone,
+        targetLanguage,
         seriesIndex,
         seriesTotal,
       });
+      const retryCacheKey = `${cacheKey}_langretry_${generateCacheKey(userMessage)}`;
 
       const startMs = Date.now();
-      const generationResult = await generateContentWithGracefulDegradation(
+      const generationResult = await generateWithLanguageEnforcement({
         userMessage,
         systemPrompt,
-        { ...options, model, temperature, maxTokens },
-        3,
+        options: { ...options, model, temperature, maxTokens },
         cacheKey,
-        CACHE_TTL.OUTPUTS_SECONDS
-      );
+        retryCacheKey,
+        targetLanguage,
+      });
       const latencyMs = Date.now() - startMs;
 
       const metadata = {
@@ -538,13 +629,17 @@ export async function regenerateForPlatform(
         maxTokens,
         timestamp: new Date().toISOString(),
         success: true,
-        source: generationResult.source,
+        source: generationResult.result.source,
         brandVoiceId: brandVoice?.id,
         postTone: effectivePostTone ?? undefined,
         latencyMs,
         tokensUsed: null as number | null,
         costEstimate: null as number | null,
         seed: null as number | null,
+        targetLanguage,
+        detectedOutputLanguage: generationResult.detectedOutputLanguage,
+        languageDetectionConfidence: languageDetection.confidence,
+        languageMismatchRetried: generationResult.languageMismatchRetried,
       };
 
       const output = await prisma.output.upsert({
@@ -552,7 +647,7 @@ export async function regenerateForPlatform(
           projectId_platform_seriesIndex: { projectId, platform, seriesIndex },
         },
         update: {
-          content: generationResult.content,
+          content: generationResult.result.content,
           isEdited: false,
           generationMetadata: metadata as object,
         },
@@ -560,7 +655,7 @@ export async function regenerateForPlatform(
           projectId,
           platform,
           seriesIndex,
-          content: generationResult.content,
+          content: generationResult.result.content,
           generationMetadata: metadata as object,
         },
       });
@@ -569,7 +664,7 @@ export async function regenerateForPlatform(
         platform,
         seriesIndex,
         outputId: output.id,
-        content: generationResult.content,
+        content: generationResult.result.content,
         success: true,
         metadata: {
           model,
@@ -577,9 +672,13 @@ export async function regenerateForPlatform(
           maxTokens,
           timestamp: new Date(),
           success: true,
-          source: generationResult.source,
+          source: generationResult.result.source,
           brandVoiceId: brandVoice?.id,
           latencyMs,
+          targetLanguage,
+          detectedOutputLanguage: generationResult.detectedOutputLanguage,
+          languageDetectionConfidence: languageDetection.confidence,
+          languageMismatchRetried: generationResult.languageMismatchRetried,
         },
       };
 
@@ -589,6 +688,7 @@ export async function regenerateForPlatform(
         platform,
         seriesIndex,
         brandVoiceId: brandVoice?.id,
+        targetLanguage,
       });
 
       return result;
@@ -661,6 +761,9 @@ export async function generateContentVariations(
     if (!project) {
       throw new Error("Project not found or access denied");
     }
+    const languageDetection = resolveTargetLanguage(sourceContent);
+    const targetLanguage = languageDetection.code;
+    const languageInstruction = buildLanguageInstruction(targetLanguage);
 
     let brandVoice: { id: string; updatedAt: Date; tone: string; style: string; personality: string; sentenceStructure: string; vocabulary: string[]; avoidVocabulary: string[]; examples: string[] } | null = null;
     if (brandVoiceId) {
@@ -682,11 +785,14 @@ export async function generateContentVariations(
     const results: GenerationResult[] = [];
     const systemPrompt = getPlatformSystemPrompt(platform);
     const userTemplate = getPlatformUserTemplate(platform);
-    const baseUserMessage = formatPrompt(userTemplate, {
-      sourceContent,
-      brandVoice: serializeBrandVoiceForPrompt(brandVoice),
-    });
-    const optionsHash = generateCacheKey(JSON.stringify(options ?? {}));
+    const baseUserMessage =
+      languageInstruction +
+      "\n\n" +
+      formatPrompt(userTemplate, {
+        sourceContent,
+        brandVoice: serializeBrandVoiceForPrompt(brandVoice),
+      });
+    const optionsHash = generateCacheKey(JSON.stringify({ ...(options ?? {}), targetLanguage }));
 
     for (let i = 0; i < Math.min(variationCount, variationStyles.length); i++) {
       const style = variationStyles[i];
@@ -713,25 +819,27 @@ export async function generateContentVariations(
           optionsHash,
           brandVoiceId: brandVoice?.id ?? null,
           brandVoiceUpdatedAt: brandVoice?.updatedAt ? brandVoice.updatedAt.toISOString() : null,
+          targetLanguage,
         });
+        const retryCacheKey = `${cacheKey}_langretry_${generateCacheKey(userMessage)}`;
 
         const variationTemp = baseTemperature + (i * 0.1);
-        const generationResult = await generateContentWithGracefulDegradation(
+        const generationResult = await generateWithLanguageEnforcement({
           userMessage,
           systemPrompt,
-          {
+          options: {
             ...options,
             model,
             temperature: variationTemp,
             maxTokens,
           },
-          3,
           cacheKey,
-          CACHE_TTL.OUTPUTS_SECONDS
-        );
+          retryCacheKey,
+          targetLanguage,
+        });
 
         // Sanitize content
-        const sanitizedContent = sanitizeContent(generationResult.content);
+        const sanitizedContent = sanitizeContent(generationResult.result.content);
 
         // Validate content for the specific platform
         const validation = validatePlatformContent(sanitizedContent, platform);
@@ -743,10 +851,14 @@ export async function generateContentVariations(
           timestamp: new Date().toISOString(),
           success: true,
           validationMessages: validation.messages,
-          source: generationResult.source,
+          source: generationResult.result.source,
           brandVoiceId: brandVoice?.id,
           variationStyle: style.name,
           variationIndex: i,
+          targetLanguage,
+          detectedOutputLanguage: generationResult.detectedOutputLanguage,
+          languageDetectionConfidence: languageDetection.confidence,
+          languageMismatchRetried: generationResult.languageMismatchRetried,
         };
 
         // Create a unique output record for this variation
@@ -762,7 +874,7 @@ export async function generateContentVariations(
 
         const result: GenerationResult = {
           platform,
-          content: generationResult.content,
+          content: generationResult.result.content,
           success: true,
           metadata: {
             model,
@@ -770,10 +882,14 @@ export async function generateContentVariations(
             maxTokens,
             timestamp: new Date(),
             success: true,
-            source: generationResult.source,
+            source: generationResult.result.source,
             brandVoiceId: brandVoice?.id,
             variationStyle: style.name,
             variationIndex: i,
+            targetLanguage,
+            detectedOutputLanguage: generationResult.detectedOutputLanguage,
+            languageDetectionConfidence: languageDetection.confidence,
+            languageMismatchRetried: generationResult.languageMismatchRetried,
           },
         };
 
