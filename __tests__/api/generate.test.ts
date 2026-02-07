@@ -174,7 +174,8 @@ describe("POST /api/generate", () => {
       expect.stringMatching(/^[0-9a-f-]{36}$/i),
       "trial",
       1,
-      [{ platform: "linkedin", seriesIndex: 1 }]
+      [{ platform: "linkedin", seriesIndex: 1 }],
+      null
     );
     const json = await res.json();
     expect(json.successful).toHaveLength(1);
@@ -189,6 +190,7 @@ describe("POST /api/generate", () => {
       sourceContent: "Hello world",
       postsPerPlatform: 2,
       postsPerPlatformByPlatform: null,
+      postTone: null,
       outputs: [],
     });
     mockSubscriptionFindUnique.mockResolvedValueOnce({ plan: "enterprise" });
@@ -214,7 +216,8 @@ describe("POST /api/generate", () => {
       [
         { platform: "linkedin", seriesIndex: 1 },
         { platform: "linkedin", seriesIndex: 2 },
-      ]
+      ],
+      null
     );
     const json = await res.json();
     expect(json.successful).toBeDefined();
@@ -227,6 +230,7 @@ describe("POST /api/generate", () => {
       sourceContent: "Hello world",
       postsPerPlatform: null,
       postsPerPlatformByPlatform: { linkedin: 2, tiktok: 3 },
+      postTone: null,
       outputs: [],
     });
     mockSubscriptionFindUnique.mockResolvedValueOnce({ plan: "enterprise" });
@@ -255,7 +259,79 @@ describe("POST /api/generate", () => {
         { platform: "linkedin", seriesIndex: 2 },
         { platform: "tiktok", seriesIndex: 2 },
         { platform: "tiktok", seriesIndex: 3 },
-      ]
+      ],
+      null
+    );
+  });
+
+  it("passes project postTone to generateForPlatforms when enterprise", async () => {
+    mockProjectFindUnique.mockResolvedValueOnce({
+      id: "proj-1",
+      userId: "user-1",
+      sourceContent: "Hello world",
+      postsPerPlatform: null,
+      postsPerPlatformByPlatform: null,
+      postTone: "sassy",
+      outputs: [],
+    });
+    mockSubscriptionFindUnique.mockResolvedValueOnce({ plan: "enterprise" });
+
+    const req = createRequest({
+      projectId: "proj-1",
+      platforms: ["linkedin"],
+      sourceContent: "Hello world",
+    });
+    const res = await POST(req);
+
+    expect(res.status).toBe(200);
+    expect(mockGenerateForPlatforms).toHaveBeenCalledWith(
+      "proj-1",
+      "user-1",
+      "Hello world",
+      ["linkedin"],
+      undefined,
+      undefined,
+      expect.stringMatching(/^[0-9a-f-]{36}$/i),
+      "enterprise",
+      1,
+      [{ platform: "linkedin", seriesIndex: 1 }],
+      "sassy"
+    );
+  });
+
+  it("passes postToneOverride to generateForPlatforms when enterprise bulk generate", async () => {
+    mockProjectFindUnique.mockResolvedValueOnce({
+      id: "proj-1",
+      userId: "user-1",
+      sourceContent: "Hello world",
+      postsPerPlatform: null,
+      postsPerPlatformByPlatform: null,
+      postTone: "professional",
+      outputs: [],
+    });
+    mockSubscriptionFindUnique.mockResolvedValueOnce({ plan: "enterprise" });
+
+    const req = createRequest({
+      projectId: "proj-1",
+      platforms: ["linkedin"],
+      sourceContent: "Hello world",
+      postToneOverride: "witty",
+    });
+    const res = await POST(req);
+
+    expect(res.status).toBe(200);
+    expect(mockGenerateForPlatforms).toHaveBeenCalledWith(
+      "proj-1",
+      "user-1",
+      "Hello world",
+      ["linkedin"],
+      undefined,
+      undefined,
+      expect.stringMatching(/^[0-9a-f-]{36}$/i),
+      "enterprise",
+      1,
+      [{ platform: "linkedin", seriesIndex: 1 }],
+      "witty"
     );
   });
 
@@ -291,6 +367,7 @@ describe("POST /api/generate", () => {
       sourceContent: "Hello world",
       postsPerPlatform: null,
       postsPerPlatformByPlatform: { linkedin: 3 },
+      postTone: null,
       outputs: [],
     });
     mockSubscriptionFindUnique.mockResolvedValueOnce({ plan: "enterprise" });
@@ -318,7 +395,8 @@ describe("POST /api/generate", () => {
         { platform: "linkedin", seriesIndex: 1 },
         { platform: "linkedin", seriesIndex: 2 },
         { platform: "linkedin", seriesIndex: 3 },
-      ]
+      ],
+      null
     );
   });
 
@@ -351,7 +429,8 @@ describe("POST /api/generate", () => {
         undefined,
         undefined,
         "trial",
-        1
+        1,
+        null
       );
       expect(mockGenerateForPlatforms).not.toHaveBeenCalled();
       const json = await res.json();
@@ -399,6 +478,77 @@ describe("POST /api/generate", () => {
       const json = await res.json();
       expect(json.error).toContain("source content");
       expect(mockRegenerateForPlatform).not.toHaveBeenCalled();
+    });
+
+    it("passes postToneOverride to regenerateForPlatform when enterprise and valid tone", async () => {
+      mockOutputFindUnique.mockResolvedValueOnce({
+        id: "out-1",
+        projectId: "proj-1",
+        platform: "linkedin",
+        seriesIndex: 1,
+        project: {
+          userId: "user-1",
+          sourceContent: "Source for regenerate",
+          postTone: "professional",
+        },
+      });
+      mockSubscriptionFindUnique.mockResolvedValueOnce({ plan: "enterprise" });
+
+      const req = createRequest({
+        projectId: "proj-1",
+        outputId: "out-1",
+        sourceContent: "Source for regenerate",
+        postToneOverride: "sassy",
+      });
+      const res = await POST(req);
+
+      expect(res.status).toBe(200);
+      expect(mockRegenerateForPlatform).toHaveBeenCalledWith(
+        "proj-1",
+        "user-1",
+        "Source for regenerate",
+        "linkedin",
+        undefined,
+        undefined,
+        "enterprise",
+        1,
+        "sassy"
+      );
+    });
+
+    it("passes project postTone when no override and enterprise", async () => {
+      mockOutputFindUnique.mockResolvedValueOnce({
+        id: "out-1",
+        projectId: "proj-1",
+        platform: "linkedin",
+        seriesIndex: 1,
+        project: {
+          userId: "user-1",
+          sourceContent: "Source for regenerate",
+          postTone: "professional",
+        },
+      });
+      mockSubscriptionFindUnique.mockResolvedValueOnce({ plan: "enterprise" });
+
+      const req = createRequest({
+        projectId: "proj-1",
+        outputId: "out-1",
+        sourceContent: "Source for regenerate",
+      });
+      const res = await POST(req);
+
+      expect(res.status).toBe(200);
+      expect(mockRegenerateForPlatform).toHaveBeenCalledWith(
+        "proj-1",
+        "user-1",
+        "Source for regenerate",
+        "linkedin",
+        undefined,
+        undefined,
+        "enterprise",
+        1,
+        "professional"
+      );
     });
   });
 });

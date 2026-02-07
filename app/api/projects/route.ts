@@ -7,6 +7,7 @@ import { logProjectChange } from "@/lib/services/project-history";
 import { checkProjectsRateLimit } from "@/lib/utils/rate-limit";
 import { Logger } from "@/lib/utils/logger";
 import { getEffectivePlan } from "@/lib/constants/plans";
+import { validatePostToneForPlan } from "@/lib/validations/project";
 import { z } from "zod";
 
 /**
@@ -223,6 +224,8 @@ export async function POST(request: Request) {
       );
     }
 
+    const finalPostTone = validatePostToneForPlan(validatedData.postTone ?? null, plan);
+
     const project = await prisma.project.create({
       data: {
         userId: session.user.id,
@@ -231,6 +234,7 @@ export async function POST(request: Request) {
         platforms: validatedData.platforms,
         postsPerPlatform: legacyPostsPerPlatform === 1 ? null : legacyPostsPerPlatform,
         postsPerPlatformByPlatform: hasFilteredByPlatform ? filteredByPlatform : undefined,
+        postTone: finalPostTone,
       },
     });
 

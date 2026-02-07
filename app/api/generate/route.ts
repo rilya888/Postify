@@ -9,6 +9,7 @@ import { detectPII } from "@/lib/utils/pii-check";
 import { PLAN_LIMITS, getEffectivePlan } from "@/lib/constants/plans";
 import type { Plan } from "@/lib/constants/plans";
 import { getAllPlatformIds, type Platform } from "@/lib/constants/platforms";
+import { isValidToneId } from "@/lib/constants/post-tones";
 
 type ProjectWithPostsConfig = {
   postsPerPlatform?: number | null;
@@ -90,6 +91,7 @@ export async function POST(request: NextRequest) {
       outputId,
       regenerateSeriesForPlatform,
       regenerateFromIndex,
+      postToneOverride,
     } = await request.json();
 
     const [user, subscription] = await Promise.all([
@@ -116,6 +118,10 @@ export async function POST(request: NextRequest) {
           { status: 400, headers: { "Content-Type": "application/json" } }
         );
       }
+      const effectivePostTone =
+        postToneOverride != null && plan === "enterprise" && isValidToneId(postToneOverride)
+          ? postToneOverride
+          : (output.project as { postTone?: string | null }).postTone ?? null;
       const singleResult = await regenerateForPlatform(
         output.projectId,
         userId,
@@ -124,7 +130,8 @@ export async function POST(request: NextRequest) {
         options,
         brandVoiceId,
         plan,
-        output.seriesIndex
+        output.seriesIndex,
+        effectivePostTone
       );
       const result = {
         successful: singleResult.success ? [singleResult] : [],
@@ -221,6 +228,11 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    const effectivePostTone =
+      postToneOverride != null && plan === "enterprise" && isValidToneId(postToneOverride)
+        ? postToneOverride
+        : (project as { postTone?: string | null }).postTone ?? null;
+
     const maxOutputs = PLAN_LIMITS[plan]?.maxOutputsPerProject ?? 10;
     const outputsNotInSelected = (project.outputs ?? []).filter(
       (o) => !targetPlatforms.includes(o.platform)
@@ -246,7 +258,8 @@ export async function POST(request: NextRequest) {
       requestId,
       plan,
       1,
-      slotsOverride
+      slotsOverride,
+      effectivePostTone
     );
 
     const pii = detectPII(sourceContent);

@@ -44,6 +44,7 @@ export default async function EditProjectPage({
     sourceContent: project.sourceContent,
     platforms: project.platforms as ("linkedin" | "twitter" | "email" | "instagram" | "facebook" | "tiktok" | "youtube")[],
     postsPerPlatform: (project.postsPerPlatform ?? 1) as 1 | 2 | 3,
+    postTone: project.postTone ?? null,
     postsPerPlatformByPlatform: hasByPlatform
       ? (Object.fromEntries(
           platformsList.filter((p) => p in byPlatform!).map((p) => [p, Math.min(3, Math.max(1, byPlatform![p])) as 1 | 2 | 3])

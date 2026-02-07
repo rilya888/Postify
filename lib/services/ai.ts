@@ -28,6 +28,7 @@ import {
   CACHE_TTL,
 } from "@/lib/services/cache";
 import { getModelConfig, LONG_TEXT_THRESHOLD_CHARS, GENERATION_CONCURRENCY } from "@/lib/constants/ai-models";
+import { getTonePromptInstruction } from "@/lib/constants/post-tones";
 import type { Plan } from "@/lib/constants/plans";
 
 /**
@@ -86,7 +87,8 @@ export async function generateForPlatforms(
   requestId?: string,
   plan: Plan = "free",
   postsPerPlatform: number = 1,
-  slotsOverride?: GenerationSlot[]
+  slotsOverride?: GenerationSlot[],
+  postTone?: string | null
 ): Promise<BulkGenerationResult> {
   const operationId = `generateForPlatforms_${projectId}_${requestId ?? "no-req"}`;
   const genConfig = getModelConfig(plan).generate;
@@ -199,6 +201,10 @@ export async function generateForPlatforms(
       let userMessage = usePack
         ? formatPrompt(userTemplate, { contentPack: formattedPack, brandVoice: brandVoiceStr })
         : formatPrompt(userTemplate, { sourceContent, brandVoice: brandVoiceStr });
+      const toneInstruction = getTonePromptInstruction(postTone ?? null);
+      if (toneInstruction) {
+        userMessage = `---\nTONE INSTRUCTION:\n${toneInstruction}\n---\n\n` + userMessage;
+      }
       if (seriesTotalForPlatform > 1) {
         const seriesContext = getSeriesContext(seriesIndex, seriesTotalForPlatform);
         userMessage = seriesContext + "\n\n" + userMessage;
@@ -221,6 +227,7 @@ export async function generateForPlatforms(
         optionsHash,
         brandVoiceId: brandVoice?.id ?? null,
         brandVoiceUpdatedAt: brandVoice?.updatedAt ? brandVoice.updatedAt.toISOString() : null,
+        postTone: postTone ?? null,
         seriesIndex,
         seriesTotal: seriesTotalForPlatform,
       });
@@ -252,6 +259,7 @@ export async function generateForPlatforms(
           validationMessages: validation.messages,
           source: generationResult.source,
           brandVoiceId: brandVoice?.id,
+          postTone: postTone ?? undefined,
           latencyMs,
           tokensUsed: null as number | null,
           costEstimate: null as number | null,
@@ -403,7 +411,8 @@ export async function regenerateForPlatform(
   options?: GenerationOptions,
   brandVoiceId?: string,
   plan: Plan = "free",
-  seriesIndex: number = 1
+  seriesIndex: number = 1,
+  postToneOverride?: string | null
 ): Promise<GenerationResult> {
   const genConfig = getModelConfig(plan).generate;
   const model = options?.model ?? genConfig.defaultModel;
@@ -429,7 +438,12 @@ export async function regenerateForPlatform(
     if (!project) {
       throw new Error("Project not found or access denied");
     }
-    const proj = project as { postsPerPlatformByPlatform?: Record<string, number> | null; postsPerPlatform?: number | null };
+    const proj = project as {
+      postsPerPlatformByPlatform?: Record<string, number> | null;
+      postsPerPlatform?: number | null;
+      postTone?: string | null;
+    };
+    const effectivePostTone = postToneOverride ?? proj.postTone ?? null;
     const seriesTotal =
       (proj.postsPerPlatformByPlatform && typeof proj.postsPerPlatformByPlatform === "object" && platform in proj.postsPerPlatformByPlatform
         ? proj.postsPerPlatformByPlatform[platform]
@@ -476,6 +490,10 @@ export async function regenerateForPlatform(
         sourceContent,
         brandVoice: serializeBrandVoiceForPrompt(brandVoice),
       });
+      const toneInstruction = getTonePromptInstruction(effectivePostTone);
+      if (toneInstruction) {
+        userMessage = `---\nTONE INSTRUCTION:\n${toneInstruction}\n---\n\n` + userMessage;
+      }
       if (seriesTotal > 1) {
         const seriesContext = getSeriesContext(seriesIndex, seriesTotal);
         userMessage = seriesContext + "\n\n" + userMessage;
@@ -498,6 +516,7 @@ export async function regenerateForPlatform(
         optionsHash: generateCacheKey(JSON.stringify(options ?? {})),
         brandVoiceId: brandVoice?.id ?? null,
         brandVoiceUpdatedAt: brandVoice?.updatedAt ? brandVoice.updatedAt.toISOString() : null,
+        postTone: effectivePostTone,
         seriesIndex,
         seriesTotal,
       });
@@ -521,6 +540,7 @@ export async function regenerateForPlatform(
         success: true,
         source: generationResult.source,
         brandVoiceId: brandVoice?.id,
+        postTone: effectivePostTone ?? undefined,
         latencyMs,
         tokensUsed: null as number | null,
         costEstimate: null as number | null,

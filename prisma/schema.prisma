@@ -44,6 +44,7 @@ model Project {
   platforms        String[]  // Array of target platforms: ["linkedin", "twitter", "email"]
   postsPerPlatform Int?      // Enterprise: 1..3 posts per platform (series); null/1 = single post; fallback when postsPerPlatformByPlatform empty
   postsPerPlatformByPlatform Json?  // Enterprise: per-platform post count e.g. { "tiktok": 3, "linkedin": 2 }; keys = platform ids, values 1..3
+  postTone         String?   // Enterprise: tone id from lib/constants/post-tones.ts; null = no tone (only Brand Voice)
   createdAt        DateTime  @default(now())
   updatedAt        DateTime  @updatedAt
 

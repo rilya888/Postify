@@ -23,6 +23,7 @@ import { toast } from "sonner";
 import { ProjectForm } from "@/components/projects/project-form";
 import PlatformSelector from "@/components/ai/platform-selector";
 import PlatformSelectorWithPostCount from "@/components/ai/platform-selector-with-post-count";
+import { PostToneSelector } from "@/components/projects/post-tone-selector";
 import type { Platform } from "@/lib/constants/platforms";
 
 const platformEnum = z.enum(["linkedin", "twitter", "email", "instagram", "facebook", "tiktok", "youtube"]);
@@ -33,6 +34,7 @@ const audioFormSchema = z
     title: z.string().min(1, "Title is required").max(200, "Title must be less than 200 characters"),
     platforms: z.array(platformEnum).min(1, "Select at least one platform").max(7, "Maximum 7 platforms allowed"),
     postsPerPlatformByPlatform: z.record(platformEnum, postCountSchema).optional(),
+    postTone: z.string().optional().nullable(),
   })
   .refine(
     (data) => {
@@ -62,6 +64,7 @@ type AudioFormData = z.infer<typeof audioFormSchema>;
 type PlanFeatures = {
   canUseAudio: boolean;
   canUseSeries: boolean;
+  canUsePostTone: boolean;
   maxPostsPerPlatform: number;
   maxOutputsPerProject?: number;
   audioLimits?: { usedMinutes: number; limitMinutes: number } | null;
@@ -98,6 +101,7 @@ export function NewProjectFlow() {
         setPlanFeatures({
           canUseAudio: data.canUseAudio === true,
           canUseSeries: data.canUseSeries === true,
+          canUsePostTone: data.canUsePostTone === true,
           maxPostsPerPlatform: typeof data.maxPostsPerPlatform === "number" ? data.maxPostsPerPlatform : 1,
           maxOutputsPerProject: typeof data.maxOutputsPerProject === "number" ? data.maxOutputsPerProject : 10,
           audioLimits: data.audioLimits ?? null,
@@ -127,6 +131,9 @@ export function NewProjectFlow() {
         platforms: data.platforms,
         sourceContent: "",
       };
+      if (planFeatures?.canUsePostTone && data.postTone != null) {
+        body.postTone = data.postTone;
+      }
       if (planFeatures?.canUseSeries && data.postsPerPlatformByPlatform && typeof data.postsPerPlatformByPlatform === "object" && Object.keys(data.postsPerPlatformByPlatform).length > 0) {
         const filtered = Object.fromEntries(
           data.platforms.filter((p) => p in data.postsPerPlatformByPlatform!).map((p) => [p, data.postsPerPlatformByPlatform![p as keyof typeof data.postsPerPlatformByPlatform]])
@@ -302,6 +309,25 @@ export function NewProjectFlow() {
                     </FormItem>
                   )}
                 />
+
+                {planFeatures?.canUsePostTone && (
+                  <FormField
+                    control={audioForm.control}
+                    name="postTone"
+                    render={({ field }) => (
+                      <FormItem>
+                        <PostToneSelector
+                          value={field.value ?? null}
+                          onChange={field.onChange}
+                          disabled={audioStep !== "idle"}
+                          canUsePostTone={planFeatures.canUsePostTone}
+                          selectedPlatforms={(audioForm.watch("platforms") ?? []) as Platform[]}
+                        />
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                )}
 
                 <FormItem>
                   <FormLabel>Audio file *</FormLabel>

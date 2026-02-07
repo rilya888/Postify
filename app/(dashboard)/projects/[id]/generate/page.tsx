@@ -32,6 +32,19 @@ import {
 import { truncateAtWordBoundary } from "@/lib/utils/truncate-text";
 import type { ParseDocumentResponse } from "@/types/documents";
 import { SeriesPostsView } from "@/components/series/series-posts-view";
+import { Badge } from "@/components/ui/badge";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import {
+  POST_TONE_OPTIONS,
+  getToneById,
+  type PostToneId,
+} from "@/lib/constants/post-tones";
 
 interface Output {
   id: string;
@@ -49,6 +62,7 @@ interface Project {
   title: string;
   sourceContent: string;
   platforms: string[];
+  postTone?: string | null;
   postsPerPlatform?: number | null;
   postsPerPlatformByPlatform?: Record<string, number> | null;
   createdAt: Date;
@@ -81,6 +95,7 @@ export default function GeneratePage() {
   const tDocs = useTranslations("documents");
   const tSub = useTranslations("subscription");
   const tGen = useTranslations("generatePage");
+  const tPostTone = useTranslations("postTone");
   const tErr = useTranslations("errors");
   
   const [project, setProject] = useState<Project | null>(null);
@@ -98,8 +113,10 @@ export default function GeneratePage() {
   const [planFeatures, setPlanFeatures] = useState<{
     planType: string;
     canUseAudio: boolean;
+    canUsePostTone: boolean;
     audioLimits: { usedMinutes: number; limitMinutes: number } | null;
   } | null>(null);
+  const [regenerateToneOverride, setRegenerateToneOverride] = useState<PostToneId | null>(null);
   const [isUploadingAudio, setIsUploadingAudio] = useState(false);
   const [audioUploadError, setAudioUploadError] = useState<string | null>(null);
   const audioInputRef = useRef<HTMLInputElement | null>(null);
@@ -166,6 +183,7 @@ export default function GeneratePage() {
         setPlanFeatures({
           planType: data.planType ?? "text",
           canUseAudio: data.canUseAudio === true,
+          canUsePostTone: data.canUsePostTone === true,
           audioLimits: data.audioLimits ?? null,
         });
       } catch {
@@ -358,6 +376,14 @@ export default function GeneratePage() {
     }
   };
 
+  const buildRegenerateBody = (base: Record<string, unknown>) => {
+    const body = { ...base };
+    if (planFeatures?.canUsePostTone && regenerateToneOverride) {
+      (body as Record<string, unknown>).postToneOverride = regenerateToneOverride;
+    }
+    return body;
+  };
+
   const handleRegenerate = async (platform: string) => {
     if (!project?.sourceContent?.trim()) {
       toast.error(t("toasts.noSourceContent"));
@@ -369,11 +395,11 @@ export default function GeneratePage() {
       const res = await fetch("/api/generate", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
+        body: JSON.stringify(buildRegenerateBody({
           projectId: project.id,
           platforms: [platform],
           sourceContent: project.sourceContent,
-        }),
+        })),
       });
       if (!res.ok) {
         const body = await res.json().catch(() => ({}));
@@ -414,11 +440,11 @@ export default function GeneratePage() {
       const res = await fetch("/api/generate", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
+        body: JSON.stringify(buildRegenerateBody({
           projectId: project.id,
           outputId,
           sourceContent: project.sourceContent,
-        }),
+        })),
       });
       if (!res.ok) {
         const body = await res.json().catch(() => ({}));
@@ -459,12 +485,12 @@ export default function GeneratePage() {
       const res = await fetch("/api/generate", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
+        body: JSON.stringify(buildRegenerateBody({
           projectId: project.id,
           platforms: [platform],
           sourceContent: project.sourceContent,
           regenerateSeriesForPlatform: platform,
-        }),
+        })),
       });
       if (!res.ok) {
         const resBody = await res.json().catch(() => ({}));
@@ -494,12 +520,12 @@ export default function GeneratePage() {
       const res = await fetch("/api/generate", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
+        body: JSON.stringify(buildRegenerateBody({
           projectId: project.id,
           platforms: [platform],
           sourceContent: project.sourceContent,
           regenerateFromIndex: { platform, seriesIndex },
-        }),
+        })),
       });
       if (!res.ok) {
         const resBody = await res.json().catch(() => ({}));
@@ -557,18 +583,59 @@ export default function GeneratePage() {
             {t("generate.subtitle")}
           </p>
         </div>
-        {planFeatures && (
-          <span className="rounded-full border px-3 py-1 text-sm font-medium bg-muted">
-            {planFeatures.planType === "text_audio" ? (
-              <>
-                <MicIcon className="inline h-4 w-4 mr-1.5 -mt-0.5" />
-                {tSub("planTypeTextAudio")}
-              </>
-            ) : (
-              tSub("planTypeText")
-            )}
-          </span>
-        )}
+        <div className="flex flex-wrap items-center gap-2">
+          {planFeatures && (
+            <span className="rounded-full border px-3 py-1 text-sm font-medium bg-muted">
+              {planFeatures.planType === "text_audio" ? (
+                <>
+                  <MicIcon className="inline h-4 w-4 mr-1.5 -mt-0.5" />
+                  {tSub("planTypeTextAudio")}
+                </>
+              ) : (
+                tSub("planTypeText")
+              )}
+            </span>
+          )}
+          {project?.postTone && (() => {
+            const tone = getToneById(project.postTone);
+            return tone ? (
+              <Badge variant="secondary" className="flex items-center gap-1">
+                <span>{tone.icon}</span>
+                <span>Tone: {tPostTone(tone.labelKey)}</span>
+              </Badge>
+            ) : null;
+          })()}
+          {planFeatures?.canUsePostTone && project?.outputs && project.outputs.length > 0 && (
+            <Select
+              value={regenerateToneOverride ?? "project"}
+              onValueChange={(v) => setRegenerateToneOverride(v === "project" ? null : (v as PostToneId))}
+            >
+              <SelectTrigger className="w-[200px] h-9" aria-label={tGen("regenerateWithToneLabel")}>
+                <SelectValue>
+                  {regenerateToneOverride ? (
+                    <span className="flex items-center gap-1.5">
+                      <span>{getToneById(regenerateToneOverride)?.icon}</span>
+                      <span>{tPostTone(getToneById(regenerateToneOverride)!.labelKey)}</span>
+                    </span>
+                  ) : (
+                    tGen("regenerateWithProjectTone")
+                  )}
+                </SelectValue>
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="project">{tGen("regenerateWithProjectTone")}</SelectItem>
+                {POST_TONE_OPTIONS.map((tone) => (
+                  <SelectItem key={tone.id} value={tone.id}>
+                    <span className="flex items-center gap-1.5">
+                      <span>{tone.icon}</span>
+                      <span>{tPostTone(tone.labelKey)}</span>
+                    </span>
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          )}
+        </div>
       </div>
 
       {piiWarnings.length > 0 && (

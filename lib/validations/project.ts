@@ -1,7 +1,19 @@
 import { z } from "zod";
 import { MAX_OUTPUTS_PER_PROJECT_ENTERPRISE } from "@/lib/constants/plans";
+import { STORABLE_TONE_IDS, isValidToneId } from "@/lib/constants/post-tones";
+import type { Plan } from "@/lib/constants/plans";
+
+/** Normalize postTone for plan: non-enterprise gets null (silent ignore). */
+export function validatePostToneForPlan(
+  postTone: string | null | undefined,
+  plan: Plan
+): string | null {
+  if (!postTone || plan !== "enterprise") return null;
+  return isValidToneId(postTone) ? postTone : null;
+}
 
 const platformEnum = z.enum(["linkedin", "twitter", "email", "instagram", "facebook", "tiktok", "youtube"]);
+const postToneEnum = z.enum(STORABLE_TONE_IDS).optional().nullable();
 const postCountSchema = z.union([z.literal(1), z.literal(2), z.literal(3)]);
 
 /**
@@ -49,6 +61,7 @@ export const createProjectSchema = z
     platforms: z.array(platformEnum).min(1, "Select at least one platform").max(7, "Maximum 7 platforms allowed"),
     postsPerPlatform: postsPerPlatformSchema,
     postsPerPlatformByPlatform: postsPerPlatformByPlatformSchema,
+    postTone: postToneEnum,
   })
   .refine(
     (data) => !data.sourceContent || data.sourceContent.length >= 10,
@@ -88,6 +101,7 @@ export const createProjectSchemaForTextForm = z
     platforms: z.array(platformEnum).min(1, "Select at least one platform").max(7, "Maximum 7 platforms allowed"),
     postsPerPlatform: postsPerPlatformSchema,
     postsPerPlatformByPlatform: postsPerPlatformByPlatformSchema,
+    postTone: postToneEnum,
   })
   .refine(
     (data) => totalOutputsFromData(data) <= MAX_OUTPUTS_PER_PROJECT_ENTERPRISE,
@@ -124,6 +138,7 @@ export const updateProjectSchema = z
     platforms: z.array(platformEnum).min(1, "Select at least one platform").max(7, "Maximum 7 platforms allowed").optional(),
     postsPerPlatform: postsPerPlatformSchema,
     postsPerPlatformByPlatform: postsPerPlatformByPlatformSchema,
+    postTone: postToneEnum,
     confirmDeleteExtraPosts: z.boolean().optional(),
   })
   .refine(

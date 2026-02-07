@@ -38,6 +38,7 @@ export async function GET() {
       : null;
 
   const canUseSeries = plan === "enterprise";
+  const canUsePostTone = plan === "enterprise";
   const maxPostsPerPlatform = canUseSeries ? 3 : 1;
 
   return NextResponse.json({
@@ -45,6 +46,7 @@ export async function GET() {
     planType: audio.planType,
     canUseAudio: audio.allowed,
     canUseSeries,
+    canUsePostTone,
     maxPostsPerPlatform,
     maxOutputsPerProject: limits?.maxOutputsPerProject ?? 10,
     maxProjects: limits?.maxProjects ?? 0,

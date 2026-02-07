@@ -9,6 +9,7 @@ import { invalidateProjectGenerationCache } from "@/lib/services/cache";
 import { checkProjectsRateLimit } from "@/lib/utils/rate-limit";
 import { Logger } from "@/lib/utils/logger";
 import { getEffectivePlan } from "@/lib/constants/plans";
+import { validatePostToneForPlan } from "@/lib/validations/project";
 import { z } from "zod";
 
 function rateLimitResponse(rateLimit: { retryAfterSeconds?: number }) {
@@ -221,11 +222,21 @@ export async function PATCH(
       }
     }
 
+    const finalPostTone =
+      validatedData.postTone !== undefined
+        ? validatePostToneForPlan(validatedData.postTone ?? null, plan)
+        : undefined;
+    const postToneChanged =
+      finalPostTone !== undefined && finalPostTone !== (existingProject.postTone ?? null);
+
     const updateData: Prisma.ProjectUpdateInput = {
       title: validatedData.title,
       sourceContent: validatedData.sourceContent,
       platforms: validatedData.platforms,
     };
+    if (finalPostTone !== undefined) {
+      updateData.postTone = finalPostTone;
+    }
     if (validatedData.postsPerPlatformByPlatform !== undefined) {
       updateData.postsPerPlatformByPlatform =
         effectiveByPlatform && Object.keys(effectiveByPlatform).length > 0
@@ -248,7 +259,7 @@ export async function PATCH(
       data: updateData,
     });
 
-    if (validatedData.sourceContent !== undefined) {
+    if (validatedData.sourceContent !== undefined || postToneChanged) {
       await invalidateProjectGenerationCache(params.id);
     }
 

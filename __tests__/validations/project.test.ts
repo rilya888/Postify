@@ -6,6 +6,7 @@ import {
   createProjectSchema,
   createProjectSchemaForTextForm,
   updateProjectSchema,
+  validatePostToneForPlan,
 } from "@/lib/validations/project";
 
 describe("project validation", () => {
@@ -188,6 +189,67 @@ describe("project validation", () => {
       if (!result.success) {
         expect(result.error.issues.some((i) => i.path.includes("postsPerPlatformByPlatform"))).toBe(true);
       }
+    });
+  });
+
+  describe("postTone validation", () => {
+    it("createProjectSchema accepts valid postTone", () => {
+      const result = createProjectSchema.safeParse({
+        title: "My Project",
+        sourceContent: "At least ten chars here",
+        platforms: ["linkedin"],
+        postTone: "professional",
+      });
+      expect(result.success).toBe(true);
+    });
+
+    it("createProjectSchema accepts null postTone", () => {
+      const result = createProjectSchema.safeParse({
+        title: "My Project",
+        sourceContent: "At least ten chars here",
+        platforms: ["linkedin"],
+        postTone: null,
+      });
+      expect(result.success).toBe(true);
+    });
+
+    it("createProjectSchema rejects invalid postTone", () => {
+      const result = createProjectSchema.safeParse({
+        title: "My Project",
+        sourceContent: "At least ten chars here",
+        platforms: ["linkedin"],
+        postTone: "invalid-tone",
+      });
+      expect(result.success).toBe(false);
+    });
+
+    it("updateProjectSchema accepts postTone", () => {
+      const result = updateProjectSchema.safeParse({ postTone: "sassy" });
+      expect(result.success).toBe(true);
+    });
+  });
+
+  describe("validatePostToneForPlan", () => {
+    it("returns postTone for enterprise with valid tone", () => {
+      expect(validatePostToneForPlan("professional", "enterprise")).toBe("professional");
+      expect(validatePostToneForPlan("sassy", "enterprise")).toBe("sassy");
+    });
+
+    it("returns null for non-enterprise plans (silent ignore)", () => {
+      expect(validatePostToneForPlan("professional", "free")).toBe(null);
+      expect(validatePostToneForPlan("professional", "pro")).toBe(null);
+      expect(validatePostToneForPlan("professional", "trial")).toBe(null);
+    });
+
+    it("returns null for null or empty postTone", () => {
+      expect(validatePostToneForPlan(null, "enterprise")).toBe(null);
+      expect(validatePostToneForPlan(undefined, "enterprise")).toBe(null);
+      expect(validatePostToneForPlan("", "enterprise")).toBe(null);
+    });
+
+    it("returns null for invalid tone id even on enterprise", () => {
+      expect(validatePostToneForPlan("invalid-tone", "enterprise")).toBe(null);
+      expect(validatePostToneForPlan("neutral", "enterprise")).toBe(null);
     });
   });
 });

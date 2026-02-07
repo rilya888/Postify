@@ -43,6 +43,8 @@ import type { ParseDocumentResponse } from "@/types/documents";
 import { ProgressBar } from "@/components/ui/progress-bar";
 import { useAutoSaveDraft } from "@/lib/hooks/useAutoSaveDraft";
 import { NotificationService } from "@/lib/services/notifications";
+import { PostToneSelector } from "@/components/projects/post-tone-selector";
+import type { PostToneId } from "@/lib/constants/post-tones";
 
 type ProjectFormProps = {
   initialData?: {
@@ -51,6 +53,7 @@ type ProjectFormProps = {
     platforms: ("linkedin" | "twitter" | "email" | "instagram" | "facebook" | "tiktok" | "youtube")[];
     postsPerPlatform?: 1 | 2 | 3;
     postsPerPlatformByPlatform?: Partial<Record<Platform, 1 | 2 | 3>>;
+    postTone?: string | null;
   };
   projectId?: string;
   onSubmitSuccess?: () => void;
@@ -75,6 +78,7 @@ export function ProjectForm({
   const [isUploadingFile, setIsUploadingFile] = useState(false);
   const [planFeatures, setPlanFeatures] = useState<{
     canUseSeries: boolean;
+    canUsePostTone: boolean;
     maxPostsPerPlatform: number;
     maxOutputsPerProject?: number;
   } | null>(null);
@@ -97,6 +101,7 @@ export function ProjectForm({
         const data = await res.json();
         setPlanFeatures({
           canUseSeries: data.canUseSeries === true,
+          canUsePostTone: data.canUsePostTone === true,
           maxPostsPerPlatform: typeof data.maxPostsPerPlatform === "number" ? data.maxPostsPerPlatform : 1,
           maxOutputsPerProject: typeof data.maxOutputsPerProject === "number" ? data.maxOutputsPerProject : 10,
         });
@@ -127,6 +132,7 @@ export function ProjectForm({
       platforms: initialPlatforms.length ? initialPlatforms : [],
       postsPerPlatform: initialData?.postsPerPlatform ?? 1,
       postsPerPlatformByPlatform: initialByPlatform,
+      postTone: (initialData?.postTone ?? null) as PostToneId | null,
     },
   });
 
@@ -146,6 +152,7 @@ export function ProjectForm({
         platforms: (value.platforms || []).filter(Boolean) as Platform[],
         postsPerPlatform: value.postsPerPlatform ?? 1,
         postsPerPlatformByPlatform: value.postsPerPlatformByPlatform ?? {},
+        postTone: value.postTone ?? null,
       });
     });
     return () => subscription.unsubscribe();
@@ -410,6 +417,25 @@ export function ProjectForm({
             </FormItem>
           )}
         />
+
+        {planFeatures?.canUsePostTone && (
+          <FormField
+            control={form.control}
+            name="postTone"
+            render={({ field }) => (
+              <FormItem>
+                <PostToneSelector
+                  value={field.value ?? null}
+                  onChange={field.onChange}
+                  disabled={isSubmitting}
+                  canUsePostTone={planFeatures.canUsePostTone}
+                  selectedPlatforms={(form.watch("platforms") ?? []) as Platform[]}
+                />
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+        )}
 
         {saveProgress > 0 && (
           <ProgressBar 
