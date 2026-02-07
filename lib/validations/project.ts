@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { MAX_OUTPUTS_PER_PROJECT_ENTERPRISE } from "@/lib/constants/plans";
 
 const platformEnum = z.enum(["linkedin", "twitter", "email", "instagram", "facebook", "tiktok", "youtube"]);
 const postCountSchema = z.union([z.literal(1), z.literal(2), z.literal(3)]);
@@ -54,8 +55,11 @@ export const createProjectSchema = z
     { message: "Content must be at least 10 characters when provided", path: ["sourceContent"] }
   )
   .refine(
-    (data) => totalOutputsFromData(data) <= 10,
-    { message: "Platforms × posts per platform cannot exceed 10", path: ["postsPerPlatform"] }
+    (data) => totalOutputsFromData(data) <= MAX_OUTPUTS_PER_PROJECT_ENTERPRISE,
+    {
+      message: `Platforms × posts per platform cannot exceed ${MAX_OUTPUTS_PER_PROJECT_ENTERPRISE}`,
+      path: ["postsPerPlatform"],
+    }
   )
   .refine(
     (data) => {
@@ -86,8 +90,11 @@ export const createProjectSchemaForTextForm = z
     postsPerPlatformByPlatform: postsPerPlatformByPlatformSchema,
   })
   .refine(
-    (data) => totalOutputsFromData(data) <= 10,
-    { message: "Platforms × posts per platform cannot exceed 10", path: ["postsPerPlatform"] }
+    (data) => totalOutputsFromData(data) <= MAX_OUTPUTS_PER_PROJECT_ENTERPRISE,
+    {
+      message: `Platforms × posts per platform cannot exceed ${MAX_OUTPUTS_PER_PROJECT_ENTERPRISE}`,
+      path: ["postsPerPlatform"],
+    }
   )
   .refine(
     (data) => {
@@ -128,9 +135,12 @@ export const updateProjectSchema = z
         postsPerPlatform: data.postsPerPlatform,
         postsPerPlatformByPlatform: data.postsPerPlatformByPlatform,
       });
-      return total <= 10;
+      return total <= MAX_OUTPUTS_PER_PROJECT_ENTERPRISE;
     },
-    { message: "Platforms × posts per platform cannot exceed 10", path: ["postsPerPlatform"] }
+    {
+      message: `Platforms × posts per platform cannot exceed ${MAX_OUTPUTS_PER_PROJECT_ENTERPRISE}`,
+      path: ["postsPerPlatform"],
+    }
   )
   .refine(
     (data) => {

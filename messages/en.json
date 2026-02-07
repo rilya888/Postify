@@ -181,6 +181,9 @@
     "deleteExtraPostsTitle": "Delete extra posts?",
     "deleteExtraPostsDescription": "Reducing to {n} posts per platform will delete {count} existing post(s). This cannot be undone.",
     "deleteExtraPostsDescriptionPerPlatform": "Reducing posts for some platforms will delete {count} existing post(s). This cannot be undone.",
-    "deleteAndUpdate": "Delete and update"
+    "deleteAndUpdate": "Delete and update",
+    "postsLimitHint": "Limit: {limit} posts per project. Current: {current}/{limit}",
+    "postsLimitToast": "Maximum {limit} posts per project reached",
+    "postsLimitCheckboxTooltip": "Maximum {limit} posts per project reached"
   }
 }

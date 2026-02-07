@@ -54,6 +54,10 @@ export const PLAN_LIMITS = {
   },
 } as const;
 
+/** Max outputs per project for Enterprise (used by validation and UI) */
+export const MAX_OUTPUTS_PER_PROJECT_ENTERPRISE =
+  PLAN_LIMITS.enterprise.maxOutputsPerProject;
+
 /** Subscription plan identifier (effective or DB value) */
 export type Plan = keyof typeof PLAN_LIMITS;
 

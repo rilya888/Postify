@@ -3,6 +3,7 @@
 import { useState, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { useTranslations } from "next-intl";
+import { MAX_OUTPUTS_PER_PROJECT_ENTERPRISE } from "@/lib/constants/plans";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
@@ -39,9 +40,12 @@ const audioFormSchema = z
       const byPlatform = data.postsPerPlatformByPlatform;
       if (!byPlatform || typeof byPlatform !== "object" || Array.isArray(byPlatform)) return true;
       const sum = platforms.reduce((s, p) => s + (byPlatform[p] ?? 1), 0);
-      return sum <= 10;
+      return sum <= MAX_OUTPUTS_PER_PROJECT_ENTERPRISE;
     },
-    { message: "Total posts across platforms cannot exceed 10", path: ["postsPerPlatformByPlatform"] }
+    {
+      message: `Total posts across platforms cannot exceed ${MAX_OUTPUTS_PER_PROJECT_ENTERPRISE}`,
+      path: ["postsPerPlatformByPlatform"],
+    }
   )
   .refine(
     (data) => {
@@ -59,6 +63,7 @@ type PlanFeatures = {
   canUseAudio: boolean;
   canUseSeries: boolean;
   maxPostsPerPlatform: number;
+  maxOutputsPerProject?: number;
   audioLimits?: { usedMinutes: number; limitMinutes: number } | null;
 };
 
@@ -94,6 +99,7 @@ export function NewProjectFlow() {
           canUseAudio: data.canUseAudio === true,
           canUseSeries: data.canUseSeries === true,
           maxPostsPerPlatform: typeof data.maxPostsPerPlatform === "number" ? data.maxPostsPerPlatform : 1,
+          maxOutputsPerProject: typeof data.maxOutputsPerProject === "number" ? data.maxOutputsPerProject : 10,
           audioLimits: data.audioLimits ?? null,
         });
       } catch {
@@ -273,6 +279,7 @@ export function NewProjectFlow() {
                             }}
                             canUseSeries={planFeatures?.canUseSeries}
                             maxPostsPerPlatform={planFeatures?.maxPostsPerPlatform ?? 1}
+                            maxOutputsPerProject={planFeatures?.maxOutputsPerProject ?? 10}
                             disabled={audioStep !== "idle"}
                             postsCountLabel={tGen("postsCountLabel")}
                           />

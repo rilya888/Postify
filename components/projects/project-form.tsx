@@ -76,6 +76,7 @@ export function ProjectForm({
   const [planFeatures, setPlanFeatures] = useState<{
     canUseSeries: boolean;
     maxPostsPerPlatform: number;
+    maxOutputsPerProject?: number;
   } | null>(null);
   const [extraPostsDialog, setExtraPostsDialog] = useState<{
     open: boolean;
@@ -97,6 +98,7 @@ export function ProjectForm({
         setPlanFeatures({
           canUseSeries: data.canUseSeries === true,
           maxPostsPerPlatform: typeof data.maxPostsPerPlatform === "number" ? data.maxPostsPerPlatform : 1,
+          maxOutputsPerProject: typeof data.maxOutputsPerProject === "number" ? data.maxOutputsPerProject : 10,
         });
       } catch {
         // ignore
@@ -385,6 +387,7 @@ export function ProjectForm({
                     }}
                     canUseSeries={planFeatures?.canUseSeries}
                     maxPostsPerPlatform={planFeatures?.maxPostsPerPlatform ?? 1}
+                    maxOutputsPerProject={planFeatures?.maxOutputsPerProject ?? 10}
                     disabled={isSubmitting}
                     postsCountLabel={tGen("postsCountLabel")}
                   />

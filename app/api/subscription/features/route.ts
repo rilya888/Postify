@@ -46,6 +46,7 @@ export async function GET() {
     canUseAudio: audio.allowed,
     canUseSeries,
     maxPostsPerPlatform,
+    maxOutputsPerProject: limits?.maxOutputsPerProject ?? 10,
     maxProjects: limits?.maxProjects ?? 0,
     maxCharactersPerContent: limits?.maxCharactersPerContent ?? 0,
     audioLimits:
