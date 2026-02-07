@@ -211,6 +211,23 @@ model ProjectHistory {
   @@map("project_history")
 }
 
+// AuditEvent model - immutable cross-entity audit log (safe for delete events)
+// Stores entity snapshots without foreign keys to deleted records.
+model AuditEvent {
+  id         String   @id @default(cuid())
+  entityType String   // e.g. "project"
+  entityId   String   // original entity id (can refer to deleted record)
+  userId     String
+  action     String   // e.g. "delete"
+  payload    Json     // snapshot/details for diagnostics and admin audit
+  timestamp  DateTime @default(now())
+
+  @@index([entityType, entityId, timestamp])
+  @@index([userId, timestamp])
+  @@index([timestamp])
+  @@map("audit_events")
+}
+
 // BrandVoice model - stores user's brand voice characteristics for AI generation
 // Used in: Brand voice preservation (Stage 7+)
 model BrandVoice {

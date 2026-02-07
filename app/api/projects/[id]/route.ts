@@ -5,6 +5,7 @@ import { prisma } from "@/lib/db/prisma";
 import { createErrorResponse, createSuccessResponse } from "@/lib/utils/api-error";
 import { updateProjectSchema } from "@/lib/validations/project";
 import { logProjectChange } from "@/lib/services/project-history";
+import { logAuditEventSafe } from "@/lib/services/audit-events";
 import { invalidateProjectGenerationCache } from "@/lib/services/cache";
 import { checkProjectsRateLimit } from "@/lib/utils/rate-limit";
 import { Logger } from "@/lib/utils/logger";
@@ -305,6 +306,11 @@ export async function DELETE(
 
     const existingProject = await prisma.project.findUnique({
       where: { id: params.id },
+      include: {
+        outputs: {
+          select: { id: true },
+        },
+      },
     });
 
     if (!existingProject || existingProject.userId !== session.user.id) {
@@ -314,14 +320,31 @@ export async function DELETE(
       );
     }
 
+    const deleteSnapshot = {
+      title: existingProject.title,
+      platforms: existingProject.platforms,
+      outputsCount: existingProject.outputs.length,
+      createdAt: existingProject.createdAt.toISOString(),
+      deletedAt: new Date().toISOString(),
+    };
+
     await prisma.project.delete({
       where: { id: params.id },
     });
 
-    // Log the change
-    await logProjectChange(params.id, session.user.id, "delete", {});
+    const auditLogged = await logAuditEventSafe(
+      "project",
+      params.id,
+      session.user.id,
+      "delete",
+      deleteSnapshot
+    );
 
-    Logger.info("Deleted project", { userId: session.user.id, projectId: params.id });
+    Logger.info("Deleted project", {
+      userId: session.user.id,
+      projectId: params.id,
+      auditLogged,
+    });
 
     return new NextResponse(null, { status: 204 });
   } catch (error) {
@@ -330,7 +353,7 @@ export async function DELETE(
       projectId: params.id
     });
 
-    // Handle case where project has related outputs (foreign key constraint)
+    // Keep a specific error for non-cascade databases/configurations.
     if (error instanceof Error && error.message.includes("foreign key constraint")) {
       return createErrorResponse(
         {

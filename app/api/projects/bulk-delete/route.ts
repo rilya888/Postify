@@ -4,6 +4,7 @@ import { createErrorResponse, createSuccessResponse } from "@/lib/utils/api-erro
 import { bulkOperationSchema } from "@/lib/validations/project";
 import { checkProjectsRateLimit } from "@/lib/utils/rate-limit";
 import { Logger } from "@/lib/utils/logger";
+import { logAuditEventSafe } from "@/lib/services/audit-events";
 import { z } from "zod";
 
 /**
@@ -64,7 +65,13 @@ export async function POST(request: Request) {
         id: { in: validatedData.projectIds },
         userId: session.user.id,
       },
-      select: { id: true },
+      select: {
+        id: true,
+        title: true,
+        platforms: true,
+        createdAt: true,
+        _count: { select: { outputs: true } },
+      },
     });
 
     const projectIdsToDelete = projects.map(p => p.id);
@@ -77,6 +84,19 @@ export async function POST(request: Request) {
       );
     }
 
+    const deleteSnapshotById = new Map(
+      projects.map((project) => [
+        project.id,
+        {
+          title: project.title,
+          platforms: project.platforms,
+          outputsCount: project._count.outputs,
+          createdAt: project.createdAt.toISOString(),
+          deletedAt: new Date().toISOString(),
+        },
+      ])
+    );
+
     // Delete projects
     const result = await prisma.project.deleteMany({
       where: {
@@ -84,15 +104,30 @@ export async function POST(request: Request) {
       },
     });
 
+    const auditResults = await Promise.all(
+      projectIdsToDelete.map((projectId) =>
+        logAuditEventSafe(
+          "project",
+          projectId,
+          session.user.id,
+          "delete",
+          deleteSnapshotById.get(projectId) ?? { deletedAt: new Date().toISOString() }
+        )
+      )
+    );
+    const auditFailedCount = auditResults.filter((ok) => !ok).length;
+
     Logger.info("Bulk delete completed", { 
       userId: session.user.id, 
       deletedCount: result.count,
-      failedCount: failedIds.length
+      failedCount: failedIds.length,
+      auditFailedCount,
     });
 
     return createSuccessResponse({
       deletedCount: result.count,
       failedIds,
+      auditFailedCount,
     });
   } catch (error) {
     Logger.error("Failed bulk delete", error as Error, { userId: 'unknown' });
