@@ -128,11 +128,15 @@ export function BrandVoiceForm({ userId, initialData, onSuccess, submitViaApi }:
           toast.success(t('created'));
         }
       } else {
+        const body = buildBody(values);
         if (initialData) {
-          await updateBrandVoice(initialData.id, userId, values);
+          await updateBrandVoice(initialData.id, userId, {
+            ...body,
+            isActive: values.isActive ?? initialData.isActive,
+          });
           toast.success(t('updated'));
         } else {
-          await createBrandVoice(userId, values);
+          await createBrandVoice(userId, body);
           toast.success(t('created'));
         }
       }
